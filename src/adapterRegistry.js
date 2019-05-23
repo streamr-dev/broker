@@ -16,4 +16,5 @@ module.exports = {
 }
 
 require('./http/index')
+require('./mqtt/index')
 require('./websocket/index')
