@@ -1,7 +1,6 @@
 const { startTracker } = require('@streamr/streamr-p2p-network')
 const StreamrClient = require('streamr-client')
 const fetch = require('node-fetch')
-const WebSocket = require('ws')
 const createBroker = require('../../src/broker')
 
 const httpPort1 = 12341
@@ -87,8 +86,8 @@ describe('broker: end-to-end', () => {
     let client1
     let client2
     let client3
-    let newStream
-    let newStreamId
+    let freshStream
+    let freshStreamId
 
     beforeAll(async () => {
         tracker = await startTracker('127.0.0.1', trackerPort, 'tracker')
@@ -102,10 +101,10 @@ describe('broker: end-to-end', () => {
         await wait(100) // TODO: remove when StaleObjectStateException is fixed in E&E
         client3 = createClient(wsPort3, 'tester2-api-key') // different api key
 
-        newStream = await client1.createStream({
+        freshStream = await client1.createStream({
             name: 'broker.test.js-' + Date.now()
         })
-        newStreamId = newStream.id
+        freshStreamId = freshStream.id
     })
 
     afterAll(async () => {
@@ -123,34 +122,34 @@ describe('broker: end-to-end', () => {
         const client2Messages = []
         const client3Messages = []
 
-        await newStream.grantPermission('read', 'tester2@streamr.com')
+        await freshStream.grantPermission('read', 'tester2@streamr.com')
 
         client1.subscribe({
-            stream: newStreamId
+            stream: freshStreamId
         }, (message, metadata) => {
             client1Messages.push(message)
         })
 
         client2.subscribe({
-            stream: newStreamId
+            stream: freshStreamId
         }, (message, metadata) => {
             client2Messages.push(message)
         })
 
         client3.subscribe({
-            stream: newStreamId
+            stream: freshStreamId
         }, (message, metadata) => {
             client3Messages.push(message)
         })
 
         await wait(1000) // TODO: seems like this is needed for subscribes to go thru?
-        await client1.publish(newStreamId, {
+        await client1.publish(freshStreamId, {
             key: 1
         })
-        await client1.publish(newStreamId, {
+        await client1.publish(freshStreamId, {
             key: 2
         })
-        await client1.publish(newStreamId, {
+        await client1.publish(freshStreamId, {
             key: 3
         })
 
@@ -198,22 +197,22 @@ describe('broker: end-to-end', () => {
         const client2Messages = []
         const client3Messages = []
 
-        await newStream.grantPermission('read', 'tester2@streamr.com')
+        await freshStream.grantPermission('read', 'tester2@streamr.com')
 
         client1.subscribe({
-            stream: newStreamId
+            stream: freshStreamId
         }, (message, metadata) => {
             client1Messages.push(message)
         })
 
         client2.subscribe({
-            stream: newStreamId
+            stream: freshStreamId
         }, (message, metadata) => {
             client2Messages.push(message)
         })
 
         client3.subscribe({
-            stream: newStreamId
+            stream: freshStreamId
         }, (message, metadata) => {
             client3Messages.push(message)
         })
@@ -221,7 +220,7 @@ describe('broker: end-to-end', () => {
         await wait(1000) // TODO: seems like this is needed for subscribes to go thru?
         for (let i = 1; i <= 3; ++i) {
             // eslint-disable-next-line no-await-in-loop
-            const n = await fetch(`http://localhost:${httpPort1}/api/v1/streams/${newStreamId}/data`, {
+            const n = await fetch(`http://localhost:${httpPort1}/api/v1/streams/${freshStreamId}/data`, {
                 method: 'post',
                 headers: {
                     Authorization: 'token tester1-api-key'
@@ -230,7 +229,6 @@ describe('broker: end-to-end', () => {
                     key: i
                 })
             })
-            console.log(await n.text())
         }
 
         await waitForCondition(() => client2Messages.length === 3)
@@ -268,6 +266,97 @@ describe('broker: end-to-end', () => {
             },
             {
                 key: 3
+            },
+        ])
+    })
+
+    it('happy-path: resend last request via websocket', async () => {
+        await freshStream.grantPermission('read', 'tester2@streamr.com')
+
+        client1.subscribe({
+            stream: freshStreamId
+        }, () => {})
+
+        client2.subscribe({
+            stream: freshStreamId
+        }, () => {})
+
+        client3.subscribe({
+            stream: freshStreamId
+        }, () => {})
+
+        await client1.publish(freshStreamId, {
+            key: 1
+        })
+        await client1.publish(freshStreamId, {
+            key: 2
+        })
+        await client1.publish(freshStreamId, {
+            key: 3
+        })
+        await client1.publish(freshStreamId, {
+            key: 4
+        })
+
+        await wait(1500) // wait for propagation
+
+        const client1Messages = []
+        const client2Messages = []
+        const client3Messages = []
+
+        client1.resend({
+            stream: freshStreamId,
+            resend: {
+                last: 2
+            }
+        }, (message) => {
+            client1Messages.push(message)
+        })
+
+        client2.resend({
+            stream: freshStreamId,
+            resend: {
+                last: 2
+            }
+        }, (message) => {
+            client2Messages.push(message)
+        })
+
+        client3.resend({
+            stream: freshStreamId,
+            resend: {
+                last: 2
+            }
+        }, (message) => {
+            client3Messages.push(message)
+        })
+
+        await waitForCondition(() => client3Messages.length === 2)
+
+        expect(client1Messages).toEqual([
+            {
+                key: 3
+            },
+            {
+                key: 4
+            },
+        ])
+
+        expect(client2Messages).toEqual([
+            {
+                key: 3
+            },
+            {
+                key: 4
+            },
+        ])
+
+        expect(client3Messages).toEqual([
+            {
+                key: 3
+            },
+            {
+                key: 4
             },
         ])
     })
