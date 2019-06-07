@@ -16,7 +16,7 @@ const trackerPort = 12370
 
 // Copy-paste from network, should maybe consider packaging into library?
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
-const waitForCondition = (conditionFn, timeout = 10 * 1000, retryInterval = 100) => {
+const waitForCondition = (conditionFn, timeout = 4500, retryInterval = 100) => {
     if (conditionFn()) {
         return Promise.resolve()
     }
@@ -142,7 +142,8 @@ describe('broker: end-to-end', () => {
             client3Messages.push(message)
         })
 
-        await wait(1000) // TODO: seems like this is needed for subscribes to go thru?
+        await wait(1500) // TODO: wait for network to stabilize
+
         await client1.publish(freshStreamId, {
             key: 1
         })
@@ -153,7 +154,7 @@ describe('broker: end-to-end', () => {
             key: 3
         })
 
-        await waitForCondition(() => client2Messages.length === 3)
+        await waitForCondition(() => client2Messages.length === 3 && client3Messages.length === 3)
 
         expect(client1Messages).toEqual([
             {
@@ -217,7 +218,8 @@ describe('broker: end-to-end', () => {
             client3Messages.push(message)
         })
 
-        await wait(1000) // TODO: seems like this is needed for subscribes to go thru?
+        await wait(1500) // TODO: wait for network to stabilize
+
         for (let i = 1; i <= 3; ++i) {
             // eslint-disable-next-line no-await-in-loop
             const n = await fetch(`http://localhost:${httpPort1}/api/v1/streams/${freshStreamId}/data`, {
@@ -231,7 +233,7 @@ describe('broker: end-to-end', () => {
             })
         }
 
-        await waitForCondition(() => client2Messages.length === 3)
+        await waitForCondition(() => client2Messages.length === 3 && client3Messages.length === 3)
 
         expect(client1Messages).toEqual([
             {
@@ -357,6 +359,240 @@ describe('broker: end-to-end', () => {
             },
             {
                 key: 4
+            },
+        ])
+    })
+
+    it('happy-path: resend from request via websocket', async () => {
+        await freshStream.grantPermission('read', 'tester2@streamr.com')
+
+        client1.subscribe({
+            stream: freshStreamId
+        }, () => {})
+
+        client2.subscribe({
+            stream: freshStreamId
+        }, () => {})
+
+        client3.subscribe({
+            stream: freshStreamId
+        }, () => {})
+
+        await client1.publish(freshStreamId, {
+            key: 1
+        })
+        await wait(50)
+        const timeAfterFirstMessagePublished = Date.now()
+
+        await client1.publish(freshStreamId, {
+            key: 2
+        })
+        await wait(50)
+        await client1.publish(freshStreamId, {
+            key: 3
+        })
+        await wait(50)
+        await client1.publish(freshStreamId, {
+            key: 4
+        })
+
+        await wait(1500) // wait for propagation
+
+        const client1Messages = []
+        const client2Messages = []
+        const client3Messages = []
+
+        client1.resend({
+            stream: freshStreamId,
+            resend: {
+                from: {
+                    timestamp: timeAfterFirstMessagePublished,
+                    sequenceNumber: 0
+                }
+            }
+        }, (message) => {
+            client1Messages.push(message)
+        })
+
+        client2.resend({
+            stream: freshStreamId,
+            resend: {
+                from: {
+                    timestamp: timeAfterFirstMessagePublished,
+                    sequenceNumber: 0
+                }
+            }
+        }, (message) => {
+            client2Messages.push(message)
+        })
+
+        client3.resend({
+            stream: freshStreamId,
+            resend: {
+                from: {
+                    timestamp: timeAfterFirstMessagePublished,
+                    sequenceNumber: 0
+                }
+            }
+        }, (message) => {
+            client3Messages.push(message)
+        })
+
+        await waitForCondition(() => client3Messages.length === 3)
+
+        expect(client1Messages).toEqual([
+            {
+                key: 2
+            },
+            {
+                key: 3
+            },
+            {
+                key: 4
+            },
+        ])
+
+        expect(client2Messages).toEqual([
+            {
+                key: 2
+            },
+            {
+                key: 3
+            },
+            {
+                key: 4
+            },
+        ])
+
+        expect(client3Messages).toEqual([
+            {
+                key: 2
+            },
+            {
+                key: 3
+            },
+            {
+                key: 4
+            },
+        ])
+    })
+
+    it('happy-path: resend range request via websocket', async () => {
+        await freshStream.grantPermission('read', 'tester2@streamr.com')
+
+        client1.subscribe({
+            stream: freshStreamId
+        }, () => {})
+
+        client2.subscribe({
+            stream: freshStreamId
+        }, () => {})
+
+        client3.subscribe({
+            stream: freshStreamId
+        }, () => {})
+
+        await client1.publish(freshStreamId, {
+            key: 1
+        })
+        await wait(50)
+        const timeAfterFirstMessagePublished = Date.now()
+
+        await client1.publish(freshStreamId, {
+            key: 2
+        })
+        await wait(50)
+        await client1.publish(freshStreamId, {
+            key: 3
+        })
+        await wait(25)
+        const timeAfterThirdMessagePublished = Date.now()
+        await wait(25)
+
+        await client1.publish(freshStreamId, {
+            key: 4
+        })
+
+        await wait(1500) // wait for propagation
+
+        const client1Messages = []
+        const client2Messages = []
+        const client3Messages = []
+
+        client1.resend({
+            stream: freshStreamId,
+            resend: {
+                from: {
+                    timestamp: timeAfterFirstMessagePublished,
+                    sequenceNumber: 0
+                },
+                to: {
+                    timestamp: timeAfterThirdMessagePublished,
+                    sequenceNumber: 0
+                }
+            }
+        }, (message) => {
+            client1Messages.push(message)
+        })
+
+        client2.resend({
+            stream: freshStreamId,
+            resend: {
+                from: {
+                    timestamp: timeAfterFirstMessagePublished,
+                    sequenceNumber: 0
+                },
+                to: {
+                    timestamp: timeAfterThirdMessagePublished,
+                    sequenceNumber: 0
+                }
+            }
+        }, (message) => {
+            client2Messages.push(message)
+        })
+
+        client3.resend({
+            stream: freshStreamId,
+            resend: {
+                from: {
+                    timestamp: timeAfterFirstMessagePublished,
+                    sequenceNumber: 0
+                },
+                to: {
+                    timestamp: timeAfterThirdMessagePublished,
+                    sequenceNumber: 0
+                }
+            }
+        }, (message) => {
+            client3Messages.push(message)
+        })
+
+        await waitForCondition(() => client3Messages.length === 2)
+
+        expect(client1Messages).toEqual([
+            {
+                key: 2
+            },
+            {
+                key: 3
+            },
+        ])
+
+        expect(client2Messages).toEqual([
+            {
+                key: 2
+            },
+            {
+                key: 3
+            },
+        ])
+
+        expect(client3Messages).toEqual([
+            {
+                key: 2
+            },
+            {
+                key: 3
             },
         ])
     })
