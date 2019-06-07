@@ -588,4 +588,233 @@ describe('broker: end-to-end', () => {
             },
         ])
     })
+
+    it('happy-path: resend last request via http', async () => {
+        client1.subscribe({
+            stream: freshStreamId
+        }, () => {})
+
+        client2.subscribe({
+            stream: freshStreamId
+        }, () => {})
+
+        client3.subscribe({
+            stream: freshStreamId
+        }, () => {})
+
+        await client1.publish(freshStreamId, {
+            key: 1
+        })
+        await client1.publish(freshStreamId, {
+            key: 2
+        })
+        await client1.publish(freshStreamId, {
+            key: 3
+        })
+        await client1.publish(freshStreamId, {
+            key: 4
+        })
+
+        await wait(1500) // wait for propagation
+
+        const jsons = await Promise.all([httpPort1, httpPort2, httpPort3].map(async (httpPort) => {
+            const url = `http://localhost:${httpPort}/api/v1/streams/${freshStreamId}/data/partitions/0/last?count=2`
+            const response = await fetch(url, {
+                method: 'get',
+                headers: {
+                    Authorization: 'token tester1-api-key'
+                },
+            })
+            const messagesAsArrays = await response.json()
+            return messagesAsArrays.map((msgAsArr) => JSON.parse(msgAsArr[4]))
+        }))
+
+        expect(jsons[0]).toEqual([
+            {
+                key: 3
+            },
+            {
+                key: 4
+            },
+        ])
+
+        expect(jsons[1]).toEqual([
+            {
+                key: 3
+            },
+            {
+                key: 4
+            },
+        ])
+
+        expect(jsons[2]).toEqual([
+            {
+                key: 3
+            },
+            {
+                key: 4
+            },
+        ])
+    })
+
+    it('happy-path: resend from request via http', async () => {
+        client1.subscribe({
+            stream: freshStreamId
+        }, () => {})
+
+        client2.subscribe({
+            stream: freshStreamId
+        }, () => {})
+
+        client3.subscribe({
+            stream: freshStreamId
+        }, () => {})
+
+        await client1.publish(freshStreamId, {
+            key: 1
+        })
+        await wait(50)
+        const timeAfterFirstMessagePublished = Date.now()
+
+        await client1.publish(freshStreamId, {
+            key: 2
+        })
+        await wait(50)
+        await client1.publish(freshStreamId, {
+            key: 3
+        })
+        await wait(50)
+        await client1.publish(freshStreamId, {
+            key: 4
+        })
+
+        await wait(1500) // wait for propagation
+
+        const jsons = await Promise.all([httpPort1, httpPort2, httpPort3].map(async (httpPort) => {
+            const url = `http://localhost:${httpPort}/api/v1/streams/${freshStreamId}/data/partitions/0/from`
+                + `?fromTimestamp=${timeAfterFirstMessagePublished}`
+            const response = await fetch(url, {
+                method: 'get',
+                headers: {
+                    Authorization: 'token tester1-api-key'
+                },
+            })
+            const messagesAsArrays = await response.json()
+            return messagesAsArrays.map((msgAsArr) => JSON.parse(msgAsArr[4]))
+        }))
+
+        expect(jsons[0]).toEqual([
+            {
+                key: 2
+            },
+            {
+                key: 3
+            },
+            {
+                key: 4
+            },
+        ])
+
+        expect(jsons[1]).toEqual([
+            {
+                key: 2
+            },
+            {
+                key: 3
+            },
+            {
+                key: 4
+            },
+        ])
+
+        expect(jsons[2]).toEqual([
+            {
+                key: 2
+            },
+            {
+                key: 3
+            },
+            {
+                key: 4
+            },
+        ])
+    })
+
+    it('happy-path: resend range request via http', async () => {
+        client1.subscribe({
+            stream: freshStreamId
+        }, () => {})
+
+        client2.subscribe({
+            stream: freshStreamId
+        }, () => {})
+
+        client3.subscribe({
+            stream: freshStreamId
+        }, () => {})
+
+        await client1.publish(freshStreamId, {
+            key: 1
+        })
+        await wait(50)
+        const timeAfterFirstMessagePublished = Date.now()
+
+        await client1.publish(freshStreamId, {
+            key: 2
+        })
+        await wait(50)
+        await client1.publish(freshStreamId, {
+            key: 3
+        })
+        await wait(25)
+        const timeAfterThirdMessagePublished = Date.now()
+        await wait(25)
+
+        await client1.publish(freshStreamId, {
+            key: 4
+        })
+
+        await wait(1500) // wait for propagation
+
+        const jsons = await Promise.all([httpPort1, httpPort2, httpPort3].map(async (httpPort) => {
+            const url = `http://localhost:${httpPort}/api/v1/streams/${freshStreamId}/data/partitions/0/range`
+                + `?fromTimestamp=${timeAfterFirstMessagePublished}`
+                + `&toTimestamp=${timeAfterThirdMessagePublished}`
+            const response = await fetch(url, {
+                method: 'get',
+                headers: {
+                    Authorization: 'token tester1-api-key'
+                },
+            })
+            const messagesAsArrays = await response.json()
+            return messagesAsArrays.map((msgAsArr) => JSON.parse(msgAsArr[4]))
+        }))
+
+        expect(jsons[0]).toEqual([
+            {
+                key: 2
+            },
+            {
+                key: 3
+            },
+        ])
+
+        expect(jsons[1]).toEqual([
+            {
+                key: 2
+            },
+            {
+                key: 3
+            },
+        ])
+
+        expect(jsons[2]).toEqual([
+            {
+                key: 2
+            },
+            {
+                key: 3
+            },
+        ])
+    })
 })
