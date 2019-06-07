@@ -105,6 +105,8 @@ describe('broker: end-to-end', () => {
             name: 'broker.test.js-' + Date.now()
         })
         freshStreamId = freshStream.id
+
+        await freshStream.grantPermission('read', 'tester2@streamr.com')
     })
 
     afterAll(async () => {
@@ -121,8 +123,6 @@ describe('broker: end-to-end', () => {
         const client1Messages = []
         const client2Messages = []
         const client3Messages = []
-
-        await freshStream.grantPermission('read', 'tester2@streamr.com')
 
         client1.subscribe({
             stream: freshStreamId
@@ -198,8 +198,6 @@ describe('broker: end-to-end', () => {
         const client2Messages = []
         const client3Messages = []
 
-        await freshStream.grantPermission('read', 'tester2@streamr.com')
-
         client1.subscribe({
             stream: freshStreamId
         }, (message, metadata) => {
@@ -273,8 +271,6 @@ describe('broker: end-to-end', () => {
     })
 
     it('happy-path: resend last request via websocket', async () => {
-        await freshStream.grantPermission('read', 'tester2@streamr.com')
-
         client1.subscribe({
             stream: freshStreamId
         }, () => {})
@@ -364,8 +360,6 @@ describe('broker: end-to-end', () => {
     })
 
     it('happy-path: resend from request via websocket', async () => {
-        await freshStream.grantPermission('read', 'tester2@streamr.com')
-
         client1.subscribe({
             stream: freshStreamId
         }, () => {})
@@ -478,8 +472,6 @@ describe('broker: end-to-end', () => {
     })
 
     it('happy-path: resend range request via websocket', async () => {
-        await freshStream.grantPermission('read', 'tester2@streamr.com')
-
         client1.subscribe({
             stream: freshStreamId
         }, () => {})
