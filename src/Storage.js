@@ -1,7 +1,12 @@
 const { Readable, Transform } = require('stream')
 const merge2 = require('merge2')
 const cassandra = require('cassandra-driver')
-const { StreamMessageFactory, StreamMessage } = require('streamr-client-protocol').MessageLayer
+const { StreamMessageFactory } = require('streamr-client-protocol').MessageLayer
+const MicroBatchingStrategy = require('./MicroBatchingStrategy')
+
+const INSERT_STATEMENT = 'INSERT INTO stream_data '
+    + '(id, partition, ts, sequence_no, publisher_id, msg_chain_id, payload) '
+    + 'VALUES (?, ?, ?, ?, ?, ?, ?)'
 
 const parseRow = (row) => {
     const streamMessage = StreamMessageFactory.deserialize(row.payload.toString())
