@@ -138,7 +138,6 @@ describe('MicroBatchingStrategy', () => {
             expect(insertFn.mock.calls[2][0].map(msgToStreamIdAndPartition)).toEqual([
                 'streamId::1', 'streamId::1', 'streamId::1'
             ])
-
         })
     })
 

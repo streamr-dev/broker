@@ -8,6 +8,45 @@ const INSERT_STATEMENT = 'INSERT INTO stream_data '
     + '(id, partition, ts, sequence_no, publisher_id, msg_chain_id, payload) '
     + 'VALUES (?, ?, ?, ?, ?, ?, ?)'
 
+const batchingStore = (cassandraClient) => new MicroBatchingStrategy({
+    insertFn: (streamMessages) => {
+        const queries = streamMessages.map((streamMessage) => {
+            return {
+                query: INSERT_STATEMENT,
+                params: [
+                    streamMessage.getStreamId(),
+                    streamMessage.getStreamPartition(),
+                    streamMessage.getTimestamp(),
+                    streamMessage.messageId.sequenceNumber,
+                    streamMessage.getPublisherId(),
+                    streamMessage.messageId.msgChainId,
+                    Buffer.from(streamMessage.serialize()),
+                ]
+            }
+        })
+        return cassandraClient.batch(queries, {
+            prepare: true
+        })
+    }
+})
+
+const individualStore = (cassandraClient) => ({
+    store: (streamMessage) => {
+        return cassandraClient.execute(INSERT_STATEMENT, [
+            streamMessage.getStreamId(),
+            streamMessage.getStreamPartition(),
+            streamMessage.getTimestamp(),
+            streamMessage.messageId.sequenceNumber,
+            streamMessage.getPublisherId(),
+            streamMessage.messageId.msgChainId,
+            Buffer.from(streamMessage.serialize()),
+        ], {
+            prepare: true,
+        })
+    },
+    close: () => {}
+})
+
 const parseRow = (row) => {
     const streamMessage = StreamMessageFactory.deserialize(row.payload.toString())
     return {
@@ -26,25 +65,17 @@ const parseRow = (row) => {
 }
 
 class Storage {
-    constructor(cassandraClient) {
+    constructor(cassandraClient, isBatching = true) {
         this.cassandraClient = cassandraClient
+        if (isBatching) {
+            this.storeStrategy = batchingStore(cassandraClient)
+        } else {
+            this.storeStrategy = individualStore(cassandraClient)
+        }
     }
 
     store(streamMessage) {
-        const insertStatement = 'INSERT INTO stream_data '
-            + '(id, partition, ts, sequence_no, publisher_id, msg_chain_id, payload) '
-            + 'VALUES (?, ?, ?, ?, ?, ?, ?)'
-        return this.cassandraClient.execute(insertStatement, [
-            streamMessage.getStreamId(),
-            streamMessage.getStreamPartition(),
-            streamMessage.getTimestamp(),
-            streamMessage.messageId.sequenceNumber,
-            streamMessage.getPublisherId(),
-            streamMessage.messageId.msgChainId,
-            Buffer.from(streamMessage.serialize()),
-        ], {
-            prepare: true,
-        })
+        return this.storeStrategy.store(streamMessage)
     }
 
     requestLast(streamId, streamPartition, n) {
@@ -231,6 +262,7 @@ class Storage {
     }
 
     close() {
+        this.storeStrategy.close()
         return this.cassandraClient.shutdown()
     }
 
