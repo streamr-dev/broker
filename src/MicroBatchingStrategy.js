@@ -64,7 +64,7 @@ class Batch {
 
     push(streamMessage) {
         this.streamMessages.push(streamMessage)
-        this.totalSize += streamMessage.getContent().length
+        this.totalSize += Buffer.from(streamMessage.serialize()).length
         return this.donePromise
     }
 

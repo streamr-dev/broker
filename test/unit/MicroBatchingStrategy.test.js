@@ -29,7 +29,7 @@ describe('MicroBatchingStrategy', () => {
     let microBatchingStrategy
 
     beforeEach(() => {
-        const messageSize = buildMsg('streamId', 0, 0, 0).getContent().length
+        const messageSize = Buffer.from(buildMsg('streamId', 0, 0, 0).serialize()).length
         insertFn = jest.fn()
         microBatchingStrategy = new MicroBatchingStrategy({
             insertFn,
