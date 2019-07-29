@@ -1,4 +1,5 @@
 const debug = require('debug')('streamr:StreamStateManager')
+
 const Stream = require('./Stream')
 
 function getStreamLookupKey(streamId, streamPartition) {
@@ -21,6 +22,12 @@ module.exports = class StreamStateManager {
 
     get(streamId, streamPartition) {
         return this._streams[getStreamLookupKey(streamId, streamPartition)]
+    }
+
+    getByName(name) {
+        const streamId = Object.keys(this._streams)
+            .find((key) => { return this._streams[key].getName() === name })
+        return streamId ? this._streams[streamId] : null
     }
 
     /**

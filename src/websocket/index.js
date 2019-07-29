@@ -2,9 +2,12 @@ const ws = require('ws')
 
 const MissingConfigError = require('../errors/MissingConfigError')
 const adapterRegistry = require('../adapterRegistry')
+
 const WebsocketServer = require('./WebsocketServer')
 
-adapterRegistry.register('ws', ({ port }, { networkNode, publisher, streamFetcher, volumeLogger }) => {
+adapterRegistry.register('ws', ({ port }, {
+    networkNode, publisher, streamFetcher, volumeLogger, subscriptionManager
+}) => {
     if (port === undefined) {
         throw new MissingConfigError('port')
     }
@@ -31,6 +34,7 @@ adapterRegistry.register('ws', ({ port }, { networkNode, publisher, streamFetche
         streamFetcher,
         publisher,
         volumeLogger,
+        subscriptionManager
     )
     return () => websocketServer.close()
 })
