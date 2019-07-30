@@ -3,6 +3,7 @@ const { Readable, Transform } = require('stream')
 const merge2 = require('merge2')
 const cassandra = require('cassandra-driver')
 const { StreamMessageFactory } = require('streamr-client-protocol').MessageLayer
+
 const MicroBatchingStrategy = require('./MicroBatchingStrategy')
 
 const INSERT_STATEMENT = 'INSERT INTO stream_data '

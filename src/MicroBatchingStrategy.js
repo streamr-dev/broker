@@ -100,6 +100,7 @@ class MicroBatchingStrategy {
         logErrors = true
     }) {
         this.batches = {} // streamId-streamPartition => Batch
+        this.allBatches = new Set() // keep track of all existing batches for clean up purposes
         this.sharedContext = new SharedContext(
             insertFn,
             baseCommitIntervalInMs,
@@ -114,25 +115,28 @@ class MicroBatchingStrategy {
 
         if (this.batches[key] === undefined || this.batches[key].isFull()) {
             const newBatch = new Batch(this.sharedContext)
-            newBatch.donePromise.finally(() => this._cleanUpIfStale(key, newBatch))
+            newBatch.donePromise.finally(() => this._cleanUp(key, newBatch))
             this.batches[key] = newBatch
+            this.allBatches.add(newBatch)
         }
 
         return this.batches[key].push(streamMessage)
     }
 
     close() {
-        Object.values(this.batches).forEach((batch) => batch.cancel())
+        this.allBatches.forEach((batch) => batch.cancel())
         this.batches = {}
     }
 
-    /**
-     * If a batch with key `key` was successfully inserted into Cassandra but
-     * not enough messages were pushed meanwhile with same `key` for a new
-     * batch to emerge, the batch in `this.batches[key]` will still refer to
-     * the stale, inserted batch. Clean it up to save memory.
-     */
-    _cleanUpIfStale(key, batch) {
+    _cleanUp(key, batch) {
+        this.allBatches.delete(batch)
+
+        /*
+         * If a batch with key `key` was successfully inserted into Cassandra but
+         * not enough messages were pushed meanwhile with same `key` for a new
+         * batch to emerge, the batch in `this.batches[key]` will still refer to
+         * the stale, inserted batch. Clean it up to save memory.
+         */
         if (Object.is(this.batches[key], batch)) {
             delete this.batches[key]
         }
