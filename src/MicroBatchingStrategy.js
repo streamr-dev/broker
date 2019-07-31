@@ -74,7 +74,7 @@ class Batch {
 
     cancel() {
         clearTimeout(this.timeoutRef)
-        this.reject()
+        this.reject(new Error('batch cancelled'))
     }
 
     _scheduleInsert() {
@@ -115,7 +115,7 @@ class MicroBatchingStrategy {
 
         if (this.batches[key] === undefined || this.batches[key].isFull()) {
             const newBatch = new Batch(this.sharedContext)
-            newBatch.donePromise.finally(() => this._cleanUp(key, newBatch))
+            newBatch.donePromise.catch(() => {}).finally(() => this._cleanUp(key, newBatch))
             this.batches[key] = newBatch
             this.allBatches.add(newBatch)
         }
