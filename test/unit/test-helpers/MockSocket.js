@@ -55,6 +55,10 @@ module.exports = class MockSocket extends events.EventEmitter {
         this.emit('close')
     }
 
+    terminate() {
+        this.emit('terminate')
+    }
+
     leave(channel, cb) {
         const index = this.rooms.indexOf(channel)
         if (index >= 0) {
