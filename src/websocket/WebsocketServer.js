@@ -31,7 +31,6 @@ module.exports = class WebsocketServer extends events.EventEmitter {
         this.streams = new StreamStateManager()
         this.fieldDetector = new FieldDetector(streamFetcher)
         this.subscriptionManager = subscriptionManager
-        this.sockets = new Set() // needed for clean up of sockets in close()
 
         this.requestHandlersByMessageType = {
             [ControlLayer.SubscribeRequest.TYPE]: this.handleSubscribeRequest,
@@ -50,7 +49,7 @@ module.exports = class WebsocketServer extends events.EventEmitter {
 
     close() {
         this.streams.close()
-        this.sockets.forEach((socket) => socket.terminate())
+        this.wss.clients.forEach((socket) => socket.terminate())
         return new Promise((resolve, reject) => {
             this.wss.close((err) => {
                 if (err) {
@@ -64,7 +63,6 @@ module.exports = class WebsocketServer extends events.EventEmitter {
 
     onNewClientConnection(socket, socketRequest) {
         const connection = new Connection(socket, socketRequest)
-        this.sockets.add(socket)
         this.volumeLogger.connectionCount += 1
         debug('onNewClientConnection: socket "%s" connected', connection.id)
 
@@ -86,7 +84,6 @@ module.exports = class WebsocketServer extends events.EventEmitter {
 
         // Callback for when client disconnects
         socket.on('close', () => {
-            this.sockets.delete(socket)
             this.volumeLogger.connectionCount -= 1
             debug('closing socket "%s" on streams "%o"', connection.id, connection.streamsAsString())
 
