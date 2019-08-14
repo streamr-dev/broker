@@ -1,7 +1,6 @@
 const net = require('net')
 
 const { startTracker } = require('@streamr/streamr-p2p-network')
-const { wait, waitForCondition } = require('streamr-test-utils')
 
 const createBroker = require('../../src/broker')
 
