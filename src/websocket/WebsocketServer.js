@@ -1,4 +1,5 @@
 const events = require('events')
+const uuidv4 = require('uuid/v4')
 
 const debug = require('debug')('streamr:WebsocketServer')
 const { ControlLayer } = require('streamr-client-protocol')
@@ -28,7 +29,24 @@ module.exports = class WebsocketServer extends events.EventEmitter {
         this.publisher = publisher
         this.partitionFn = partitionFn
         this.volumeLogger = volumeLogger
-        this.streams = new StreamStateManager()
+        this.streams = new StreamStateManager(
+            this._broadcastMessage.bind(this),
+            (streamId, streamPartition, from, to, publisherId, msgChainId) => {
+                this.networkNode.requestResendRange(
+                    streamId,
+                    streamPartition,
+                    uuidv4(),
+                    from.timestamp,
+                    from.sequenceNumber,
+                    to.timestamp,
+                    to.sequenceNumber,
+                    publisherId,
+                    msgChainId
+                ).on('data', (unicastMessage) => {
+                    this._handleStreamMessage(unicastMessage.streamMessage)
+                })
+            }
+        )
         this.fieldDetector = new FieldDetector(streamFetcher)
         this.subscriptionManager = subscriptionManager
 
@@ -42,7 +60,7 @@ module.exports = class WebsocketServer extends events.EventEmitter {
             [ControlLayer.PublishRequest.TYPE]: this.handlePublishRequest,
         }
 
-        this.networkNode.addMessageListener(this.broadcastMessage.bind(this))
+        this.networkNode.addMessageListener(this._handleStreamMessage.bind(this))
 
         this.wss.on('connection', this.onNewClientConnection.bind(this))
         this._updateTotalBufferSizeInterval = setInterval(() => {
@@ -266,7 +284,7 @@ module.exports = class WebsocketServer extends events.EventEmitter {
         }
     }
 
-    broadcastMessage(streamMessage) {
+    _broadcastMessage(streamMessage) {
         const streamId = streamMessage.getStreamId()
         const streamPartition = streamMessage.getStreamPartition()
         const stream = this.streams.get(streamId, streamPartition)
@@ -280,6 +298,17 @@ module.exports = class WebsocketServer extends events.EventEmitter {
             this.volumeLogger.logOutput(streamMessage.getSerializedContent().length * stream.getConnections().length)
         } else {
             debug('broadcastMessage: stream "%s:%d" not found', streamId, streamPartition)
+        }
+    }
+
+    _handleStreamMessage(streamMessage) {
+        const streamId = streamMessage.getStreamId()
+        const streamPartition = streamMessage.getStreamPartition()
+        const stream = this.streams.get(streamId, streamPartition)
+        if (stream) {
+            stream.passToOrderingUtil(streamMessage)
+        } else {
+            debug('networkNode#_handleStreamMessage: stream "%s:%d" not found', streamId, streamPartition)
         }
     }
 
