@@ -148,7 +148,7 @@ describe('WebsocketServer', () => {
 
         // Create the server instance
         server = new WebsocketServer(
-            wsMock, networkNode, streamFetcher, publisher, undefined, subscriptionManager, () => 0
+            10000, '/api/v1/ws', networkNode, streamFetcher, publisher, undefined, subscriptionManager, () => 0
         )
     })
 

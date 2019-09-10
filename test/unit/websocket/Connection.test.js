@@ -3,8 +3,8 @@ const Stream = require('../../../src/Stream.js')
 
 describe('Connection', () => {
     it('id is assigned', () => {
-        const connection = new Connection({}, {
-            url: 'url',
+        const connection = new Connection('socketId-1', {}, {
+            getQuery: () => 'url',
         })
         expect(connection.id).toEqual('socketId-1')
     })
@@ -12,18 +12,18 @@ describe('Connection', () => {
     describe('version parsing', () => {
         it('parses versions when present in request url', () => {
             const request = {
-                url: 'url?controlLayerVersion=1&messageLayerVersion=30',
+                getQuery: () => 'controlLayerVersion=1&messageLayerVersion=30',
             }
-            const connection = new Connection({}, request)
+            const connection = new Connection('conn-id', {}, request)
             expect(connection.controlLayerVersion).toEqual(1)
             expect(connection.messageLayerVersion).toEqual(30)
         })
 
         it('uses defaults when versions not present in request url', () => {
             const request = {
-                url: 'url',
+                getQuery: () => 'url',
             }
-            const connection = new Connection({}, request)
+            const connection = new Connection('conn-id', {}, request)
             expect(connection.controlLayerVersion).toEqual(0)
             expect(connection.messageLayerVersion).toEqual(28)
         })
@@ -33,8 +33,8 @@ describe('Connection', () => {
         let connection
 
         beforeEach(() => {
-            connection = new Connection({}, {
-                url: 'url',
+            connection = new Connection('conn-id', {}, {
+                getQuery: () => 'url',
             })
         })
 
@@ -104,10 +104,10 @@ describe('Connection', () => {
 
         beforeEach(() => {
             sendFn = jest.fn()
-            connection = new Connection({
+            connection = new Connection('conn-id', {
                 send: sendFn,
             }, {
-                url: 'url',
+                getQuery: () => 'url',
             })
         })
 

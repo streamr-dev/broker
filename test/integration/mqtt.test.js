@@ -138,11 +138,11 @@ describe('mqtt: end-to-end', () => {
         mqttClient1.end()
         mqttClient2.end()
 
-        broker1.close()
-        broker2.close()
-        broker3.close()
+        await broker1.close()
+        await broker2.close()
+        await broker3.close()
 
-        tracker.stop()
+        tracker.stop(() => {})
     })
 
     it('test not valid api key', async (done) => {
@@ -174,7 +174,7 @@ describe('mqtt: end-to-end', () => {
         mqttClient1.subscribe(freshStreamName1)
         mqttClient2.subscribe(freshStreamName1)
 
-        await wait(100)
+        await wait(1000)
 
         mqttClient1.on('message', (topic, message) => {
             client1Messages.push(JSON.parse(message.toString()))
@@ -226,6 +226,8 @@ describe('mqtt: end-to-end', () => {
 
         mqttClient1.subscribe(freshStreamName1)
         mqttClient2.subscribe(freshStreamName1)
+
+        await wait(1000)
 
         mqttClient1.on('message', (topic, message) => {
             client1Messages.push(JSON.parse(message.toString()))
@@ -316,7 +318,7 @@ describe('mqtt: end-to-end', () => {
             key: 3
         })
 
-        await wait(100)
+        await wait(1000)
         await mqttClient1.publish(freshStreamName1, JSON.stringify({
             key: 4
         }), {
@@ -396,6 +398,8 @@ describe('mqtt: end-to-end', () => {
         await mqttClient1.subscribe(freshStreamName1)
         await mqttClient2.subscribe(freshStreamName1)
 
+        await wait(1000)
+
         await waitForCondition(() => broker1.getStreams().length === 1)
         await waitForCondition(() => broker2.getStreams().length === 1)
 
@@ -403,6 +407,8 @@ describe('mqtt: end-to-end', () => {
         expect(broker1.getStreams()).toEqual([freshStreamId1 + '::0'])
         expect(broker2.getStreams()).toEqual([freshStreamId1 + '::0'])
         await mqttClient1.unsubscribe(freshStreamName1)
+
+        await wait(1000)
 
         await waitForCondition(() => broker1.getStreams().length === 0)
         await waitForCondition(() => broker2.getStreams().length === 1)
