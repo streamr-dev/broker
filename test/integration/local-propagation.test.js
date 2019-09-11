@@ -108,11 +108,11 @@ describe('local propagation', () => {
         await client1.ensureDisconnected()
         await client2.ensureDisconnected()
 
-        await broker.close()
-        await tracker.stop()
-
         await mqttClient1.end(true)
         await mqttClient2.end(true)
+
+        await broker.close()
+        await tracker.stop()
     })
 
     test('local propagation using StreamrClients', async () => {
@@ -143,8 +143,8 @@ describe('local propagation', () => {
             key: 3
         })
 
-        await waitForCondition(() => client2Messages.length === 3)
         await waitForCondition(() => client1Messages.length === 3)
+        await waitForCondition(() => client2Messages.length === 3)
 
         expect(client1Messages).toEqual([
             {
@@ -283,6 +283,8 @@ describe('local propagation', () => {
         await client1.publish(freshStreamId, {
             key: 3
         })
+
+        await wait(100)
 
         await client2.publish(freshStreamId, {
             key: 4

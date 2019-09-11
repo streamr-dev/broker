@@ -126,6 +126,8 @@ describe('broker: end-to-end', () => {
             client3Messages.push(message)
         })
 
+        await wait(1000)
+
         await client1.publish(freshStreamId, {
             key: 1
         })
@@ -198,6 +200,8 @@ describe('broker: end-to-end', () => {
         }, (message, metadata) => {
             client3Messages.push(message)
         })
+
+        await wait(1000)
 
         for (let i = 1; i <= 3; ++i) {
             // eslint-disable-next-line no-await-in-loop

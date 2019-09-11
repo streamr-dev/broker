@@ -2,17 +2,9 @@ const debug = require('debug')('streamr:Connection')
 const qs = require('qs')
 const { ErrorResponse } = require('streamr-client-protocol').ControlLayer
 
-let nextId = 1
-
-function generateId() {
-    const id = `socketId-${nextId}`
-    nextId += 1
-    return id
-}
-
 module.exports = class Connection {
-    constructor(socket, request) {
-        this.id = generateId()
+    constructor(id, socket, request) {
+        this.id = id
         this.socket = socket
         this.streams = []
 
@@ -21,13 +13,17 @@ module.exports = class Connection {
         this.messageLayerVersion = 28
 
         // attempt to parse versions from request parameters
-        const parts = request.url.split('?')
-        if (parts.length === 2) {
-            const { controlLayerVersion, messageLayerVersion } = qs.parse(parts[1])
-            if (controlLayerVersion && messageLayerVersion) {
-                this.controlLayerVersion = parseInt(controlLayerVersion)
-                this.messageLayerVersion = parseInt(messageLayerVersion)
+        try {
+            const parts = request.getQuery()
+            if (parts) {
+                const { controlLayerVersion, messageLayerVersion } = qs.parse(parts)
+                if (controlLayerVersion && messageLayerVersion) {
+                    this.controlLayerVersion = parseInt(controlLayerVersion)
+                    this.messageLayerVersion = parseInt(messageLayerVersion)
+                }
             }
+        } catch (e) {
+            console.error('failed to get request.getQuery()')
         }
     }
 
@@ -57,7 +53,8 @@ module.exports = class Connection {
     send(msg) {
         const serialized = msg.serialize(this.controlLayerVersion, this.messageLayerVersion)
         debug('send: %s: %o', this.id, serialized)
-        this.socket.send(serialized)
+        const sent = this.socket.send(serialized)
+        debug('send status: ', sent)
     }
 
     sendError(errorMessage) {

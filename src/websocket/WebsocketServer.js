@@ -2,8 +2,8 @@ const events = require('events')
 
 const debug = require('debug')('streamr:WebsocketServer')
 const { ControlLayer } = require('streamr-client-protocol')
-const { StreamMessage } = require('streamr-client-protocol').MessageLayer
 const LRU = require('lru-cache')
+const uWS = require('uWebSockets.js')
 
 const HttpError = require('../errors/HttpError')
 const VolumeLogger = require('../VolumeLogger')
@@ -13,24 +13,18 @@ const StreamStateManager = require('../StreamStateManager')
 const Connection = require('./Connection')
 const FieldDetector = require('./FieldDetector')
 
-function createStreamMessage(streamId, streamPartition, timestamp, sequenceNumber, publisherId, msgChainId, msg) {
-    return StreamMessage.from({
-        streamId,
-        streamPartition,
-        timestamp,
-        sequenceNumber,
-        publisherId,
-        msgChainId,
-        contentType: StreamMessage.CONTENT_TYPES.MESSAGE,
-        encryptionType: StreamMessage.ENCRYPTION_TYPES.NONE,
-        content: msg,
-        signatureType: StreamMessage.SIGNATURE_TYPES.NONE
-    })
+let nextId = 1
+
+function generateId() {
+    const id = `socketId-${nextId}`
+    nextId += 1
+    return id
 }
 
 module.exports = class WebsocketServer extends events.EventEmitter {
     constructor(
-        wss,
+        wsPort,
+        wsPath,
         networkNode,
         streamFetcher,
         publisher,
@@ -39,7 +33,6 @@ module.exports = class WebsocketServer extends events.EventEmitter {
         partitionFn = partition,
     ) {
         super()
-        this.wss = wss
         this.networkNode = networkNode
         this.streamFetcher = streamFetcher
         this.publisher = publisher
@@ -52,6 +45,8 @@ module.exports = class WebsocketServer extends events.EventEmitter {
             max: 1000,
             maxAge: 1000 * 60 * 5
         })
+        this.connections = new Map()
+        this.wsListenSocket = null
 
         this.requestHandlersByMessageType = {
             [ControlLayer.SubscribeRequest.TYPE]: this.handleSubscribeRequest,
@@ -65,85 +60,101 @@ module.exports = class WebsocketServer extends events.EventEmitter {
 
         this.networkNode.addMessageListener(this.broadcastMessage.bind(this))
 
-        this.wss.on('connection', this.onNewClientConnection.bind(this))
+        // this.wss.on('connection', this.onNewClientConnection.bind(this))
         this._updateTotalBufferSizeInterval = setInterval(() => {
             // eslint-disable-next-line max-len
-            this.volumeLogger.totalBufferSize = Object.values(this.wss.clients).reduce((totalBufferSizeSum, ws) => totalBufferSizeSum + ws.bufferedAmount, 0)
+            // this.volumeLogger.totalBufferSize = Object.values(this.wss.clients).reduce((totalBufferSizeSum, ws) => totalBufferSizeSum + ws.bufferedAmount, 0)
         }, 10 * 1000)
+
+        // uWS.SSLApp({
+        //     key_file_name: './misc/key.pem',
+        //     cert_file_name: './misc/cert.pem',
+        // })
+        this.wss = uWS.App().ws(
+            '/api/v1/ws',
+            {
+                /* Options */
+                compression: 0,
+                maxPayloadLength: 16 * 1024 * 1024,
+                idleTimeout: 0, // don't disconnect sockets
+                open: (ws, req) => {
+                    if (this.wsListenSocket) {
+                        // eslint-disable-next-line no-param-reassign
+                        ws.id = generateId()
+                        const connection = new Connection(ws.id, ws, req)
+                        this.connections.set(ws.id, connection)
+                        this.volumeLogger.connectionCount += 1
+                        debug('onNewClientConnection: socket "%s" connected', ws.id)
+                    } else {
+                        req.close()
+                    }
+                },
+                message: (ws, message, isBinary) => {
+                    if (this.wsListenSocket) {
+                        const connection = this.connections.get(ws.id)
+
+                        try {
+                            const data = Buffer.from(message).toString('utf-8')
+                            const request = ControlLayer.ControlMessage.deserialize(data)
+                            const handler = this.requestHandlersByMessageType[request.type]
+
+                            if (handler) {
+                                debug('socket "%s" sent request "%s" with contents "%o"', connection.id, request.type, request)
+                                handler.call(this, connection, request)
+                            } else {
+                                connection.sendError(`Unknown request type: ${request.type}`)
+                            }
+                        } catch (err) {
+                            connection.sendError(err.message || err)
+                        }
+                    }
+                },
+                drain: (ws) => {
+                    console.log('WebSocket backpressure: ' + ws.getBufferedAmount())
+                },
+                close: (ws, code, message) => {
+                    try {
+                        const connection = this.connections.get(ws.id)
+                        this.volumeLogger.connectionCount -= 1
+                        debug('closing socket "%s" on streams "%o"', connection.id, connection.streamsAsString())
+
+                        // Unsubscribe from all streams
+                        connection.forEachStream((stream) => {
+                            this.handleUnsubscribeRequest(
+                                connection,
+                                ControlLayer.UnsubscribeRequest.create(stream.id, stream.partition),
+                                true,
+                            )
+                        })
+                        this.connections.delete(ws.id)
+                    } catch (e) {
+                        console.error('Error on closing socket %s, %s', ws.id, e)
+                    }
+                }
+            }
+        ).listen(wsPort, (listenSocket) => {
+            this.wsListenSocket = listenSocket
+            if (listenSocket) {
+                console.log(`WS adapter listening on ${wsPort}`)
+                this.wsListenSocket = listenSocket
+            } else {
+                console.log('Failed to listen to port ' + wsPort)
+                throw Error('Failed to start WebsocketServer')
+            }
+        })
     }
 
     close() {
         clearInterval(this._updateTotalBufferSizeInterval)
         this.streams.close()
         this.streamAuthCache.reset()
-        this.wss.clients.forEach((socket) => socket.terminate())
+
         return new Promise((resolve, reject) => {
-            this.wss.close((err) => {
-                if (err) {
-                    reject(err)
-                } else {
-                    resolve()
-                }
-            })
-        })
-    }
-
-    onNewClientConnection(socket, socketRequest) {
-        const connection = new Connection(socket, socketRequest)
-        this.volumeLogger.connectionCount += 1
-        debug('onNewClientConnection: socket "%s" connected', connection.id)
-
-        // Callback for when client sends message
-        socket.on('message', (data) => {
-            try {
-                let request
-                const jsonData = JSON.parse(data)
-
-                if (jsonData[1] === 8) {
-                    const messageId = jsonData[2][1]
-                    request = {
-                        type: jsonData[1],
-                        apiKey: '',
-                        sessionToken: jsonData[3],
-                        getStreamId: () => messageId[0],
-                        getStreamPartition: () => messageId[1],
-                        getTimestamp: () => messageId[2],
-                        getSequenceNumber: () => messageId[3],
-                        getPublisherId: () => messageId[4],
-                        getMsgChainId: () => messageId[5],
-                        getContent: () => (jsonData[2][4] === 0 ? jsonData[2][5] : jsonData[2][4])
-                    }
-                } else {
-                    request = ControlLayer.ControlMessage.deserialize(data)
-                }
-
-                // request = ControlLayer.ControlMessage.deserialize(data)
-
-                const handler = this.requestHandlersByMessageType[request.type]
-                if (handler) {
-                    debug('socket "%s" sent request "%s" with contents "%o"', connection.id, request.type, request)
-                    handler.call(this, connection, request)
-                } else {
-                    connection.sendError(`Unknown request type: ${request.type}`)
-                }
-            } catch (err) {
-                connection.sendError(err.message || err)
+            if (this.wsListenSocket) {
+                uWS.us_listen_socket_close(this.wsListenSocket)
+                this.wsListenSocket = null
             }
-        })
-
-        // Callback for when client disconnects
-        socket.on('close', () => {
-            this.volumeLogger.connectionCount -= 1
-            debug('closing socket "%s" on streams "%o"', connection.id, connection.streamsAsString())
-
-            // Unsubscribe from all streams
-            connection.forEachStream((stream) => {
-                this.handleUnsubscribeRequest(
-                    connection,
-                    ControlLayer.UnsubscribeRequest.create(stream.id, stream.partition),
-                    true,
-                )
-            })
+            setTimeout(() => resolve(), 1000)
         })
     }
 
@@ -162,35 +173,22 @@ module.exports = class WebsocketServer extends events.EventEmitter {
             let streamPartition
             if (request.version === 0) {
                 streamPartition = this.partitionFn(stream.partitions, request.partitionKey)
-            } else {
-                streamPartition = request.getStreamPartition()
             }
-
-            const streamMessage = createStreamMessage(
-                request.getStreamId(), streamPartition, request.getTimestamp(),
-                request.getSequenceNumber(), request.getPublisherId(), request.getMsgChainId(), request.getContent()
-            )
-
+            const streamMessage = request.getStreamMessage(streamPartition)
             this.publisher.publish(stream, streamMessage)
         } else {
             this.streamFetcher.authenticate(streamId, request.apiKey, request.sessionToken, 'write')
                 .then((stream) => {
-                    this.streamAuthCache.set(key, stream)
-
                     // TODO: should this be moved to streamr-client-protocol-js ?
                     let streamPartition
                     if (request.version === 0) {
                         streamPartition = this.partitionFn(stream.partitions, request.partitionKey)
-                    } else {
-                        streamPartition = request.getStreamPartition()
                     }
-
-                    const streamMessage = createStreamMessage(
-                        request.getStreamId(), streamPartition, request.getTimestamp(),
-                        request.getSequenceNumber(), request.getPublisherId(), request.getMsgChainId(), request.getContent()
-                    )
-
+                    const streamMessage = request.getStreamMessage(streamPartition)
+                    this.fieldDetector.detectAndSetFields(stream, streamMessage, request.apiKey, request.sessionToken)
                     this.publisher.publish(stream, streamMessage)
+
+                    this.streamAuthCache.set(key, stream)
                 })
                 .catch((err) => {
                     let errorMsg
