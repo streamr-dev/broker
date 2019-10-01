@@ -22,9 +22,7 @@ function startBroker(id, httpPort, wsPort, networkPort, mqttPort, enableCassandr
             isStorageNode: false
         },
         cassandra: enableCassandra ? {
-            hosts: [
-                'localhost',
-            ],
+            hosts: ['localhost'],
             username: '',
             password: '',
             keyspace: 'streamr_dev',
@@ -102,17 +100,22 @@ describe('local propagation', () => {
         })
         freshStreamId = freshStream.id
         freshStreamName = freshStream.name
-    })
+
+        await wait(3000)
+    }, 10 * 1000)
 
     afterEach(async () => {
+        tracker.stop(() => {})
+
         await client1.ensureDisconnected()
         await client2.ensureDisconnected()
 
-        await broker.close()
-        await tracker.stop()
+        mqttClient1.end(true)
+        mqttClient2.end(true)
 
-        await mqttClient1.end(true)
-        await mqttClient2.end(true)
+        broker.close()
+
+        await wait(1000)
     })
 
     test('local propagation using StreamrClients', async () => {
@@ -130,6 +133,8 @@ describe('local propagation', () => {
         }, (message, metadata) => {
             client2Messages.push(message)
         })
+
+        await wait(1000)
 
         await client1.publish(freshStreamId, {
             key: 1
@@ -220,7 +225,7 @@ describe('local propagation', () => {
                 mqttPayload: 'key: 2'
             }
         ])
-    })
+    }, 10000)
 
     test('local propagation using StreamrClients and mqtt clients', async () => {
         const client1Messages = []
@@ -254,6 +259,8 @@ describe('local propagation', () => {
             client4Messages.push(message)
         })
 
+        await wait(1000)
+
         await mqttClient1.publish(freshStreamName, JSON.stringify({
             key: 1
         }), {
@@ -279,6 +286,8 @@ describe('local propagation', () => {
         await client1.publish(freshStreamId, {
             key: 3
         })
+
+        await wait(500)
 
         await client2.publish(freshStreamId, {
             key: 4
@@ -348,5 +357,5 @@ describe('local propagation', () => {
                 key: 4
             },
         ])
-    })
+    }, 10000)
 })

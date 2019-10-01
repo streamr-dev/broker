@@ -30,9 +30,7 @@ function startBroker(id, httpPort, wsPort, networkPort, enableCassandra) {
             isStorageNode: false
         },
         cassandra: enableCassandra ? {
-            hosts: [
-                'localhost',
-            ],
+            hosts: ['localhost'],
             username: '',
             password: '',
             keyspace: 'streamr_dev',
@@ -100,6 +98,9 @@ describe('broker: end-to-end', () => {
         broker1.close()
         broker2.close()
         broker3.close()
+
+        await wait(1000)
+
         tracker.stop(() => {})
     })
 
@@ -125,6 +126,8 @@ describe('broker: end-to-end', () => {
         }, (message, metadata) => {
             client3Messages.push(message)
         })
+
+        await wait(1000)
 
         await client1.publish(freshStreamId, {
             key: 1
@@ -384,7 +387,6 @@ describe('broker: end-to-end', () => {
             resend: {
                 from: {
                     timestamp: timeAfterFirstMessagePublished,
-                    sequenceNumber: 0
                 }
             }
         }, (message) => {
@@ -396,7 +398,6 @@ describe('broker: end-to-end', () => {
             resend: {
                 from: {
                     timestamp: timeAfterFirstMessagePublished,
-                    sequenceNumber: 0
                 }
             }
         }, (message) => {
@@ -408,7 +409,6 @@ describe('broker: end-to-end', () => {
             resend: {
                 from: {
                     timestamp: timeAfterFirstMessagePublished,
-                    sequenceNumber: 0
                 }
             }
         }, (message) => {
@@ -500,11 +500,9 @@ describe('broker: end-to-end', () => {
             resend: {
                 from: {
                     timestamp: timeAfterFirstMessagePublished,
-                    sequenceNumber: 0
                 },
                 to: {
                     timestamp: timeAfterThirdMessagePublished,
-                    sequenceNumber: 0
                 }
             }
         }, (message) => {
@@ -516,11 +514,9 @@ describe('broker: end-to-end', () => {
             resend: {
                 from: {
                     timestamp: timeAfterFirstMessagePublished,
-                    sequenceNumber: 0
                 },
                 to: {
                     timestamp: timeAfterThirdMessagePublished,
-                    sequenceNumber: 0
                 }
             }
         }, (message) => {
@@ -532,11 +528,9 @@ describe('broker: end-to-end', () => {
             resend: {
                 from: {
                     timestamp: timeAfterFirstMessagePublished,
-                    sequenceNumber: 0
                 },
                 to: {
                     timestamp: timeAfterThirdMessagePublished,
-                    sequenceNumber: 0
                 }
             }
         }, (message) => {

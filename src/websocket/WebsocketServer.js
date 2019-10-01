@@ -3,6 +3,7 @@ const uuidv4 = require('uuid/v4')
 
 const debug = require('debug')('streamr:WebsocketServer')
 const { ControlLayer } = require('streamr-client-protocol')
+const LRU = require('lru-cache')
 
 const HttpError = require('../errors/HttpError')
 const VolumeLogger = require('../VolumeLogger')
@@ -49,6 +50,10 @@ module.exports = class WebsocketServer extends events.EventEmitter {
         )
         this.fieldDetector = new FieldDetector(streamFetcher)
         this.subscriptionManager = subscriptionManager
+        this.streamAuthCache = new LRU({
+            max: 1000,
+            maxAge: 1000 * 60 * 5
+        })
 
         this.requestHandlersByMessageType = {
             [ControlLayer.SubscribeRequest.TYPE]: this.handleSubscribeRequest,
@@ -72,27 +77,24 @@ module.exports = class WebsocketServer extends events.EventEmitter {
     close() {
         clearInterval(this._updateTotalBufferSizeInterval)
         this.streams.close()
-        this.wss.clients.forEach((socket) => socket.terminate())
+        this.streamAuthCache.reset()
+        // this.wss.forEach((socket) => socket.terminate())
         return new Promise((resolve, reject) => {
-            this.wss.close((err) => {
-                if (err) {
-                    reject(err)
-                } else {
-                    resolve()
-                }
-            })
+            // uws has setTimeout(cb, 20000); in close event
+            this.wss.close()
+            resolve()
         })
     }
 
     onNewClientConnection(socket, socketRequest) {
-        const connection = new Connection(socket, socketRequest)
+        const connection = new Connection(socket)
         this.volumeLogger.connectionCount += 1
         debug('onNewClientConnection: socket "%s" connected', connection.id)
 
         // Callback for when client sends message
         socket.on('message', (data) => {
             try {
-                const request = ControlLayer.ControlMessage.deserialize(data)
+                const request = ControlLayer.ControlMessage.deserialize(data, false)
                 const handler = this.requestHandlersByMessageType[request.type]
                 if (handler) {
                     debug('socket "%s" sent request "%s" with contents "%o"', connection.id, request.type, request)
@@ -129,31 +131,45 @@ module.exports = class WebsocketServer extends events.EventEmitter {
             return
         }
         // TODO: simplify with async-await
-        this.streamFetcher.authenticate(streamId, request.apiKey, request.sessionToken, 'write')
-            .then((stream) => {
-                // TODO: should this be moved to streamr-client-protocol-js ?
-                let streamPartition
-                if (request.version === 0) {
-                    streamPartition = this.partitionFn(stream.partitions, request.partitionKey)
-                }
-                const streamMessage = request.getStreamMessage(streamPartition)
-                this.fieldDetector.detectAndSetFields(stream, streamMessage, request.apiKey, request.sessionToken)
-                this.publisher.publish(stream, streamMessage)
-            })
-            .catch((err) => {
-                let errorMsg
-                if (err instanceof HttpError && err.code === 401) {
-                    errorMsg = `You are not allowed to write to stream ${request.streamId}`
-                } else if (err instanceof HttpError && err.code === 403) {
-                    errorMsg = `Authentication failed while trying to publish to stream ${request.streamId}`
-                } else if (err instanceof HttpError && err.code === 404) {
-                    errorMsg = `Stream ${request.streamId} not found.`
-                } else {
-                    errorMsg = `Publish request failed: ${err}`
-                }
+        const key = `${streamId}-${request.apiKey}-${request.sessionToken}`
+        if (this.streamAuthCache.has(key)) {
+            const stream = this.streamAuthCache.get(key)
 
-                connection.sendError(errorMsg)
-            })
+            let streamPartition
+            if (request.version === 0) {
+                streamPartition = this.partitionFn(stream.partitions, request.partitionKey)
+            }
+            const streamMessage = request.getStreamMessage(streamPartition)
+            this.publisher.publish(stream, streamMessage)
+        } else {
+            this.streamFetcher.authenticate(streamId, request.apiKey, request.sessionToken, 'write')
+                .then((stream) => {
+                    this.streamAuthCache.set(key, stream)
+
+                    // TODO: should this be moved to streamr-client-protocol-js ?
+                    let streamPartition
+                    if (request.version === 0) {
+                        streamPartition = this.partitionFn(stream.partitions, request.partitionKey)
+                    }
+                    const streamMessage = request.getStreamMessage(streamPartition)
+                    this.fieldDetector.detectAndSetFields(stream, streamMessage, request.apiKey, request.sessionToken)
+                    this.publisher.publish(stream, streamMessage)
+                })
+                .catch((err) => {
+                    let errorMsg
+                    if (err instanceof HttpError && err.code === 401) {
+                        errorMsg = `You are not allowed to write to stream ${request.streamId}`
+                    } else if (err instanceof HttpError && err.code === 403) {
+                        errorMsg = `Authentication failed while trying to publish to stream ${request.streamId}`
+                    } else if (err instanceof HttpError && err.code === 404) {
+                        errorMsg = `Stream ${request.streamId} not found.`
+                    } else {
+                        errorMsg = `Publish request failed: ${err}`
+                    }
+
+                    connection.sendError(errorMsg)
+                })
+        }
     }
 
     // TODO: Extract resend stuff to class?

@@ -30,9 +30,7 @@ function startBroker(id, httpPort, wsPort, networkPort, mqttPort, enableCassandr
             isStorageNode: false
         },
         cassandra: enableCassandra ? {
-            hosts: [
-                'localhost',
-            ],
+            hosts: ['localhost'],
             username: '',
             password: '',
             keyspace: 'streamr_dev',
@@ -131,18 +129,20 @@ describe('mqtt: end-to-end', () => {
     })
 
     afterEach(async () => {
+        tracker.stop(() => {})
+
         await client1.ensureDisconnected()
         await client2.ensureDisconnected()
         await client3.ensureDisconnected()
 
-        mqttClient1.end()
-        mqttClient2.end()
+        mqttClient1.end(true)
+        mqttClient2.end(true)
 
         broker1.close()
         broker2.close()
         broker3.close()
 
-        tracker.stop()
+        await wait(1000)
     })
 
     it('test not valid api key', async (done) => {
