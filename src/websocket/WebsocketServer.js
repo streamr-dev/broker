@@ -114,6 +114,7 @@ module.exports = class WebsocketServer extends events.EventEmitter {
         }
         // TODO: simplify with async-await
         const key = `${streamId}-${request.apiKey}-${request.sessionToken}`
+
         if (this.streamAuthCache.has(key)) {
             const stream = this.streamAuthCache.get(key)
 
@@ -135,6 +136,11 @@ module.exports = class WebsocketServer extends events.EventEmitter {
                     }
                     const streamMessage = request.getStreamMessage(streamPartition)
                     this.publisher.publish(stream, streamMessage)
+
+                    // add stream to connection, so when socket disconnects, we unsubscribe
+                    const streamObj = this.streams.getOrCreate(streamMessage.getStreamId(), streamMessage.getStreamPartition())
+                    streamObj.addConnection(connection)
+                    connection.addStream(streamObj)
 
                     this.fieldDetector.detectAndSetFields(stream, streamMessage, request.apiKey, request.sessionToken).catch((err) => {
                         console.error(`detectAndSetFields request failed: ${err}`)
