@@ -293,7 +293,9 @@ module.exports = class WebsocketServer extends events.EventEmitter {
         if (stream) {
             stream.forEachConnection((connection) => {
                 // TODO: performance fix, no need to re-create on every loop iteration
-                connection.send(ControlLayer.BroadcastMessage.create(streamMessage))
+                if (this._checkSocketIsConnected(connection.socket)) {
+                    connection.send(ControlLayer.BroadcastMessage.create(streamMessage))
+                }
             })
 
             this.volumeLogger.logOutput(streamMessage.getSerializedContent().length * stream.getConnections().length)
@@ -306,22 +308,26 @@ module.exports = class WebsocketServer extends events.EventEmitter {
         // TODO: simplify with async-await
         this.streamFetcher.authenticate(request.streamId, request.apiKey, request.sessionToken)
             .then((/* streamJson */) => {
-                const stream = this.streams.getOrCreate(request.streamId, request.streamPartition)
+                if (this._checkSocketIsConnected(connection.socket)) {
+                    const stream = this.streams.getOrCreate(request.streamId, request.streamPartition)
 
-                // Subscribe now if the stream is not already subscribed or subscribing
-                if (!stream.isSubscribed() && !stream.isSubscribing()) {
-                    stream.setSubscribing()
-                    this.subscriptionManager.subscribe(request.streamId, request.streamPartition)
-                    stream.setSubscribed()
+                    // Subscribe now if the stream is not already subscribed or subscribing
+                    if (!stream.isSubscribed() && !stream.isSubscribing()) {
+                        stream.setSubscribing()
+                        this.subscriptionManager.subscribe(request.streamId, request.streamPartition)
+                        stream.setSubscribed()
+                    }
+
+                    stream.addConnection(connection)
+                    connection.addStream(stream)
+                    debug(
+                        'handleSubscribeRequest: socket "%s" is now subscribed to streams "%o"',
+                        connection.id, connection.streamsAsString()
+                    )
+                    connection.send(ControlLayer.SubscribeResponse.create(request.streamId, request.streamPartition))
+                } else {
+                    debug('dropping connection %s, because its not connected', connection.id)
                 }
-
-                stream.addConnection(connection)
-                connection.addStream(stream)
-                debug(
-                    'handleSubscribeRequest: socket "%s" is now subscribed to streams "%o"',
-                    connection.id, connection.streamsAsString()
-                )
-                connection.send(ControlLayer.SubscribeResponse.create(request.streamId, request.streamPartition))
             })
             .catch((response) => {
                 debug(
@@ -375,5 +381,15 @@ module.exports = class WebsocketServer extends events.EventEmitter {
             )
             connection.sendError(`Not subscribed to stream ${request.streamId} partition ${request.streamPartition}!`)
         }
+    }
+
+    _checkSocketIsConnected(ws, close = true) {
+        const { readyState } = ws
+
+        if (close && readyState !== 1) {
+            ws.close()
+        }
+
+        return readyState === 1
     }
 }
