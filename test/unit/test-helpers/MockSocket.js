@@ -11,6 +11,7 @@ module.exports = class MockSocket extends events.EventEmitter {
         this.upgradeReq = {
             url: `some-url?controlLayerVersion=${controlLayerVersion}&messageLayerVersion=${messageLayerVersion}`,
         }
+        this.readyState = 1
     }
 
     join(channel, cb) {
