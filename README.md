@@ -45,7 +45,7 @@ https://semver.org/. Files package.json and package-lock.json will be automatica
 
 ## API Specification
 
-For production version refer to https://www.streamr.com/help/api#datainput and https://www.streamr.com/help/api#dataoutput.
+For production version refer to [API Explorer](https://api-explorer.streamr.com).
 
 Otherwise see [APIDOC.md](APIDOC.md).
 
