@@ -62,8 +62,3 @@ Messaging protocol is described in [streamr-specs PROTOCOL.md](https://github.co
 Error handling:
 - If API_KEY is not correct, client will receive "Connection refused, bad user name or password" (returnCode: 4)
 - If stream is not found, client will receive "Connection refused, not authorized" (returnCode: 5)
-
-
-## License
-
-This software is open source, and dual licensed under [AGPLv3](https://www.gnu.org/licenses/agpl.html) and an enterprise-friendly commercial license.
