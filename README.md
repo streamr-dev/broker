@@ -53,8 +53,8 @@ Otherwise see [APIDOC.md](APIDOC.md).
 
 Messaging protocol is described in [streamr-specs PROTOCOL.md](https://github.com/streamr-dev/streamr-specs/blob/master/PROTOCOL.md).
 
-## MQTT publishing
-
+## MQTT special considerations
+- MQTT topic names are mapped to stream names (and *not* stream ids.) This behavior may change in the future.
 - For authentication put API_KEY in password connection field
 - MQTT native clients are able to send plain text, but their payload will be transformed to JSON
 `{"mqttPayload":"ORIGINAL_PLAINTEXT_PAYLOAD}`
