@@ -14,21 +14,24 @@ Project uses npm for package management.
 - To run tests `npm test`
 
 ## Running
+It is convenient to run a broker node as part of the full Streamr stack.
+To run a copy of the full Streamr stack, see the
+[streamr-docker-dev](https://github.com/streamr-dev/streamr-docker-dev) tool.
+
+If instead you want to run a broker node by itself without Docker, follow the steps below.
+
 First install the package
 ```
 npm install -g @streamr/broker
 ```
-
 Then run the command broker with the desired configuration file
 ```
 broker <configFile>
 ```
-
 See folder "configs" for example configurations, e.g., to run a simple local broker
 ```
 broker configs/development-1.env.json
 ```
-
 
 ## Publishing
 
