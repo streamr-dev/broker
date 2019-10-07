@@ -47,8 +47,6 @@ https://semver.org/. Files package.json and package-lock.json will be automatica
 
 For production version refer to [API Explorer](https://api-explorer.streamr.com).
 
-Otherwise see [APIDOC.md](APIDOC.md).
-
 ## Protocol Specification
 
 Messaging protocol is described in [streamr-specs PROTOCOL.md](https://github.com/streamr-dev/streamr-specs/blob/master/PROTOCOL.md).
