@@ -22,5 +22,6 @@ EXPOSE 8891
 EXPOSE 9000
 
 ENV STREAMR_URL http://127.0.0.1:8081/streamr-core
+ENV NETWORK_ID development-node-1
 
-CMD node app.js configs/docker.env.json ${STREAMR_URL}
+CMD node app.js configs/docker.env.json --streamrUrl=${STREAMR_URL} --networkId=${NETWORK_ID}
