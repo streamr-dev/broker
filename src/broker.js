@@ -5,6 +5,7 @@ const Sentry = require('@sentry/node')
 
 const StreamFetcher = require('./StreamFetcher')
 const { startCassandraStorage } = require('./Storage')
+const { startTimescaleStorage } = require('./StorageTimescale')
 const Publisher = require('./Publisher')
 const VolumeLogger = require('./VolumeLogger')
 const SubscriptionManager = require('./SubscriptionManager')
@@ -77,6 +78,17 @@ module.exports = async (config) => {
     })
 
     const storages = []
+
+    if (config.timescale) {
+        console.info(`Starting TimescaleDb with hosts ${config.timescale.host} and database ${config.timescale.database}`)
+        storages.push(await startTimescaleStorage({
+            user: config.timescale.username,
+            password: config.timescale.password,
+            host: config.timescale.password,
+            database: config.timescale.database,
+            port: 5432
+        }))
+    }
 
     // Start cassandra storage
     if (config.cassandra) {
