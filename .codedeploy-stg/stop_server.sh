@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-
 service network-node stop
 service network-node-2 stop
 service network-node-3 stop
