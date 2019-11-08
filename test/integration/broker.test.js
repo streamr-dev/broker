@@ -1,4 +1,5 @@
-const { exec } = require('child_process')
+const util = require('util')
+const exec = util.promisify(require('child_process').exec)
 
 const WebSocket = require('ws')
 const { startTracker } = require('streamr-network')
@@ -66,34 +67,43 @@ function createClient(wsPort, apiKey) {
 }
 
 describe('ws and wss connections', () => {
+    let tracker
+    let broker
+
+    afterEach(async () => {
+        await tracker.stop(() => {})
+        await broker.close()
+    })
+
     it('can connect to ws endpoint', async (done) => {
-        const tracker = await startTracker('127.0.0.1', trackerPort, 'tracker')
-        const broker = await startBroker('broker1', httpPort1, wsPort1, networkPort1, true)
+        tracker = await startTracker('127.0.0.1', trackerPort, 'tracker')
+        broker = await startBroker('broker1', httpPort1, wsPort1, networkPort1, true)
+
         const ws = new WebSocket(`ws://127.0.0.1:${wsPort1}/api/v1/ws`)
         ws.on('open', () => {
-            broker.close()
-            tracker.stop(() => {})
+            ws.terminate()
             done()
         })
         ws.on('error', (err) => console.log(err))
     })
+
     it('can connect to wss endpoint', async (done) => {
-        const tracker = await startTracker('127.0.0.1', trackerPort, 'tracker')
+        tracker = await startTracker('127.0.0.1', trackerPort, 'tracker')
+        broker = await startBroker('broker1', httpPort1, wsPort1, networkPort1, true, 'test_key.pem', 'test_cert.pem')
         const command = 'openssl req -x509 -newkey rsa:4096 -keyout test_key.pem -out test_cert.pem -days 365 -nodes -subj \'/CN=localhost\''
-        let broker
-        await exec(command, async () => {
-            broker = await startBroker('broker1', httpPort1, wsPort1, networkPort1, true, 'test_key.pem', 'test_cert.pem')
-            const ws = new WebSocket(`wss://127.0.0.1:${wsPort1}/api/v1/ws`, {
-                rejectUnauthorized: false // needed to accept self-signed certificate
-            })
-            ws.on('open', () => {
-                broker.close()
-                tracker.stop(() => {})
-                done()
-            })
-            ws.on('error', (err) => console.log(err))
+
+        await exec(command)
+
+        const ws = new WebSocket(`wss://127.0.0.1:${wsPort1}/api/v1/ws`, {
+            rejectUnauthorized: false // needed to accept self-signed certificate
         })
-    }, 40000)
+
+        ws.on('open', () => {
+            ws.terminate()
+            done()
+        })
+        ws.on('error', (err) => console.log(err))
+    })
 })
 
 describe('broker: end-to-end', () => {
@@ -128,16 +138,15 @@ describe('broker: end-to-end', () => {
     }, 10 * 1000)
 
     afterAll(async () => {
-        await client1.ensureDisconnected()
-        await client2.ensureDisconnected()
-        await client3.ensureDisconnected()
-        broker1.close()
-        broker2.close()
-        broker3.close()
-
-        await wait(1000)
-
-        tracker.stop(() => {})
+        await Promise.all([
+            tracker.stop(),
+            client1.ensureDisconnected(),
+            client2.ensureDisconnected(),
+            client3.ensureDisconnected(),
+            broker1.close(),
+            broker2.close(),
+            broker3.close()
+        ])
     })
 
     it('happy-path: real-time websocket producing and websocket consuming', async () => {
