@@ -90,7 +90,7 @@ describe('ws and wss connections', () => {
         tracker = await startTracker('127.0.0.1', trackerPort, 'tracker')
         const command = 'openssl req -x509 -newkey rsa:4096 -keyout test_key.pem -out test_cert.pem -days 365 -nodes -subj \'/CN=localhost\''
 
-        await exec(command, async () => {
+        exec(command, async () => {
             broker = await startBroker('broker1', httpPort1, wsPort1, networkPort1, true, 'test_key.pem', 'test_cert.pem')
 
             const ws = new WebSocket(`wss://127.0.0.1:${wsPort1}/api/v1/ws`, {
