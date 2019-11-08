@@ -65,46 +65,46 @@ function createClient(wsPort, apiKey) {
     })
 }
 
-describe('ws and wss connections', () => {
-    let tracker
-    let broker
-
-    afterEach(async () => {
-        await tracker.stop(() => {})
-        await broker.close()
-    })
-
-    it('can connect to ws endpoint', async (done) => {
-        tracker = await startTracker('127.0.0.1', trackerPort, 'tracker')
-        broker = await startBroker('broker1', httpPort1, wsPort1, networkPort1, true)
-
-        const ws = new WebSocket(`ws://127.0.0.1:${wsPort1}/api/v1/ws`)
-        ws.on('open', () => {
-            ws.terminate()
-            done()
-        })
-        ws.on('error', (err) => done(err))
-    })
-
-    it('can connect to wss endpoint', async (done) => {
-        tracker = await startTracker('127.0.0.1', trackerPort, 'tracker')
-        const command = 'openssl req -x509 -newkey rsa:4096 -keyout test_key.pem -out test_cert.pem -days 365 -nodes -subj \'/CN=localhost\''
-
-        exec(command, async () => {
-            broker = await startBroker('broker1', httpPort1, wsPort1, networkPort1, true, 'test_key.pem', 'test_cert.pem')
-
-            const ws = new WebSocket(`wss://127.0.0.1:${wsPort1}/api/v1/ws`, {
-                rejectUnauthorized: false // needed to accept self-signed certificate
-            })
-
-            ws.on('open', () => {
-                ws.terminate()
-                done()
-            })
-            ws.on('error', (err) => done(err))
-        })
-    })
-})
+// describe('ws and wss connections', () => {
+//     let tracker
+//     let broker
+//
+//     afterEach(async () => {
+//         await tracker.stop(() => {})
+//         await broker.close()
+//     })
+//
+//     it('can connect to ws endpoint', async (done) => {
+//         tracker = await startTracker('127.0.0.1', trackerPort, 'tracker')
+//         broker = await startBroker('broker1', httpPort1, wsPort1, networkPort1, true)
+//
+//         const ws = new WebSocket(`ws://127.0.0.1:${wsPort1}/api/v1/ws`)
+//         ws.on('open', () => {
+//             ws.terminate()
+//             done()
+//         })
+//         ws.on('error', (err) => done(err))
+//     })
+//
+//     it('can connect to wss endpoint', async (done) => {
+//         tracker = await startTracker('127.0.0.1', trackerPort, 'tracker')
+//         const command = 'openssl req -x509 -newkey rsa:4096 -keyout test_key.pem -out test_cert.pem -days 365 -nodes -subj \'/CN=localhost\''
+//
+//         exec(command, async () => {
+//             broker = await startBroker('broker1', httpPort1, wsPort1, networkPort1, true, 'test_key.pem', 'test_cert.pem')
+//
+//             const ws = new WebSocket(`wss://127.0.0.1:${wsPort1}/api/v1/ws`, {
+//                 rejectUnauthorized: false // needed to accept self-signed certificate
+//             })
+//
+//             ws.on('open', () => {
+//                 ws.terminate()
+//                 done()
+//             })
+//             ws.on('error', (err) => done(err))
+//         })
+//     })
+// })
 
 describe('broker: end-to-end', () => {
     let tracker
