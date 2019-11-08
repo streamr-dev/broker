@@ -124,17 +124,17 @@ describe('broker: end-to-end', () => {
     }, 10 * 1000)
 
     afterAll(async () => {
-        await Promise.all([
-            tracker.stop(),
-            client1.ensureDisconnected(),
-            client2.ensureDisconnected(),
-            client3.ensureDisconnected(),
-            broker1.close(),
-            broker2.close(),
-            broker3.close()
-        ])
+        await client1.ensureDisconnected()
+        await client2.ensureDisconnected()
+        await client3.ensureDisconnected()
+
+        broker1.close()
+        broker2.close()
+        broker3.close()
 
         await wait(1000)
+
+        tracker.stop(() => {})
     })
 
     it('happy-path: real-time websocket producing and websocket consuming', async () => {
