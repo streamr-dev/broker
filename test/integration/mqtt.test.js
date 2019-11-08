@@ -144,6 +144,8 @@ describe('mqtt: end-to-end', () => {
             broker2.close(),
             broker3.close()
         ])
+
+        await wait(1000)
     })
 
     it('test not valid api key', async (done) => {

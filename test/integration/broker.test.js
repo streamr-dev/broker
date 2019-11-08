@@ -147,6 +147,8 @@ describe('broker: end-to-end', () => {
             broker2.close(),
             broker3.close()
         ])
+
+        await wait(1000)
     })
 
     it('happy-path: real-time websocket producing and websocket consuming', async () => {
