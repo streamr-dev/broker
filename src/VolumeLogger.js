@@ -46,6 +46,8 @@ module.exports = class VolumeLogger {
             timestamp: Date.now(),
             totalBufferSize: this.totalBufferSize,
             connectionCount,
+            connectionCountMQTT: this.connectionCountMQTT,
+            connectionCountWS: this.connectionCountWS,
             input: {
                 eventsPerSecond: Math.round(inPerSecond),
                 kbPerSecond: Math.round(kbInPerSecond),
