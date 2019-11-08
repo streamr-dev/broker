@@ -70,6 +70,7 @@ describe('ws and wss connections', () => {
         const broker = await startBroker('broker1', httpPort1, wsPort1, networkPort1, true)
         const ws = new WebSocket(`ws://127.0.0.1:${wsPort1}/api/v1/ws`)
         ws.on('open', async () => {
+            ws.terminate()
             await broker.close()
             done()
         })
@@ -83,6 +84,7 @@ describe('ws and wss connections', () => {
                 rejectUnauthorized: false // needed to accept self-signed certificate
             })
             ws.on('open', async () => {
+                ws.terminate()
                 await broker.close()
                 done()
             })
