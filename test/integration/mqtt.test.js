@@ -251,7 +251,7 @@ describe('mqtt: end-to-end', () => {
                 mqttPayload: 'key: 3'
             }
         ])
-    })
+    }, 15000)
 
     it('happy-path: real-time mqtt json producing and consuming', async () => {
         const client1Messages = []
@@ -306,7 +306,7 @@ describe('mqtt: end-to-end', () => {
                 key: 2
             }
         ])
-    })
+    }, 15000)
 
     it('happy-path: real-time mqtt and websocket producing and consuming', async () => {
         const client1Messages = []
@@ -423,7 +423,7 @@ describe('mqtt: end-to-end', () => {
                 key: 4
             },
         ])
-    })
+    }, 15000)
 
     it('mqtt clients subscribe and unsubscribe logic', async () => {
         await waitForCondition(() => mqttClient1.connected)
@@ -445,5 +445,5 @@ describe('mqtt: end-to-end', () => {
 
         expect(broker1.getStreams()).toEqual([])
         expect(broker2.getStreams()).toEqual([freshStreamId1 + '::0'])
-    })
+    }, 10000)
 })
