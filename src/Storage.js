@@ -118,7 +118,7 @@ class Storage extends EventEmitter {
         }
 
         if (!Number.isInteger(fromTimestamp) || parseInt(fromTimestamp) < 0) {
-            throw new Error('fromTimestamp must be zero of positive')
+            throw new Error('fromTimestamp must be zero or positive')
         }
         if (fromSequenceNo != null && (!Number.isInteger(fromSequenceNo) || parseInt(fromSequenceNo) < 0)) {
             throw new Error('fromSequenceNo must be positive')
@@ -142,7 +142,7 @@ class Storage extends EventEmitter {
         }
 
         if (!Number.isInteger(fromTimestamp) || Number.isInteger(fromTimestamp) < 0) {
-            throw new Error('fromTimestamp must be zero of positive')
+            throw new Error('fromTimestamp must be zero or positive')
         }
 
         const query = 'SELECT * FROM stream_data WHERE id = ? AND partition = ? AND ts >= ? ORDER BY ts ASC, sequence_no ASC'
