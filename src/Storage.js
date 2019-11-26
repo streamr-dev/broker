@@ -70,7 +70,7 @@ class Storage extends EventEmitter {
 
     store(streamMessage) {
         const p = this.storeStrategy.store(streamMessage)
-        p.then(() => this.emit('write', streamMessage))
+        p.then(() => this.emit('write', streamMessage), () => {})
         return p
     }
 
