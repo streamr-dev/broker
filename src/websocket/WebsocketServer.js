@@ -129,6 +129,9 @@ module.exports = class WebsocketServer extends EventEmitter {
                     const msg = copy(message)
 
                     setImmediate(() => {
+                        if (connection.isDead()) {
+                            return
+                        }
                         try {
                             const request = ControlLayer.ControlMessage.deserialize(ab2str(msg), false)
                             const handler = this.requestHandlersByMessageType[request.type]
@@ -161,7 +164,6 @@ module.exports = class WebsocketServer extends EventEmitter {
     }
 
     _removeConnection(connection) {
-        // TODO cancel resends attached to this connection
         this.connections.delete(connection)
         this.volumeLogger.connectionCountWS = this.connections.size
 
@@ -173,6 +175,8 @@ module.exports = class WebsocketServer extends EventEmitter {
                 true,
             )
         })
+
+        connection.markAsDead()
     }
 
     close() {
@@ -282,6 +286,9 @@ module.exports = class WebsocketServer extends EventEmitter {
 
         // TODO: simplify with async-await
         this.streamFetcher.authenticate(request.streamId, request.apiKey, request.sessionToken).then(() => {
+            if (connection.isDead()) {
+                return
+            }
             const streamingStorageData = resendTypeHandler()
             streamingStorageData.on('data', msgHandler)
             streamingStorageData.on('end', doneHandler)
@@ -405,6 +412,9 @@ module.exports = class WebsocketServer extends EventEmitter {
         // TODO: simplify with async-await
         this.streamFetcher.authenticate(request.streamId, request.apiKey, request.sessionToken)
             .then((/* streamJson */) => {
+                if (connection.isDead()) {
+                    return
+                }
                 const stream = this.streams.getOrCreate(request.streamId, request.streamPartition)
 
                 // Subscribe now if the stream is not already subscribed or subscribing

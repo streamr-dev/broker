@@ -18,6 +18,7 @@ module.exports = class Connection extends EventEmitter {
         this.id = generateId()
         this.socket = socket
         this.streams = []
+        this.dead = false
 
         // default versions for old clients
         this.controlLayerVersion = 0
@@ -55,6 +56,15 @@ module.exports = class Connection extends EventEmitter {
 
     streamsAsString() {
         return this.streams.map((s) => s.toString())
+    }
+
+
+    markAsDead() {
+        this.alive = true
+    }
+
+    isDead() {
+        return this.alive
     }
 
     send(msg) {
