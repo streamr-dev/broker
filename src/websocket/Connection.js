@@ -18,6 +18,7 @@ module.exports = class Connection extends EventEmitter {
         this.id = generateId()
         this.socket = socket
         this.streams = []
+        this.ongoingResends = new Set()
         this.dead = false
 
         // default versions for old clients
@@ -58,6 +59,17 @@ module.exports = class Connection extends EventEmitter {
         return this.streams.map((s) => s.toString())
     }
 
+    addOngoingResend(resend) {
+        this.ongoingResends.add(resend)
+    }
+
+    removeOngoingResend(resend) {
+        this.ongoingResends.delete(resend)
+    }
+
+    getOngoingResends() {
+        return new Set(this.ongoingResends)
+    }
 
     markAsDead() {
         this.alive = true

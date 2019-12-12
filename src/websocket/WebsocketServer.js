@@ -176,6 +176,11 @@ module.exports = class WebsocketServer extends EventEmitter {
             )
         })
 
+        // Cancel all resends
+        connection.getOngoingResends().forEach((resend) => {
+            resend.destroy()
+        })
+
         connection.markAsDead()
     }
 
@@ -290,8 +295,12 @@ module.exports = class WebsocketServer extends EventEmitter {
                 return
             }
             const streamingStorageData = resendTypeHandler()
+            connection.addOngoingResend(streamingStorageData)
             streamingStorageData.on('data', msgHandler)
             streamingStorageData.on('end', doneHandler)
+            streamingStorageData.once('end', () => {
+                connection.removeOngoingResend(streamingStorageData)
+            })
         }).catch((err) => {
             connection.sendError(`Failed to request resend from stream ${
                 request.streamId
