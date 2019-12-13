@@ -34,6 +34,7 @@ describe('resend cancellation', () => {
                         read() {}
                     })
                     const timeoutRef = setTimeout(() => {
+                        // eslint-disable-next-line no-undef
                         fail('pushed to destroyed stream')
                     }, 2000)
                     stream.on('close', () => {
