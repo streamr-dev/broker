@@ -72,11 +72,11 @@ module.exports = class Connection extends EventEmitter {
     }
 
     markAsDead() {
-        this.alive = true
+        this.dead = true
     }
 
     isDead() {
-        return this.alive
+        return this.dead
     }
 
     send(msg) {
