@@ -8,7 +8,7 @@ WORKDIR /app
 COPY . /app
 
 # Install package.json dependencies (yes, clean up must be part of same RUN command because of layering)
-RUN apk add --no-cache gcompat
+RUN apk add --no-cache gcompat curl
 RUN apk add --update python build-base git && npm install && apk del python build-base && rm -rf /var/cache/apk/*
 
 # Make ports available to the world outside this container
