@@ -22,10 +22,6 @@
   },
   "author": "Streamr <contact@streamr.com>",
   "license": "",
-  "engines": {
-    "node": "10.15.3",
-    "npm": "6.9.0"
-  },
   "dependencies": {
     "@sentry/node": "^5.10.2",
     "arraybuffer-to-string": "^1.0.2",
