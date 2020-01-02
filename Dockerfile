@@ -1,5 +1,4 @@
-# Use official node runtime as base image
-FROM node:10.18.0-alpine
+FROM ubuntu:16.04
 
 # Set the working directory to /app
 WORKDIR /app
@@ -7,9 +6,13 @@ WORKDIR /app
 # Copy app code
 COPY . /app
 
-# Install package.json dependencies (yes, clean up must be part of same RUN command because of layering)
-RUN apk add --no-cache gcompat
-RUN apk add --update python build-base git && npm install && apk del python build-base && rm -rf /var/cache/apk/*
+RUN apt-get update
+RUN apt-get -qq upgrade
+RUN apt-get install -y build-essential curl git
+RUN curl -sL https://deb.nodesource.com/setup_10.x | bash
+RUN apt-get install -y nodejs
+RUN node --version
+RUN npm install
 
 # Make ports available to the world outside this container
 EXPOSE 30315
