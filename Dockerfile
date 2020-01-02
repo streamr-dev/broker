@@ -1,19 +1,26 @@
-FROM ubuntu:16.04
-
-# Set the working directory to /app
+FROM ubuntu:16.04 AS builder
 WORKDIR /app
-
-# Copy app code
 COPY . /app
-
-RUN apt-get update
-RUN apt-get -qq upgrade
-RUN apt-get install -y build-essential curl git
+RUN apt-get update && apt-get install -y curl
 RUN curl -sL https://deb.nodesource.com/setup_10.x | bash
-RUN apt-get install -y nodejs
+RUN apt-get update && apt-get install -y \
+	build-essential \
+	git \
+	nodejs \
+	&& rm -rf /var/lib/apt/lists/*
 RUN node --version
 RUN npm ci
 
+FROM ubuntu:16.04
+WORKDIR /app
+COPY --from=builder /app/ .
+RUN apt-get update && apt-get install -y curl
+RUN curl -sL https://deb.nodesource.com/setup_10.x | bash
+RUN apt-get update && apt-get install -y \
+	nodejs \
+	&& rm -rf /var/lib/apt/lists/*
+
+USER nobody
 # Make ports available to the world outside this container
 EXPOSE 30315
 # WebSocket
