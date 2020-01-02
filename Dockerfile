@@ -12,7 +12,7 @@ RUN apt-get install -y build-essential curl git
 RUN curl -sL https://deb.nodesource.com/setup_10.x | bash
 RUN apt-get install -y nodejs
 RUN node --version
-RUN npm install
+RUN npm ci
 
 # Make ports available to the world outside this container
 EXPOSE 30315
