@@ -18,7 +18,7 @@ for (( i=0; i < 5; i=i+1 )); do
         sleep $wait_time;
         wait_time=$(( 2*wait_time )) ;
     else
-        exit 0
+        break;
     fi;
 done;
 set -e
