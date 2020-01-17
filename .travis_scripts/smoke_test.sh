@@ -21,4 +21,5 @@ for (( i=0; i < 5; i=i+1 )); do
         exit 0
     fi;
 done;
-exit 1
+set -e
+curl http://localhost:8791/api/v1/volume
