@@ -4,7 +4,7 @@ sudo ifconfig docker0 10.200.10.1/24
 ## Get Streamr Docker dev
 git clone https://github.com/streamr-dev/streamr-docker-dev.git
 ## Switch out image for local one
-sed -i "s#$OWNER/$IMAGE_NAME:dev#$OWNER/$IMAGE_NAME\:local#g" $TRAVIS_BUILD_DIR/streamr-docker-dev/docker-compose.override.yml
+sed -i "s#$OWNER/$IMAGE_NAME:dev#$OWNER/$IMAGE_NAME\:taggit#g" $TRAVIS_BUILD_DIR/streamr-docker-dev/docker-compose.override.yml
 ## Start up services needed
 $TRAVIS_BUILD_DIR/streamr-docker-dev/streamr-docker-dev/bin.sh start broker-node-no-storage-1
 
