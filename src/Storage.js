@@ -19,6 +19,7 @@ const INSERT_STATEMENT_WITH_TTL = 'INSERT INTO stream_data '
 
 const batchingStore = (cassandraClient, insertStatement) => new MicroBatchingStrategy({
     insertFn: (streamMessages) => {
+        // future-proofing: currently all messages in batch have same streamId, but could change later on
         const streamIds = new Set()
         const queries = streamMessages.map((streamMessage) => {
             streamIds.add(streamMessage.getStreamId())
