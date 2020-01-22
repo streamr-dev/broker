@@ -30,12 +30,12 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /
 ENV PATH="/node-$NODE_VERSION-linux-x64/bin:${PATH}"
-COPY --from=builder /node-$NODE_VERSION-linux-x64/ /node-$NODE_VERSION-linux-x64/
+COPY --from=builder --chown=root:root /node-$NODE_VERSION-linux-x64/ /node-$NODE_VERSION-linux-x64/
 
 RUN useradd -ms /bin/bash node
 USER node
 WORKDIR /home/node
-COPY --from=builder /home/node/ ./
+COPY --from=builder --chown=node:node /home/node/ ./
 
 # Make ports available to the world outside this container
 EXPOSE 30315
