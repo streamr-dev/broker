@@ -1,10 +1,7 @@
 const cassandra = require('cassandra-driver')
-const toArray = require('stream-to-array')
 const uuid = require('uuid')
-const { StreamMessage, StreamMessageV30 } = require('streamr-client-protocol').MessageLayer
 const { wait } = require('streamr-test-utils')
 
-const { startCassandraStorage } = require('../../src/Storage')
 const { startBroker, createClient } = require('../utils')
 
 const contactPoints = ['127.0.0.1']
@@ -101,7 +98,7 @@ describe('store last timestamp for each stream with each batch', () => {
             name: streamName2
         })
         const streamId2 = stream2.id
-        // const currentLastTimeStamp = await getLastTimeStamp(cassandraClient, streamId)
+
         await client.publish(streamId2, {
             key: 1
         })
