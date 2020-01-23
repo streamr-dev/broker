@@ -12,14 +12,27 @@ const getLastTimeStamp = async (cassandraClient, streamId) => {
     const result = await cassandraClient.execute('SELECT * FROM stream_last_msg WHERE id = ? LIMIT 1', [
         streamId
     ])
-    return result && result.rowLength > 0 ? result.rows[0] : undefined
+    return result && result.rowLength > 0 ? Date.parse(result.rows[0].time) : undefined
 }
 
 const getLastTimeStamps = async (cassandraClient, streamIds) => {
     const result = await cassandraClient.execute('SELECT * FROM stream_last_msg WHERE id IN ?', [
         streamIds
     ])
-    return result && result.rowLength > 0 ? result.rows : undefined
+    return result && result.rowLength > 0 ? result.rows.map((r) => Date.parse(r.time)) : undefined
+}
+
+const awaitForResult = async (fn, conditionFn) => {
+    let result
+    let attemptNo = 0
+    while (!conditionFn(result) && attemptNo < 20) {
+        // eslint-disable-next-line no-await-in-loop
+        await wait(200)
+        attemptNo += 1
+        // eslint-disable-next-line no-await-in-loop
+        result = await fn()
+    }
+    return result
 }
 
 const httpPort = 12941
@@ -44,7 +57,7 @@ describe('store last timestamp for each stream with each batch', () => {
             keyspace
         })
 
-        streamName = `stream-last-timestamp-${uuid.v4()}`
+        streamName = `last-timestamp-in-cassandra.test.js-${uuid.v4()}`
 
         client = createClient(wsPort, 'tester1-api-key')
 
@@ -68,16 +81,15 @@ describe('store last timestamp for each stream with each batch', () => {
     })
 
     test('expect lastTimestamp to be not undefined and greater than now', async () => {
-        const now = new Date().toISOString()
+        const now = Date.now()
         await client.publish(streamId, {
             key: 1
         })
 
-        await wait(2000) // wait storage to store, hopefully
-        const result = await getLastTimeStamp(cassandraClient, streamId)
+        const result = await awaitForResult(() => getLastTimeStamp(cassandraClient, streamId), (ts) => ts)
 
-        expect(result.time).not.toBeUndefined()
-        expect(Date.parse(result.time)).toBeGreaterThan(Date.parse(now))
+        expect(result).not.toBeUndefined()
+        expect(result).toBeGreaterThan(now)
     })
 
     test('expect lastTimestamp to update after each publish', async () => {
@@ -86,10 +98,12 @@ describe('store last timestamp for each stream with each batch', () => {
             key: 1
         })
 
-        await wait(2000) // wait storage to store, hopefully
-        const result = await getLastTimeStamp(cassandraClient, streamId)
+        const result = await awaitForResult(
+            () => getLastTimeStamp(cassandraClient, streamId),
+            (ts) => ts && ts !== currentLastTimeStamp
+        )
 
-        expect(Date.parse(result.time)).toBeGreaterThan(Date.parse(currentLastTimeStamp.time))
+        expect(result).toBeGreaterThan(currentLastTimeStamp)
     })
 
     test('test getting N timestamps', async () => {
@@ -103,8 +117,10 @@ describe('store last timestamp for each stream with each batch', () => {
             key: 1
         })
 
-        await wait(2000) // wait storage to store, hopefully
-        const result = await getLastTimeStamps(cassandraClient, [streamId, streamId2])
+        const result = await awaitForResult(
+            () => getLastTimeStamps(cassandraClient, [streamId, streamId2]),
+            (results) => results && results.length >= 2
+        )
 
         expect(result.length).toEqual(2)
     })
