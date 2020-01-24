@@ -18,7 +18,7 @@ function buildMsg(
     msgChainId = '1',
     content = {}
 ) {
-    return new StreamMessageV31(
+    return StreamMessage.create(
         [streamId, streamPartition, timestamp, sequenceNumber, publisherId, msgChainId],
         null,
         StreamMessage.CONTENT_TYPES.MESSAGE,
