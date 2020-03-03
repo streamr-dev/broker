@@ -48,7 +48,8 @@
     "streamr-network": "^17.3.0",
     "uWebSockets.js": "github:uNetworking/uWebSockets.js#v17.1.0",
     "uuid": "^3.4.0",
-    "ws": "^7.2.1"
+    "ws": "^7.2.1",
+    "stream-to-array": "^2.3.0"
   },
   "devDependencies": {
     "async-mqtt": "^2.4.2",
@@ -60,7 +61,6 @@
     "into-stream": "^5.1.1",
     "jest": "^25.1.0",
     "sinon": "^8.1.1",
-    "stream-to-array": "^2.3.0",
     "streamr-test-utils": "^1.0.4",
     "supertest": "^4.0.2"
   }
