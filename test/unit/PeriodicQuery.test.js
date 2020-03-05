@@ -16,11 +16,11 @@ describe('PeriodicQuery', () => {
             })
             s.push(null)
             return s
-        }, 500, 4700)
+        }, 100, 950)
         const results = await toArray(periodicQuery.getStreamingResults())
         assert.deepStrictEqual(results, [])
         assert.strictEqual(counter, 10)
-    }, 7000)
+    })
     it('calls queryFunction only once and results are as expected', async () => {
         let counter = 0
         const periodicQuery = new PeriodicQuery(() => {
@@ -33,7 +33,7 @@ describe('PeriodicQuery', () => {
             s.push('data2')
             s.push(null)
             return s
-        }, 500, 4700)
+        }, 100, 950)
         const results = await toArray(periodicQuery.getStreamingResults())
         assert.strictEqual(counter, 1)
         assert.deepStrictEqual(results, ['data1', 'data2'])

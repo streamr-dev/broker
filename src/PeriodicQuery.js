@@ -1,8 +1,6 @@
 const EventEmitter = require('events')
 const Stream = require('stream')
 
-const toArray = require('stream-to-array')
-
 module.exports = class PeriodicQuery extends EventEmitter {
     constructor(queryFunction, retryInterval, retryTimeout) {
         super()
@@ -16,30 +14,36 @@ module.exports = class PeriodicQuery extends EventEmitter {
     }
 
     async _startFetching() {
-        let results = await toArray(this.queryFunction())
-        if (!results || results.length === 0) {
-            this.interval = setInterval(async () => {
-                results = await toArray(this.queryFunction())
-                if (results && results.length > 0) {
-                    this.clear()
-                    this._addResultsToStream(results)
-                }
-            }, this.retryInterval)
-            this.timeout = setTimeout(() => {
-                this.clear()
-                this._addResultsToStream([])
-            }, this.retryTimeout)
-        } else {
-            this.clear()
-            this._addResultsToStream(results)
-        }
-    }
-
-    _addResultsToStream(results) {
-        results.forEach((r) => {
-            this.readableStream.push(r)
+        let dataSeen = false
+        const queryStream = this.queryFunction()
+        queryStream.on('data', (d) => this.readableStream.push(d))
+        queryStream.once('data', () => {
+            dataSeen = true
         })
-        this.readableStream.push(null)
+        queryStream.once('end', () => {
+            if (dataSeen) {
+                this.clear()
+                this.readableStream.push(null)
+            } else {
+                this.interval = setInterval(async () => {
+                    const stream = this.queryFunction()
+                    stream.on('data', (d) => this.readableStream.push(d))
+                    stream.once('data', () => {
+                        dataSeen = true
+                    })
+                    stream.once('end', () => {
+                        if (dataSeen) {
+                            this.clear()
+                            this.readableStream.push(null)
+                        }
+                    })
+                }, this.retryInterval)
+                this.timeout = setTimeout(() => {
+                    this.clear()
+                    this.readableStream.push(null)
+                }, this.retryTimeout)
+            }
+        })
     }
 
     getStreamingResults() {

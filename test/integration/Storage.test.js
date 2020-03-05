@@ -257,7 +257,7 @@ describe.each([false, true])('Storage (isBatching=%s)', (isBatching) => {
         const msg1 = buildEncryptedMsg(streamId, 10, 2000, 0, 'publisher1')
         // will query periodically until getting some results once the message is stored
         const streamingResults = storage.requestRange(streamId, 10, 1500, 3, Date.now(), 2, 'publisher1', '1')
-        setTimeout(() => storage.store(msg1), 5000)
+        setTimeout(() => storage.store(msg1), 2000)
         const results = await toArray(streamingResults)
         expect(results).toEqual([msg1])
     }, 8000)
@@ -266,7 +266,7 @@ describe.each([false, true])('Storage (isBatching=%s)', (isBatching) => {
         const msg1 = buildEncryptedMsg(streamId, 10, 2000, 0, 'publisher1')
         // will NOT query periodically ('to' timestamp is older than Date.now() - RANGE_THRESHOLD). Returns empty result immediately
         const streamingResults = storage.requestRange(streamId, 10, 1500, 3, Date.now() - (50 * 1000), 2, 'publisher1', '1')
-        setTimeout(() => storage.store(msg1), 5000)
+        setTimeout(() => storage.store(msg1), 2000)
         const results = await toArray(streamingResults)
         expect(results).toEqual([])
     }, 8000)
