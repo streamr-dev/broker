@@ -130,7 +130,7 @@ describe('SubscriptionManager', () => {
         await wait(1000)
         await client1.unsubscribeAll(freshStreamId2)
 
-        await waitForCondition(() => broker1.getStreams().length === 0)
+        await waitForCondition(() => broker1.getStreams().length === 0, 10000)
         await waitForCondition(() => broker2.getStreams().length === 2)
 
         expect(broker1.getStreams()).toEqual([])
