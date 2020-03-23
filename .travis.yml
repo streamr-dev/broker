@@ -69,6 +69,15 @@ jobs:
         secure: CK/WSjevo6O2Lhf+hB9mYjsnHtH3LhY0A9dZSK/FjUCZQthrZjpGP7NK5hX8v1uFutCK7nyjMBfM4DD2gkjgzT/8IGbCtSrOd8RyDPoBWjWTjcDzSAtlyXkmZGH2iaJFO/AjAYetuerW7k44BdXa/yE3d6IB4dLeRTVe76CfBFaiV8SSYugE89GaNjXD9GuVl6NJ9AdaVmjRqFXavZW4oCI+m5oivCIHiAD1R1XboxHavSzLTH1GPDcVJareEc10002ZRo9thSH/pqxHO2g6reTxQrdT3nE8E5/Bzm8xeIPHbgFqLcaFyWRDPiq6AWA1rtnextERWsO3P8MwGoHzuuuzrTcozuoZ3880bEIu6RY9QnSX2atYsZICIw6r8Be7LKtObrSnDbqQkA8KJvWANEg4xFf/YX5+qyrDSS6FvIg1rXIc8NvDrIPQkYea6hFPoLWyJSl6WAhkPH5z+WQcrvCJX+kKn170hVVR0CwBHbiCVaakZIuh5TOkgNTDTvb66/oJlzGwDX2B3Un6UM+hvj8e6iYXuoNLgTY/P8vJp8Qc3KX2WroeemQNZug+KVwZvggTvKm3XSY0CQzRmgsemum3fQCYmi56u3cwWYp6aWcKMBrnYk5ZOna7YVsIIqt8zRb/0/e1U7kPf8AU5I37ztWFKfy9Irp7HwBYVmI1BeI=
       bucket: eu-west-1-stg-streamr-vault
       key: network-node/releases/broker-${TRAVIS_JOB_ID}.tar
+      application: us-east-1-stg-network-node-codedeploy
+      deployment_group: us-east-1-stg-network-node-deployment-group
+      region: us-east-1
+    - provider: codedeploy
+      access_key_id: AKIAI3FGPGMK3EREJJTQ
+      secret_access_key:
+        secure: CK/WSjevo6O2Lhf+hB9mYjsnHtH3LhY0A9dZSK/FjUCZQthrZjpGP7NK5hX8v1uFutCK7nyjMBfM4DD2gkjgzT/8IGbCtSrOd8RyDPoBWjWTjcDzSAtlyXkmZGH2iaJFO/AjAYetuerW7k44BdXa/yE3d6IB4dLeRTVe76CfBFaiV8SSYugE89GaNjXD9GuVl6NJ9AdaVmjRqFXavZW4oCI+m5oivCIHiAD1R1XboxHavSzLTH1GPDcVJareEc10002ZRo9thSH/pqxHO2g6reTxQrdT3nE8E5/Bzm8xeIPHbgFqLcaFyWRDPiq6AWA1rtnextERWsO3P8MwGoHzuuuzrTcozuoZ3880bEIu6RY9QnSX2atYsZICIw6r8Be7LKtObrSnDbqQkA8KJvWANEg4xFf/YX5+qyrDSS6FvIg1rXIc8NvDrIPQkYea6hFPoLWyJSl6WAhkPH5z+WQcrvCJX+kKn170hVVR0CwBHbiCVaakZIuh5TOkgNTDTvb66/oJlzGwDX2B3Un6UM+hvj8e6iYXuoNLgTY/P8vJp8Qc3KX2WroeemQNZug+KVwZvggTvKm3XSY0CQzRmgsemum3fQCYmi56u3cwWYp6aWcKMBrnYk5ZOna7YVsIIqt8zRb/0/e1U7kPf8AU5I37ztWFKfy9Irp7HwBYVmI1BeI=
+      bucket: eu-west-1-stg-streamr-vault
+      key: network-node/releases/broker-${TRAVIS_JOB_ID}.tar
       application: eu-west-1-stg-network-node-storage-codedeploy
       deployment_group: eu-west-1-stg-network-node-storage-deployment-group
       region: eu-west-1
