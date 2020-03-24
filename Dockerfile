@@ -20,4 +20,3 @@ ENV CONFIG_FILE configs/docker-1.env.json
 ENV STREAMR_URL http://127.0.0.1:8081/streamr-core
 
 CMD node app.js ${CONFIG_FILE} --streamrUrl=${STREAMR_URL}
-
