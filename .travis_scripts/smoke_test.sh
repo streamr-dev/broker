@@ -23,3 +23,6 @@ for (( i=0; i < 5; i=i+1 )); do
 done;
 set -e
 curl http://localhost:8791/api/v1/volume
+
+
+
