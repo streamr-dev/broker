@@ -40,10 +40,6 @@ module.exports = class StreamFetcher {
     }
 
     _authenticate(streamId, authKey, sessionToken, operation = 'stream_subscribe') {
-        if (operation === 'stream_subscribe') {
-            // No need to explicitly check permissions, as fetch will fail if no read permission
-            return this.fetch(streamId, authKey, sessionToken)
-        }
         return this.checkPermission(streamId, authKey, sessionToken, operation)
             .then(() => this.fetch(streamId, authKey, sessionToken))
     }

@@ -116,6 +116,11 @@ describe('StreamFetcher', () => {
             {
                 id: null,
                 user: 'tester1@streamr.com',
+                operation: 'stream_get',
+            },
+            {
+                id: null,
+                user: 'tester1@streamr.com',
                 operation: 'stream_subscribe',
             },
         ]
@@ -376,41 +381,24 @@ describe('StreamFetcher', () => {
     })
 
     describe('authenticate', () => {
-        it('only fetches if read permission is required when API key given', (done) => {
-            streamFetcher.checkPermission = sinon.stub()
-            streamFetcher.authenticate(streamId, 'key', undefined, undefined).then((json) => {
-                assert.equal(numOfRequests, 1)
-                assert.deepEqual(json, streamJson)
-                assert(streamFetcher.checkPermission.notCalled)
-                done()
-            })
+        it('fails if the requested permission has not been granted', (done) => {
+            // Only stream_get permission
+            permissions = [
+                {
+                    id: null,
+                    user: 'tester1@streamr.com',
+                    operation: 'stream_get',
+                }
+            ]
+
+            // Should reject promise
+            streamFetcher.authenticate(streamId, undefined, 'session-token', 'stream_subscribe')
+                .catch((err) => {
+                    done()
+                })
         })
 
-        it('checks permission and fetches if write permission is required when API key given', (done) => {
-            permissions.push({
-                id: null,
-                user: 'tester1@streamr.com',
-                operation: 'stream_publish',
-            })
-
-            streamFetcher.authenticate(streamId, 'key', undefined, 'stream_publish').then((json) => {
-                assert.equal(numOfRequests, 2)
-                assert.deepEqual(json, streamJson)
-                done()
-            })
-        })
-
-        it('only fetches if read permission is required when session token given', (done) => {
-            streamFetcher.checkPermission = sinon.stub()
-            streamFetcher.authenticate(streamId, undefined, 'session-token', undefined).then((json) => {
-                assert.equal(numOfRequests, 1)
-                assert.deepEqual(json, streamJson)
-                assert(streamFetcher.checkPermission.notCalled)
-                done()
-            })
-        })
-
-        it('checks permission and fetches if write permission is required when session token given', (done) => {
+        it('accepts and returns stream if the permission is granted', (done) => {
             permissions.push({
                 id: null,
                 user: 'tester1@streamr.com',
@@ -420,6 +408,13 @@ describe('StreamFetcher', () => {
             streamFetcher.authenticate(streamId, undefined, 'session-token', 'stream_publish').then((json) => {
                 assert.equal(numOfRequests, 2)
                 assert.deepEqual(json, streamJson)
+                done()
+            })
+        })
+
+        it('fails with an invalid session token', (done) => {
+            streamFetcher.authenticate(streamId, undefined, 'nonExistingSessionToken', 'stream_subscribe').catch((err) => {
+                assert.equal(numOfRequests, 1)
                 done()
             })
         })
