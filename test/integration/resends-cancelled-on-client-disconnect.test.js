@@ -59,7 +59,7 @@ describe('resend cancellation', () => {
             new StreamFetcher('http://localhost:8081/streamr-core'),
             new Publisher(networkNode, volumeLogger),
             volumeLogger,
-            new SubscriptionManager(networkNode)
+            new SubscriptionManager(networkNode),
         )
         client = createClient(wsPort, 'tester1-api-key')
         freshStream = await client.createStream({
