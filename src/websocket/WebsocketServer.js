@@ -85,24 +85,8 @@ module.exports = class WebsocketServer extends EventEmitter {
             this.volumeLogger.totalBufferSize = totalBufferSize
         }, 1000)
 
-        console.log(this.pingInterval)
         this._pingInterval = setInterval(() => {
-            const connections = [...this.connections.values()]
-            connections.forEach((connection) => {
-                try {
-                    // didn't get "pong" in pingInterval
-                    if (!connection.isAlive) {
-                        throw Error('Connection is not active')
-                    }
-
-                    // eslint-disable-next-line no-param-reassign
-                    connection.isAlive = false
-                    connection.ping()
-                } catch (e) {
-                    console.error(`Failed to ping connection: ${connection.id}, error ${e}`)
-                    connection.emit('forceClose')
-                }
-            })
+            this._pingConnections()
         }, this.pingInterval)
 
         this.wss.listen(port, (token) => {
@@ -440,6 +424,26 @@ module.exports = class WebsocketServer extends EventEmitter {
         } else {
             debug('broadcastMessage: stream "%s:%d" not found', streamId, streamPartition)
         }
+    }
+
+    _pingConnections() {
+        const connections = [...this.connections.values()]
+        connections.forEach((connection) => {
+            try {
+                // didn't get "pong" in pingInterval
+                if (connection.isAlive !== undefined && !connection.isAlive) {
+                    throw Error('Connection is not active')
+                }
+
+                // eslint-disable-next-line no-param-reassign
+                connection.isAlive = false
+                connection.ping()
+                debug(`pinging ${connection.id}`)
+            } catch (e) {
+                console.error(`Failed to ping connection: ${connection.id}, error ${e}`)
+                connection.emit('forceClose')
+            }
+        })
     }
 
     _handleStreamMessage(streamMessage) {
