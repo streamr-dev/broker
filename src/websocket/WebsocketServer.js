@@ -172,7 +172,7 @@ module.exports = class WebsocketServer extends EventEmitter {
 
                 if (connection) {
                     debug(`received from ${connection.id} "pong" frame`)
-                    connection.isAlive = true
+                    connection.respondedPong = true
                 }
             }
         })

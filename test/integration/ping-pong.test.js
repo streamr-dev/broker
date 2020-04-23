@@ -1,8 +1,8 @@
 const { startTracker, startStorageNode } = require('streamr-network')
-const { wait, waitForCondition } = require('streamr-test-utils')
+const { waitForCondition } = require('streamr-test-utils')
 const uWS = require('uWebSockets.js')
 
-const { startBroker, createClient } = require('../utils')
+const { createClient } = require('../utils')
 const StreamFetcher = require('../../src/StreamFetcher')
 const WebsocketServer = require('../../src/websocket/WebsocketServer')
 const Publisher = require('../../src/Publisher')
@@ -10,11 +10,10 @@ const VolumeLogger = require('../../src/VolumeLogger')
 const SubscriptionManager = require('../../src/SubscriptionManager')
 
 const trackerPort = 17370
-const httpPort = 17341
 const wsPort = 17351
 const networkNodePort = 17361
 
-describe('ping-ping test between broker and clients', () => {
+describe('ping-pong test between broker and clients', () => {
     let tracker
     let websocketServer
     let networkNode
@@ -22,9 +21,6 @@ describe('ping-ping test between broker and clients', () => {
     let client1
     let client2
     let client3
-
-    let freshStream
-    let freshStreamId
 
     beforeEach(async () => {
         tracker = await startTracker('127.0.0.1', trackerPort, 'tracker')
@@ -89,6 +85,7 @@ describe('ping-ping test between broker and clients', () => {
 
         expect(pings).toEqual(3)
 
+        expect(websocketServer.connections.length).toEqual(3)
         connections.forEach((connection) => {
             expect(connection.isAlive).toBeTruthy()
         })
@@ -114,6 +111,7 @@ describe('ping-ping test between broker and clients', () => {
         await waitForCondition(() => pings === 2)
 
         const connections = [...websocketServer.connections.values()]
+        expect(connections.length).toEqual(3)
         connections.forEach((connection, index) => {
             // first client
             if (index === 0) {
@@ -129,7 +127,7 @@ describe('ping-ping test between broker and clients', () => {
             // TODO replace with () => done, after fixing stopping of JS client
             client1.on('connected', done)
         })
-        //
+
         // eslint-disable-next-line no-underscore-dangle
         websocketServer._pingConnections()
     })
