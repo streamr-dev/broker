@@ -34,7 +34,7 @@ module.exports = async (config) => {
         throw new MissingConfigError('network.tracker or network.trackers')
     }
     if (config.network.trackers && !Array.isArray(config.network.trackers)) {
-        throw new MissingConfigError('network.tracker or network.trackers')
+        throw new MissingConfigError('network.trackers must be array')
     }
     if (config.network.isStorageNode === undefined) {
         throw new MissingConfigError('network.isStorageNode')
