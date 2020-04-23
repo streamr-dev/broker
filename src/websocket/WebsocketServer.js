@@ -431,12 +431,12 @@ module.exports = class WebsocketServer extends EventEmitter {
         connections.forEach((connection) => {
             try {
                 // didn't get "pong" in pingInterval
-                if (connection.isAlive !== undefined && !connection.isAlive) {
+                if (connection.respondedPong !== undefined && !connection.respondedPong) {
                     throw Error('Connection is not active')
                 }
 
                 // eslint-disable-next-line no-param-reassign
-                connection.isAlive = false
+                connection.respondedPong = false
                 connection.ping()
                 debug(`pinging ${connection.id}`)
             } catch (e) {

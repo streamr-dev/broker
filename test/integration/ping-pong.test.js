@@ -85,9 +85,9 @@ describe('ping-pong test between broker and clients', () => {
 
         expect(pings).toEqual(3)
 
-        expect(websocketServer.connections.length).toEqual(3)
+        expect(websocketServer.connections.size).toEqual(3)
         connections.forEach((connection) => {
-            expect(connection.isAlive).toBeTruthy()
+            expect(connection.respondedPong).toBeTruthy()
         })
     })
 
@@ -115,10 +115,10 @@ describe('ping-pong test between broker and clients', () => {
         connections.forEach((connection, index) => {
             // first client
             if (index === 0) {
-                expect(connection.isAlive)
+                expect(connection.respondedPong)
                     .toBeFalsy()
             } else {
-                expect(connection.isAlive)
+                expect(connection.respondedPong)
                     .toBeTruthy()
             }
         })
