@@ -105,9 +105,6 @@ describe('SubscriptionManager', () => {
             stream: freshStreamId1
         }, () => {})
 
-        await waitForCondition(() => broker1.getStreams().length === 2)
-        await waitForCondition(() => broker2.getStreams().length === 2)
-
         expect(broker1.getStreams()).toEqual([freshStreamId1 + '::0', freshStreamId2 + '::0'].sort())
         expect(broker2.getStreams()).toEqual([freshStreamId1 + '::0', freshStreamId2 + '::0'].sort())
 
