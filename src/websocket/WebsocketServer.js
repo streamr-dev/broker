@@ -3,13 +3,11 @@ const { EventEmitter } = require('events')
 const { v4: uuidv4 } = require('uuid')
 const debug = require('debug')('streamr:WebsocketServer')
 const { ControlLayer } = require('streamr-client-protocol')
-const LRU = require('lru-cache')
 const ab2str = require('arraybuffer-to-string')
 const uWS = require('uWebSockets.js')
 
 const HttpError = require('../errors/HttpError')
 const VolumeLogger = require('../VolumeLogger')
-const partition = require('../partition')
 const StreamStateManager = require('../StreamStateManager')
 
 const Connection = require('./Connection')
@@ -25,7 +23,6 @@ module.exports = class WebsocketServer extends EventEmitter {
         volumeLogger = new VolumeLogger(0),
         subscriptionManager,
         pingInterval = 60 * 1000,
-        partitionFn = partition,
     ) {
         super()
         this.wss = wss
@@ -33,7 +30,6 @@ module.exports = class WebsocketServer extends EventEmitter {
         this.networkNode = networkNode
         this.streamFetcher = streamFetcher
         this.publisher = publisher
-        this.partitionFn = partitionFn
         this.volumeLogger = volumeLogger
         this.connections = new Map()
         this.streams = new StreamStateManager(
@@ -58,10 +54,6 @@ module.exports = class WebsocketServer extends EventEmitter {
         this.pingInterval = pingInterval
         this.fieldDetector = new FieldDetector(streamFetcher)
         this.subscriptionManager = subscriptionManager
-        this.streamAuthCache = new LRU({
-            max: 1000,
-            maxAge: 1000 * 60 * 5
-        })
 
         this.requestHandlersByMessageType = {
             [ControlLayer.SubscribeRequest.TYPE]: this.handleSubscribeRequest,
@@ -204,7 +196,6 @@ module.exports = class WebsocketServer extends EventEmitter {
         clearInterval(this._pingInterval)
 
         this.streams.close()
-        this.streamAuthCache.reset()
 
         return new Promise((resolve, reject) => {
             try {
@@ -222,55 +213,42 @@ module.exports = class WebsocketServer extends EventEmitter {
         })
     }
 
-    handlePublishRequest(connection, request) {
-        const streamId = request.getStreamId()
-        // TODO: should this be moved to streamr-client-protocol-js ?
-        if (streamId === undefined) {
-            connection.sendError('Publish request failed: Error: streamId must be defined!')
+    async handlePublishRequest(connection, request) {
+        const streamMessage = request.getStreamMessage()
+
+        // Deprecate publishing with V0 protocol
+        if (request.version === 0) {
+            connection.sendError('Sorry, your protocol version is too old for publishing. Please update your client library!')
             return
         }
-        // TODO: simplify with async-await
-        const key = `${streamId}-${request.apiKey}-${request.sessionToken}`
-        if (this.streamAuthCache.has(key)) {
-            const stream = this.streamAuthCache.get(key)
 
-            let streamPartition
-            if (request.version === 0) {
-                streamPartition = this.partitionFn(stream.partitions, request.partitionKey)
+        try {
+            // Legacy validation: for unsigned messages, we additionally need to do an authenticated check of publish permission
+            // This can be removed when support for unsigned messages is dropped!
+            if (!streamMessage.signature) {
+                // checkPermission is cached
+                await this.streamFetcher.checkPermission(request.getStreamId(), request.apiKey, request.sessionToken, 'write')
             }
-            const streamMessage = request.getStreamMessage(streamPartition)
-            this.publisher.publish(stream, streamMessage)
-        } else {
-            this.streamFetcher.authenticate(streamId, request.apiKey, request.sessionToken, 'write')
-                .then((stream) => {
-                    this.streamAuthCache.set(key, stream)
 
-                    // TODO: should this be moved to streamr-client-protocol-js ?
-                    let streamPartition
-                    if (request.version === 0) {
-                        streamPartition = this.partitionFn(stream.partitions, request.partitionKey)
-                    }
-                    const streamMessage = request.getStreamMessage(streamPartition)
-                    this.publisher.publish(stream, streamMessage)
+            await this.publisher.validateAndPublish(streamMessage)
 
-                    this.fieldDetector.detectAndSetFields(stream, streamMessage, request.apiKey, request.sessionToken).catch((err) => {
-                        console.error(`detectAndSetFields request failed: ${err}`)
-                    })
-                })
-                .catch((err) => {
-                    let errorMsg
-                    if (err instanceof HttpError && err.code === 401) {
-                        errorMsg = `Authentication failed while trying to publish to stream ${streamId}`
-                    } else if (err instanceof HttpError && err.code === 403) {
-                        errorMsg = `You are not allowed to write to stream ${streamId}`
-                    } else if (err instanceof HttpError && err.code === 404) {
-                        errorMsg = `Stream ${streamId} not found.`
-                    } else {
-                        errorMsg = `Publish request failed: ${err}`
-                    }
+            // TODO later: should be moved to client, as this is an authenticated call
+            this.fieldDetector.detectAndSetFields(streamMessage, request.apiKey, request.sessionToken).catch((err) => {
+                console.error(`detectAndSetFields request failed: ${err}`)
+            })
+        } catch (err) {
+            let errorMsg
+            if (err instanceof HttpError && err.code === 401) {
+                errorMsg = `Authentication failed while trying to publish to stream ${streamMessage.getStreamId()}`
+            } else if (err instanceof HttpError && err.code === 403) {
+                errorMsg = `You are not allowed to write to stream ${streamMessage.getStreamId()}`
+            } else if (err instanceof HttpError && err.code === 404) {
+                errorMsg = `Stream ${streamMessage.getStreamId()} not found.`
+            } else {
+                errorMsg = `Publish request failed: ${err}`
+            }
 
-                    connection.sendError(errorMsg)
-                })
+            connection.sendError(errorMsg)
         }
     }
 

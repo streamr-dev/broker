@@ -2,6 +2,9 @@ const { startNetworkNode, startStorageNode } = require('streamr-network')
 const StreamrClient = require('streamr-client')
 const publicIp = require('public-ip')
 const Sentry = require('@sentry/node')
+const { ethers } = require('ethers')
+const { Utils } = require('streamr-client-protocol')
+const fetch = require('node-fetch')
 
 const CURRENT_VERSION = require('../package.json').version
 
@@ -172,9 +175,24 @@ module.exports = async (config) => {
         client,
         streamId
     )
+    // Validator only needs public information, so use unauthenticated client for that
+    const unauthenticatedClient = new StreamrClient({
+        restUrl: config.streamrUrl + '/api/v1',
+    })
+    const streamMessageValidator = new Utils.CachingStreamMessageValidator(
+        // TODO: replace temporary implementation when new StreamrClient is published
+        // (sId) => unauthenticatedClient.getStreamValidationInfo(sId),
+        async (sid) => {
+            const result = await fetch(`${config.streamrUrl}/api/v1/streams/${sid}/validation`)
+            return result.json()
+        },
+        (address, sId) => unauthenticatedClient.isStreamPublisher(sId, address),
+        (address, sId) => unauthenticatedClient.isStreamSubscriber(sId, address),
+        (payload, signature) => ethers.utils.verifyMessage(payload, signature),
+    )
     const streamFetcher = new StreamFetcher(config.streamrUrl)
-    const publisher = new Publisher(networkNode, volumeLogger)
     const subscriptionManager = new SubscriptionManager(networkNode)
+    const publisher = new Publisher(networkNode, streamMessageValidator, volumeLogger)
 
     // Start up adapters one-by-one, storing their close functions for further use
     const closeAdapterFns = config.adapters.map(({ name, ...adapterConfig }, index) => {

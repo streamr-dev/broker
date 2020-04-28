@@ -1,7 +1,7 @@
 const express = require('express')
 const bodyParser = require('body-parser')
 const { StreamMessage } = require('streamr-client-protocol').MessageLayer
-const { InvalidJsonError } = require('streamr-client-protocol').Errors
+const { InvalidJsonError, ValidationError } = require('streamr-client-protocol').Errors
 
 const partition = require('../partition')
 
@@ -55,7 +55,7 @@ module.exports = (streamFetcher, publisher, partitionFn = partition) => {
         // Check write permission using middleware, writes req.stream
         authenticationMiddleware(streamFetcher, 'write'),
         // Produce request handler
-        (req, res) => {
+        async (req, res) => {
             // Validate body
             if (!req.body || !req.body.length) {
                 res.status(400).send({
@@ -87,28 +87,27 @@ module.exports = (streamFetcher, publisher, partitionFn = partition) => {
 
             // req.stream is written by authentication middleware
             try {
-                publisher.publish(
-                    req.stream,
-                    StreamMessage.create(
-                        [req.stream.id,
-                            partitionFn(req.stream.partitions, req.query.pkey),
-                            timestamp,
-                            sequenceNumber, // sequenceNumber
-                            req.query.address || '', // publisherId
-                            req.query.msgChainId || '',
-                        ],
-                        previousMessageRef,
-                        StreamMessage.CONTENT_TYPES.MESSAGE,
-                        StreamMessage.ENCRYPTION_TYPES.NONE,
-                        req.body.toString(),
-                        signatureType,
-                        req.query.signature || null,
-                    ),
+                const streamMessage = StreamMessage.create(
+                    [req.stream.id,
+                        partitionFn(req.stream.partitions, req.query.pkey),
+                        timestamp,
+                        sequenceNumber, // sequenceNumber
+                        req.query.address || '', // publisherId
+                        req.query.msgChainId || '',
+                    ],
+                    previousMessageRef,
+                    StreamMessage.CONTENT_TYPES.MESSAGE,
+                    StreamMessage.ENCRYPTION_TYPES.NONE,
+                    req.body.toString(),
+                    signatureType,
+                    req.query.signature || null,
                 )
+
+                await publisher.validateAndPublish(streamMessage)
                 res.status(200)
                     .send(/* empty success response */)
             } catch (err) {
-                if (err instanceof InvalidJsonError) {
+                if (err instanceof InvalidJsonError || err instanceof ValidationError) {
                     res.status(400).send({
                         error: err.message,
                     })

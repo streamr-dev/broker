@@ -4,7 +4,9 @@ module.exports = class FieldDetector {
         this.configuredStreamIds = new Set()
     }
 
-    async detectAndSetFields(stream, streamMessage, apiKey, sessionToken) {
+    async detectAndSetFields(streamMessage, apiKey, sessionToken) {
+        const stream = await this.streamFetcher.fetch(streamMessage.getStreamId(), apiKey, sessionToken)
+
         if (this._shouldDetectAndSet(stream)) {
             this.configuredStreamIds.add(stream.id)
 

@@ -12,19 +12,11 @@ describe('Publisher', () => {
         partitions: 10
     }
 
-    const signedStream = {
-        requireSignedData: true
-    }
-
-    const encryptedStream = {
-        requireEncryptedData: true
-    }
-
     const msg = {
         hello: 'world'
     }
 
-    const streamMessageUnsignedUnencrypted = new StreamMessageV30(
+    const streamMessage = new StreamMessageV30(
         [stream.id, stream.partitions, 135135135, 0, 'publisherId', 'msgChainId'],
         null,
         StreamMessage.CONTENT_TYPES.MESSAGE,
@@ -33,30 +25,35 @@ describe('Publisher', () => {
         null,
     )
 
-    let publisher
     let networkNode
+    let validator
+
+    const getPublisher = () => new Publisher(networkNode, validator)
 
     beforeEach(() => {
         networkNode = new events.EventEmitter()
         networkNode.publish = sinon.stub().resolves()
-        publisher = new Publisher(networkNode)
+        validator = {
+            validate: sinon.stub().resolves()
+        }
     })
 
-    describe('publish', () => {
-        it('throws MessageNotSignedError if trying to publish unsigned data on stream with requireSignedData', () => {
-            expect(() => publisher.publish(signedStream, streamMessageUnsignedUnencrypted)).toThrow(MessageNotSignedError)
+    describe('validateAndPublish', () => {
+        it('calls the validator', async () => {
+            await getPublisher().validateAndPublish(streamMessage)
+            expect(validator.validate.calledWith(streamMessage)).toBe(true)
         })
 
-        it('throws MessageNotEncryptedError if trying to publish not encrypted data on stream with encryptedStream', () => {
-            expect(() => publisher.publish(encryptedStream, streamMessageUnsignedUnencrypted)).toThrow(MessageNotEncryptedError)
-        })
-
-        it('should call NetworkNode.publish with correct values', (done) => {
-            networkNode.publish = (streamMessage) => {
-                expect(streamMessage).toEqual(streamMessageUnsignedUnencrypted)
-                done()
+        it('throws on invalid messages', async () => {
+            validator = {
+                validate: sinon.stub().rejects()
             }
-            expect(() => publisher.publish(stream, streamMessageUnsignedUnencrypted)).not.toThrow()
+            await expect(getPublisher().validateAndPublish(streamMessage)).rejects.toThrow()
+        })
+
+        it('should call NetworkNode.publish with correct values', async () => {
+            await getPublisher().validateAndPublish(streamMessage)
+            expect(networkNode.publish.calledWith(streamMessage)).toBe(true)
         })
     })
 })

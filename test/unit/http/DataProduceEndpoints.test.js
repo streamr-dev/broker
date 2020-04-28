@@ -51,13 +51,13 @@ describe('DataProduceEndpoints', () => {
         }
 
         publisherMock = {
-            publish: sinon.stub().resolves(),
+            validateAndPublish: sinon.stub().resolves(),
         }
 
         app.use(router(streamFetcher, publisherMock, () => 0))
     })
 
-    it('should call Publisher.publish() with correct arguments', (done) => {
+    it('should call Publisher.validateAndPublish() with correct arguments', (done) => {
         const streamMessage = StreamMessage.create(
             [stream.id, 0, Date.now(), 0, 'publisherId', '1'],
             null,
@@ -76,7 +76,7 @@ describe('DataProduceEndpoints', () => {
                 signature: streamMessage.signature,
             },
         }).expect(200).then(() => {
-            sinon.assert.calledWith(publisherMock.publish, stream, streamMessage)
+            sinon.assert.calledWith(publisherMock.validateAndPublish, streamMessage)
             done()
         })
     })
@@ -99,7 +99,7 @@ describe('DataProduceEndpoints', () => {
                 signature: streamMessage.signature,
             },
         }).expect(200).then(() => {
-            sinon.assert.calledWith(publisherMock.publish, stream, streamMessage)
+            sinon.assert.calledWith(publisherMock.validateAndPublish, streamMessage)
             done()
         })
     })
@@ -125,7 +125,7 @@ describe('DataProduceEndpoints', () => {
                 signature: streamMessage.signature,
             },
         }).expect(200).then(() => {
-            sinon.assert.calledWith(publisherMock.publish, stream, streamMessage)
+            sinon.assert.calledWith(publisherMock.validateAndPublish, streamMessage)
             done()
         })
     })

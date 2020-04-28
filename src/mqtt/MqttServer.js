@@ -7,6 +7,7 @@ const { MessageLayer } = require('streamr-client-protocol')
 const VolumeLogger = require('../VolumeLogger')
 const partition = require('../partition')
 const StreamStateManager = require('../StreamStateManager')
+const { MessageNotSignedError, MessageNotEncryptedError } = require('../errors/MessageNotSignedError')
 
 const Connection = require('./Connection')
 
@@ -139,53 +140,47 @@ module.exports = class MqttServer extends events.EventEmitter {
         })
     }
 
-    handlePublishRequest(connection, packet) {
+    async handlePublishRequest(connection, packet) {
         debug('publish request %o', packet)
 
         const { topic, payload, qos } = packet
 
-        this.streamFetcher.getStream(topic, connection.token)
-            .then((streamObj) => {
-                if (streamObj === undefined) {
-                    connection.sendConnectionNotAuthorized()
-                    return
-                }
-                this.streamFetcher.authenticate(streamObj.id, connection.apiKey, connection.token, 'write')
-                    .then((streamJson) => {
-                        const streamPartition = this.partitionFn(streamObj.partitions, 0)
+        try {
+            const streamObj = await this.streamFetcher.authenticate(topic, connection.apiKey, connection.token, 'write')
 
-                        const textPayload = payload.toString()
-                        const streamMessage = MessageLayer.StreamMessage.create(
-                            [
-                                streamObj.id,
-                                streamPartition,
-                                Date.now(),
-                                sequenceNumber,
-                                connection.id,
-                                '',
-                            ],
-                            null,
-                            MessageLayer.StreamMessage.CONTENT_TYPES.MESSAGE,
-                            MessageLayer.StreamMessage.ENCRYPTION_TYPES.NONE,
-                            mqttPayloadToJson(textPayload),
-                            MessageLayer.StreamMessage.SIGNATURE_TYPES.NONE,
-                            null
-                        )
+            // No way to define partition over MQTT, so choose a random partition
+            const streamPartition = this.partitionFn(streamObj.partitions)
 
-                        this.publisher.publish(streamObj, streamMessage)
+            const textPayload = payload.toString()
+            sequenceNumber += 1
+            const streamMessage = MessageLayer.StreamMessage.create(
+                [
+                    streamObj.id,
+                    streamPartition,
+                    Date.now(),
+                    sequenceNumber,
+                    connection.id, // publisherId
+                    connection.id, // msgChainId
+                ],
+                null, // No message chaining!
+                MessageLayer.StreamMessage.CONTENT_TYPES.MESSAGE,
+                MessageLayer.StreamMessage.ENCRYPTION_TYPES.NONE,
+                mqttPayloadToJson(textPayload),
+                MessageLayer.StreamMessage.SIGNATURE_TYPES.NONE,
+                null
+            )
 
-                        sequenceNumber += 1
+            await this.publisher.validateAndPublish(streamMessage)
 
-                        if (qos) {
-                            connection.client.puback({
-                                messageId: packet.messageId
-                            })
-                        }
-                    })
-                    .catch((err) => {
-                        console.log(err)
-                    })
-            })
+            if (qos) {
+                connection.client.puback({
+                    messageId: packet.messageId
+                })
+            }
+        } catch (err) {
+            // TODO: how to send error back to client?
+            console.log(err)
+        }
     }
 
     handleUnsubscribeRequest(connection, packet) {

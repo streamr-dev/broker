@@ -1,25 +1,26 @@
-const { StreamMessage } = require('streamr-client-protocol').MessageLayer
-
-const { MessageNotSignedError, MessageNotEncryptedError } = require('./errors/MessageNotSignedError')
 const VolumeLogger = require('./VolumeLogger')
 
 module.exports = class Publisher {
-    constructor(networkNode, volumeLogger = new VolumeLogger(0)) {
+    constructor(networkNode, streamMessageValidator, volumeLogger = new VolumeLogger(0)) {
         this.networkNode = networkNode
+        this.streamMessageValidator = streamMessageValidator
         this.volumeLogger = volumeLogger
+
+        if (!networkNode) {
+            throw new Error('No networkNode defined!')
+        }
+        if (!streamMessageValidator) {
+            throw new Error('No streamMessageValidator defined!')
+        }
+        if (!volumeLogger) {
+            throw new Error('No volumeLogger defined!')
+        }
     }
 
-    publish(stream, streamMessage) {
-        if (stream.requireSignedData && !streamMessage.signature) {
-            throw new MessageNotSignedError('This stream requires published data to be signed.')
-        }
-
-        if (stream.requireEncryptedData && streamMessage.encryptionType === StreamMessage.ENCRYPTION_TYPES.NONE) {
-            throw new MessageNotEncryptedError('This stream requires published data to be encrypted.')
-        }
-
+    async validateAndPublish(streamMessage) {
+        // Only publish valid messages
+        await this.streamMessageValidator.validate(streamMessage)
         this.volumeLogger.logInput(streamMessage.getContent().length)
-
         this.networkNode.publish(streamMessage)
     }
 }
