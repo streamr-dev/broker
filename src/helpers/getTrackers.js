@@ -13,6 +13,11 @@ const getTrackers = async (address, config, jsonRpcProvider) => {
     await contract.addressPromise
 
     const trackers = []
+
+    if (typeof contract.getNodes !== 'function') {
+        throw Error('getNodes is not defined in contract')
+    }
+
     const result = await contract.getNodes()
     result.forEach((node) => {
         trackers.push(node.url)
