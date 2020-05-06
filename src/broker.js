@@ -12,6 +12,7 @@ const VolumeLogger = require('./VolumeLogger')
 const SubscriptionManager = require('./SubscriptionManager')
 const MissingConfigError = require('./errors/MissingConfigError')
 const adapterRegistry = require('./adapterRegistry')
+const getTrackers = require('./getTrackers')
 
 module.exports = async (config) => {
     // Validate that configuration exists
@@ -77,6 +78,15 @@ module.exports = async (config) => {
     if (config.sentry === undefined) {
         throw new MissingConfigError('sentry')
     }
+    if (config.trackerRegistry && config.trackerRegistry.config === undefined) {
+        throw new MissingConfigError('trackerRegistry.config')
+    }
+    if (config.trackerRegistry && config.trackerRegistry.jsonRpcProvider === undefined) {
+        throw new MissingConfigError('trackerRegistry.jsonRpcProvider')
+    }
+    if (config.trackerRegistry && config.trackerRegistry.address === undefined) {
+        throw new MissingConfigError('trackerRegistry.address')
+    }
 
     config.adapters.forEach(({ name }, index) => {
         if (name === undefined) {
@@ -85,6 +95,11 @@ module.exports = async (config) => {
     })
 
     console.info(`Starting broker version ${CURRENT_VERSION}`)
+
+    let trackers
+    if (config.trackerRegistry) {
+        trackers = await getTrackers(config.trackerRegistry.address, config.trackerRegistry.config, config.trackerRegistry.jsonRpcProvider)
+    }
 
     const storages = []
 
@@ -116,14 +131,18 @@ module.exports = async (config) => {
         advertisedWsUrl
     )
 
+    // from config
     if (config.network.tracker) {
         networkNode.addBootstrapTracker(config.network.tracker)
     }
 
     if (config.network.trackers) {
-        config.network.trackers.forEach((tracker) => {
-            networkNode.addBootstrapTracker(tracker)
-        })
+        config.network.trackers.forEach((tracker) => networkNode.addBootstrapTracker(tracker))
+    }
+
+    // from smart contract
+    if (trackers) {
+        trackers.forEach((tracker) => networkNode.addBootstrapTracker(tracker))
     }
 
     // Set up sentry logging
