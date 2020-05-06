@@ -1,8 +1,8 @@
 const { Contract, providers: { JsonRpcProvider } } = require('ethers')
 
-async function getTrackers(address, config, jsonRpcProvider) {
+const getTrackers = async (address, config, jsonRpcProvider) => {
     // eslint-disable-next-line import/no-dynamic-require,global-require
-    const trackerRegistryConfig = require(`../configs/${config}`)
+    const trackerRegistryConfig = require(`../../configs/${config}`)
     const provider = new JsonRpcProvider(jsonRpcProvider)
     const contract = new Contract(address, trackerRegistryConfig.abi, provider)
 
