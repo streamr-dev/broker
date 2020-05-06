@@ -16,8 +16,14 @@ const validateConfig = (config) => {
     if (config.network.advertisedWsUrl === undefined) {
         throw new MissingConfigError('network.advertisedWsUrl')
     }
-    if (config.network.tracker === undefined && config.network.trackers === undefined) {
-        throw new MissingConfigError('network.tracker or network.trackers')
+    if (config.network.tracker) {
+        throw new Error('Not allowed to use network.tracker, instead use network.trackers or trackerRegistry parameter')
+    }
+    if (config.network.trackers === undefined && config.trackerRegistry === undefined) {
+        throw new MissingConfigError('network.trackers or network.trackerRegistry must be defined')
+    }
+    if (config.network.trackers && config.trackerRegistry) {
+        throw new Error('Not allowed to use both network.trackers and trackerRegistry. Only one parameter must be defined in config')
     }
     if (config.network.trackers && !Array.isArray(config.network.trackers)) {
         throw new MissingConfigError('network.trackers must be array')
