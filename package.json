@@ -31,7 +31,7 @@
     "arraybuffer-to-string": "^1.0.2",
     "body-parser": "^1.19.0",
     "buffermaker": "^1.2.1",
-    "cassandra-driver": "^4.5.1",
+    "cassandra-driver": "^4.5.2",
     "commander": "^5.1.0",
     "cors": "^2.7.1",
     "debug": "^4.1.1",
@@ -46,7 +46,7 @@
     "qs": "^6.9.4",
     "streamr-client": "^3.2.1",
     "streamr-client-protocol": "^4.1.1",
-    "streamr-network": "^17.7.0",
+    "streamr-network": "^17.8.0",
     "uWebSockets.js": "github:uNetworking/uWebSockets.js#v17.4.0",
     "uuid": "^8.0.0",
     "ws": "^7.2.5"
