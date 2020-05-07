@@ -18,6 +18,7 @@ describe('getTrackers', () => {
         try {
             await getTrackers('address', config, jsonRpcProvider)
         } catch (e) {
+            expect(e.toString()).toMatch('network does not support ENS (operation="ENS", network="unknown", version=4.0.47)')
             done()
         }
     })
@@ -26,6 +27,7 @@ describe('getTrackers', () => {
         try {
             await getTrackers(address, 'config', jsonRpcProvider)
         } catch (e) {
+            expect(e.toString()).toMatch("Error: Cannot find module '../../configs/config' from 'src/helpers/getTrackers.js'")
             done()
         }
     })
@@ -34,6 +36,7 @@ describe('getTrackers', () => {
         try {
             await getTrackers(address, config, 'jsonRpcProvider')
         } catch (e) {
+            expect(e.toString()).toMatch('Error: invalid response - 400')
             done()
         }
     })
