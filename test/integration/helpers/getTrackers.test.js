@@ -14,7 +14,7 @@ describe('getTrackers', () => {
         ])
     })
 
-    test('throw exception if address is wrong', async (done) => {
+    test('throw exception if address is wrong (ENS)', async (done) => {
         try {
             await getTrackers('address', config, jsonRpcProvider)
         } catch (e) {
@@ -23,11 +23,20 @@ describe('getTrackers', () => {
         }
     })
 
+    test('throw exception if address is wrong', async (done) => {
+        try {
+            await getTrackers('0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF', config, jsonRpcProvider)
+        } catch (e) {
+            expect(e.toString()).toMatch('Error: contract not deployed (contractAddress="0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", operation="getDeployed", version=4.0.47)')
+            done()
+        }
+    })
+
     test('throw exception if config is wrong', async (done) => {
         try {
             await getTrackers(address, 'config', jsonRpcProvider)
         } catch (e) {
-            expect(e.toString()).toMatch("Error: Cannot find module '../../configs/config' from 'src/helpers/getTrackers.js'")
+            expect(e.toString()).toMatch("Error: ENOENT: no such file or directory, open './configs/config'")
             done()
         }
     })

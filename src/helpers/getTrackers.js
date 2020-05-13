@@ -1,8 +1,9 @@
+const fs = require('fs')
+
 const { Contract, providers: { JsonRpcProvider } } = require('ethers')
 
 const getTrackers = async (address, config, jsonRpcProvider) => {
-    // eslint-disable-next-line import/no-dynamic-require,global-require
-    const trackerRegistryConfig = require(`../../configs/${config}`)
+    const trackerRegistryConfig = JSON.parse(fs.readFileSync(`./configs/${config}`))
 
     const provider = new JsonRpcProvider(jsonRpcProvider)
     // check that provider is connected and has some valid blockNumber

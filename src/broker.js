@@ -20,11 +20,6 @@ module.exports = async (config) => {
 
     console.info(`Starting broker version ${CURRENT_VERSION}`)
 
-    let trackers
-    if (config.trackerRegistry) {
-        trackers = await getTrackers(config.trackerRegistry.address, config.trackerRegistry.config, config.trackerRegistry.jsonRpcProvider)
-    }
-
     const storages = []
 
     // Start cassandra storage
@@ -55,9 +50,9 @@ module.exports = async (config) => {
         advertisedWsUrl
     )
 
-    // from config
-    if (config.network.tracker) {
-        networkNode.addBootstrapTracker(config.network.tracker)
+    let trackers
+    if (config.trackerRegistry) {
+        trackers = await getTrackers(config.trackerRegistry.address, config.trackerRegistry.config, config.trackerRegistry.jsonRpcProvider)
     }
 
     if (config.network.trackers) {
