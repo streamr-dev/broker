@@ -55,13 +55,14 @@ module.exports = async (config) => {
         trackers = await getTrackers(config.trackerRegistry.address, config.trackerRegistry.config, config.trackerRegistry.jsonRpcProvider)
     }
 
-    if (config.network.trackers) {
-        config.network.trackers.forEach((tracker) => networkNode.addBootstrapTracker(tracker))
-    }
-
     // from smart contract
     if (trackers) {
         trackers.forEach((tracker) => networkNode.addBootstrapTracker(tracker))
+    }
+
+    // from config
+    if (config.network.trackers) {
+        config.network.trackers.forEach((tracker) => networkNode.addBootstrapTracker(tracker))
     }
 
     // Set up sentry logging
