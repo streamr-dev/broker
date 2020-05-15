@@ -1,18 +1,15 @@
-FROM node:13.10-slim
+FROM node:13.10 as build
 WORKDIR /usr/src/broker
 COPY . .
-
-RUN apt-get update && apt-get install \
-    build-essential \
-    git \
-    python \
-    make \
-    -yq --no-install-suggests --no-install-recommends --allow-downgrades --allow-remove-essential --allow-change-held-packages \
-  && apt-get clean
 
 RUN node --version
 RUN npm --version
 RUN npm ci --only=production
+
+FROM node:13.10-alpine
+
+COPY --from=build /usr/src/broker /usr/src/broker
+WORKDIR /usr/src/broker
 
 # Make ports available to the world outside this container
 EXPOSE 30315
