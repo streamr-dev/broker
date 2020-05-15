@@ -1,6 +1,14 @@
-FROM node:13.10
+FROM node:13.10-slim
 WORKDIR /usr/src/broker
 COPY . .
+
+RUN apt-get update && apt-get install \
+    build-essential \
+    git \
+    python \
+    make \
+    -yq --no-install-suggests --no-install-recommends --allow-downgrades --allow-remove-essential --allow-change-held-packages \
+  && apt-get clean
 
 RUN node --version
 RUN npm --version
