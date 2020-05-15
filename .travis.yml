@@ -103,3 +103,5 @@ jobs:
     deploy:
     - provider: script
       script: bash .travis_scripts/deploy_docker.sh production
+      on:
+        tags: true
