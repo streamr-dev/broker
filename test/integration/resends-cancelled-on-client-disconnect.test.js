@@ -61,7 +61,7 @@ describe('resend cancellation', () => {
             volumeLogger,
             new SubscriptionManager(networkNode)
         )
-        client = createClient(wsPort, 'tester1-api-key')
+        client = createClient(wsPort)
         freshStream = await client.createStream({
             name: 'resends-cancelled-on-client-disconnect.test.js-' + Date.now()
         })

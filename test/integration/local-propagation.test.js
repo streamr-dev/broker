@@ -27,15 +27,11 @@ describe('local propagation', () => {
 
         broker = await startBroker('broker1', networkPort1, trackerPort, httpPort1, wsPort1, mqttPort1, true)
 
-        client1 = createClient(wsPort1, 'tester1-api-key')
-        await wait(100)
-        client2 = createClient(wsPort1, 'tester1-api-key')
-        await wait(100)
+        client1 = createClient(wsPort1)
+        client2 = createClient(wsPort1)
 
         mqttClient1 = createMqttClient(mqttPort1)
-        await wait(100)
         mqttClient2 = createMqttClient(mqttPort1)
-        await wait(100)
 
         freshStream = await client1.createStream({
             name: 'local-propagation.test.js-' + Date.now()

@@ -1,5 +1,6 @@
 const { exec } = require('child_process')
 
+const StreamrClient = require('streamr-client')
 const WebSocket = require('ws')
 const { startTracker } = require('streamr-network')
 const fetch = require('node-fetch')
@@ -57,6 +58,7 @@ describe('broker: end-to-end', () => {
     let client1
     let client2
     let client3
+    let client4
     let freshStream
     let freshStreamId
 
@@ -66,11 +68,21 @@ describe('broker: end-to-end', () => {
         broker2 = await startBroker('broker2', networkPort2, trackerPort, httpPort2, wsPort2, null, true)
         broker3 = await startBroker('broker3', networkPort3, trackerPort, httpPort3, wsPort3, null, true)
 
-        client1 = createClient(wsPort1, 'tester1-api-key')
-        await wait(100) // TODO: remove when StaleObjectStateException is fixed in E&E
-        client2 = createClient(wsPort2, 'tester1-api-key')
-        await wait(100) // TODO: remove when StaleObjectStateException is fixed in E&E
-        client3 = createClient(wsPort3, 'tester2-api-key') // different api key
+        client1 = createClient(wsPort1)
+        client2 = createClient(wsPort2)
+        client3 = createClient(wsPort3, {
+            auth: {
+                apiKey: 'tester2-api-key' // different api key
+            }
+        })
+
+        const ethereumAccount = StreamrClient.generateEthereumAccount()
+        client4 = createClient(wsPort1, {
+            auth: {
+                privateKey: ethereumAccount.privateKey // this client signs published messages
+            }
+        })
+        await client4.session.getSessionToken() // avoid race condition vs grantPermission. TODO: remove when fixed in EE
 
         freshStream = await client1.createStream({
             name: 'broker.test.js-' + Date.now()
@@ -78,6 +90,8 @@ describe('broker: end-to-end', () => {
         freshStreamId = freshStream.id
 
         await freshStream.grantPermission('read', 'tester2@streamr.com')
+        await freshStream.grantPermission('read', ethereumAccount.address)
+        await freshStream.grantPermission('write', ethereumAccount.address)
     }, 10 * 1000)
 
     afterAll(async () => {
@@ -92,7 +106,7 @@ describe('broker: end-to-end', () => {
         ])
     })
 
-    it('happy-path: real-time websocket producing and websocket consuming', async () => {
+    it('happy-path: real-time websocket producing and websocket consuming (unsigned messages)', async () => {
         const client1Messages = []
         const client2Messages = []
         const client3Messages = []
@@ -155,6 +169,81 @@ describe('broker: end-to-end', () => {
         ])
 
         expect(client3Messages).toEqual([
+            {
+                key: 1
+            },
+            {
+                key: 2
+            },
+            {
+                key: 3
+            },
+        ])
+    })
+
+    it('happy-path: real-time websocket producing and websocket consuming (signed messages)', async () => {
+        const client1Messages = []
+        const client2Messages = []
+        const client4Messages = []
+
+        client1.subscribe({
+            stream: freshStreamId
+        }, (message, metadata) => {
+            client1Messages.push(message)
+        })
+
+        client2.subscribe({
+            stream: freshStreamId
+        }, (message, metadata) => {
+            client2Messages.push(message)
+        })
+
+        client4.subscribe({
+            stream: freshStreamId
+        }, (message, metadata) => {
+            client4Messages.push(message)
+        })
+
+        await wait(1000)
+
+        await client4.publish(freshStreamId, {
+            key: 1
+        })
+        await client4.publish(freshStreamId, {
+            key: 2
+        })
+        await client4.publish(freshStreamId, {
+            key: 3
+        })
+
+        await waitForCondition(() => client2Messages.length === 3 && client4Messages.length === 3)
+        await waitForCondition(() => client1Messages.length === 3)
+
+        expect(client1Messages).toEqual([
+            {
+                key: 1
+            },
+            {
+                key: 2
+            },
+            {
+                key: 3
+            },
+        ])
+
+        expect(client2Messages).toEqual([
+            {
+                key: 1
+            },
+            {
+                key: 2
+            },
+            {
+                key: 3
+            },
+        ])
+
+        expect(client4Messages).toEqual([
             {
                 key: 1
             },

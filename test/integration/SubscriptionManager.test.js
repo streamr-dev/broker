@@ -36,15 +36,11 @@ describe('SubscriptionManager', () => {
 
         await wait(2000)
 
-        client1 = createClient(wsPort1, 'tester1-api-key')
-        await wait(100)
-        client2 = createClient(wsPort2, 'tester1-api-key')
-        await wait(100)
+        client1 = createClient(wsPort1)
+        client2 = createClient(wsPort2)
 
         mqttClient1 = createMqttClient(mqttPort1)
-        await wait(100)
         mqttClient2 = createMqttClient(mqttPort2)
-        await wait(100)
 
         freshStream1 = await client1.createStream({
             name: 'SubscriptionManager.test.js-' + Date.now()

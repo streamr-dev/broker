@@ -41,22 +41,16 @@ describe('mqtt: end-to-end', () => {
         broker2 = await startBroker('broker2', networkPort2, trackerPort, httpPort2, wsPort2, mqttPort2, true)
         broker3 = await startBroker('broker3', networkPort3, trackerPort, httpPort3, wsPort3, mqttPort3, true)
 
-        client1 = createClient(wsPort1, 'tester1-api-key')
-        await wait(100) // TODO: remove when StaleObjectStateException is fixed in E&E
-        client2 = createClient(wsPort2, 'tester1-api-key')
-        await wait(100) // TODO: remove when StaleObjectStateException is fixed in E&E
-        client3 = createClient(wsPort3, 'tester2-api-key') // different api key
-        await wait(100) // TODO: remove when StaleObjectStateException is fixed in E&E
+        client1 = createClient(wsPort1)
+        client2 = createClient(wsPort2)
+        client3 = createClient(wsPort3)
 
         mqttClient1 = createMqttClient(mqttPort1)
-        await wait(100) // TODO: remove when StaleObjectStateException is fixed in E&E
         mqttClient2 = createMqttClient(mqttPort2)
-        await wait(100) // TODO: remove when StaleObjectStateException is fixed in E&E
         mqttClient3 = createMqttClient(mqttPort1)
-        await wait(100) // TODO: remove when StaleObjectStateException is fixed in E&E
 
         freshStream1 = await client1.createStream({
-            name: 'broker.test.js-' + Date.now()
+            name: 'mqtt.test.js-' + Date.now()
         })
     }, 15000)
 
