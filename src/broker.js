@@ -4,7 +4,6 @@ const publicIp = require('public-ip')
 const Sentry = require('@sentry/node')
 const { ethers } = require('ethers')
 const { Utils } = require('streamr-client-protocol')
-const fetch = require('node-fetch')
 
 const CURRENT_VERSION = require('../package.json').version
 
