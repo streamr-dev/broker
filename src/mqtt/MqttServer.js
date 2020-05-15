@@ -178,8 +178,11 @@ module.exports = class MqttServer extends events.EventEmitter {
                 })
             }
         } catch (err) {
-            // TODO: how to send error back to client?
-            console.log(err)
+            debug(
+                'handlePublishRequest: socket "%s" failed to publish to stream "%s:%d" because of "%o"',
+                connection.id, topic, 0, err
+            )
+            connection.sendConnectionNotAuthorized()
         }
     }
 
@@ -187,7 +190,7 @@ module.exports = class MqttServer extends events.EventEmitter {
         debug('unsubscribe request %o', packet)
 
         const topic = packet.unsubscriptions[0]
-        const stream = this.streams.getByName(topic)
+        const stream = this.streams.get(topic, 0)
 
         if (stream) {
             this.subscriptionManager.unsubscribe(stream.getId(), stream.getPartition())
@@ -197,46 +200,39 @@ module.exports = class MqttServer extends events.EventEmitter {
         }
     }
 
-    handleSubscribeRequest(connection, packet) {
+    async handleSubscribeRequest(connection, packet) {
         debug('subscribe request %o', packet)
 
         const { topic } = packet.subscriptions[0]
 
-        this.streamFetcher.getStream(topic, connection.token)
-            .then((streamObj) => {
-                this.streamFetcher.authenticate(streamObj.id, connection.apiKey, connection.token)
-                    .then((streamJson) => {
-                        const newOrExistingStream = this.streams.getOrCreate(streamObj.id, 0, streamObj.name)
+        try {
+            const streamObj = await this.streamFetcher.authenticate(topic, connection.apiKey, connection.token, 'read')
+            const newOrExistingStream = this.streams.getOrCreate(streamObj.id, 0, streamObj.name)
 
-                        // Subscribe now if the stream is not already subscribed or subscribing
-                        if (!newOrExistingStream.isSubscribed() && !newOrExistingStream.isSubscribing()) {
-                            newOrExistingStream.setSubscribing()
-                            this.subscriptionManager.subscribe(streamObj.id, 0)
-                            newOrExistingStream.setSubscribed()
-                        }
+            // Subscribe now if the stream is not already subscribed or subscribing
+            if (!newOrExistingStream.isSubscribed() && !newOrExistingStream.isSubscribing()) {
+                newOrExistingStream.setSubscribing()
+                this.subscriptionManager.subscribe(streamObj.id, 0)
+                newOrExistingStream.setSubscribed()
+            }
 
-                        newOrExistingStream.addConnection(connection)
-                        connection.addStream(newOrExistingStream)
-                        debug(
-                            'handleSubscribeRequest: client "%s" is now subscribed to streams "%o"',
-                            connection.id, connection.streamsAsString()
-                        )
+            newOrExistingStream.addConnection(connection)
+            connection.addStream(newOrExistingStream)
+            debug(
+                'handleSubscribeRequest: client "%s" is now subscribed to streams "%o"',
+                connection.id, connection.streamsAsString()
+            )
 
-                        connection.client.suback({
-                            granted: [packet.qos], messageId: packet.messageId
-                        })
-                    })
-                    .catch((response) => {
-                        console.log(response)
-                    })
-            }).catch((response) => {
-                debug(
-                    'handleSubscribeRequest: socket "%s" failed to subscribe to stream "%s:%d" because of "%o"',
-                    connection.id, topic, 0, response
-                )
-
-                connection.sendConnectionNotAuthorized()
+            connection.client.suback({
+                granted: [packet.qos], messageId: packet.messageId
             })
+        } catch (err) {
+            debug(
+                'handleSubscribeRequest: socket "%s" failed to subscribe to stream "%s:%d" because of "%o"',
+                connection.id, topic, 0, err
+            )
+            connection.sendConnectionNotAuthorized()
+        }
     }
 
     _closeConnection(connection) {

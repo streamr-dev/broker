@@ -180,12 +180,7 @@ module.exports = async (config) => {
         restUrl: config.streamrUrl + '/api/v1',
     })
     const streamMessageValidator = new Utils.CachingStreamMessageValidator(
-        // TODO: replace temporary implementation when new StreamrClient is published
-        // (sId) => unauthenticatedClient.getStreamValidationInfo(sId),
-        async (sid) => {
-            const result = await fetch(`${config.streamrUrl}/api/v1/streams/${sid}/validation`)
-            return result.json()
-        },
+        (sId) => unauthenticatedClient.getStreamValidationInfo(sId),
         (address, sId) => unauthenticatedClient.isStreamPublisher(sId, address),
         (address, sId) => unauthenticatedClient.isStreamSubscriber(sId, address),
         (payload, signature) => ethers.utils.verifyMessage(payload, signature),
