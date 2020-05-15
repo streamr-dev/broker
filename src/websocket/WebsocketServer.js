@@ -215,13 +215,7 @@ module.exports = class WebsocketServer extends EventEmitter {
 
     async handlePublishRequest(connection, request) {
         const streamMessage = request.getStreamMessage()
-
-        // Deprecate publishing with V0 protocol
-        if (request.version === 0) {
-            connection.sendError('Sorry, your protocol version is too old for publishing. Please update your client library!')
-            return
-        }
-
+        
         try {
             // Legacy validation: for unsigned messages, we additionally need to do an authenticated check of publish permission
             // This can be removed when support for unsigned messages is dropped!
