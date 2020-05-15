@@ -29,10 +29,6 @@ module.exports = class StreamFetcher {
             maxAge: MAX_AGE,
             promise: true,
         })
-        this.getStreamByName = memoize(this._getStreamByName, {
-            maxAge: MAX_AGE,
-            promise: true,
-        })
         this.authenticate = memoize(this._authenticate, {
             maxAge: MAX_AGE_MINUTE,
             promise: true,
@@ -59,17 +55,6 @@ module.exports = class StreamFetcher {
                     'Content-Type': 'application/json'
                 },
             }).then((res) => res.json()).then((json) => resolve(json))
-        })
-    }
-
-    _getStreamByName(name, token) {
-        return new Promise((resolve, reject) => {
-            fetch(`${this.streamResourceUrl}?name=${name}`, {
-                method: 'GET',
-                headers: {
-                    Authorization: `Bearer ${token}`
-                },
-            }).then((res) => res.json()).then((json) => resolve(json[0]))
         })
     }
 
