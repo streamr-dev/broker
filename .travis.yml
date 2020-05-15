@@ -1,3 +1,5 @@
+os: linux
+dist: xenial
 language: node_js
 node_js:
 - 13.11.0
@@ -55,7 +57,7 @@ jobs:
       access_key_id: $ACCESS_KEY_STG
       secret_access_key: $SECRET_ACCESS_KEY_STG
       bucket: eu-west-1-stg-streamr-vault
-      upload-dir: network-node/releases
+      upload_dir: network-node/releases
       acl: private
       region: eu-west-1
       local_dir: upload
