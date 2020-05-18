@@ -43,6 +43,7 @@ describe('message ordering and gap filling in websocket adapter', () => {
             },
             orderMessages: false,
         })
+        await subscriber.ensureConnected()
 
         freshStream = await subscriber.createStream({
             name: 'message-ordering-in-ws-adapter.test.js-' + Date.now()
