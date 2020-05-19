@@ -19,6 +19,8 @@ before_install:
 - npm i -g npm@6.14.2
 - npm config set //registry.npmjs.org/:_authToken=$NPM_TOKEN
 jobs:
+  allow_failures:
+      - env: CAN_FAIL=True
   include:
   - stage: Tests
     name: Integration Tests
@@ -35,6 +37,13 @@ jobs:
   - stage: Tests
     name: eslint
     script: npm run eslint
+  - stage: Tests
+    name: streamr-client tests
+    env:
+    - CAN_FAIL=True
+    script:
+    - docker build -t $OWNER/$IMAGE_NAME:local .
+    - .travis_scripts/streamr-client-test.sh
   - stage: publish
     if: tag IS present
     script: npm publish
