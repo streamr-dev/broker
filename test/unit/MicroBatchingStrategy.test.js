@@ -1,7 +1,7 @@
 const { wait, waitForCondition } = require('streamr-test-utils')
 const { StreamMessage } = require('streamr-client-protocol').MessageLayer
 
-const MicroBatchingStrategy = require('../../src/MicroBatchingStrategy')
+const MicroBatchingStrategy = require('../../src/storage/MicroBatchingStrategy')
 
 const BASE_COMMIT_INTERVAL = 1000
 

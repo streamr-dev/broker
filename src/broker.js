@@ -6,7 +6,7 @@ const Sentry = require('@sentry/node')
 const CURRENT_VERSION = require('../package.json').version
 
 const StreamFetcher = require('./StreamFetcher')
-const { startCassandraStorage } = require('./Storage')
+const { startCassandraStorage } = require('./storage/Storage')
 const Publisher = require('./Publisher')
 const VolumeLogger = require('./VolumeLogger')
 const SubscriptionManager = require('./SubscriptionManager')
