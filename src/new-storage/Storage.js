@@ -38,39 +38,17 @@ const batchingStore = (cassandraClient, insertStatement) => new MicroBatchingStr
     }
 })
 
-const individualStore = (cassandraClient, insertStatement) => ({
-    store: (streamMessage) => {
-        return cassandraClient.execute(insertStatement, [
-            streamMessage.getStreamId(),
-            streamMessage.getStreamPartition(),
-            streamMessage.getTimestamp(),
-            streamMessage.getSequenceNumber(),
-            streamMessage.getPublisherId(),
-            streamMessage.getMsgChainId(),
-            Buffer.from(streamMessage.serialize()),
-        ], {
-            prepare: true,
-        })
-    },
-    close: () => {},
-    metrics: () => {}
-})
-
 const RANGE_THRESHOLD = 30 * 1000
 const RETRY_INTERVAL = 2000
 const RETRY_TIMEOUT = 15 * 1000
 
 class Storage extends EventEmitter {
-    constructor(cassandraClient, useTtl, isBatching = true) {
+    constructor(cassandraClient, useTtl) {
         super()
         this.cassandraClient = cassandraClient
 
         const insertStatement = useTtl ? INSERT_STATEMENT_WITH_TTL : INSERT_STATEMENT
-        if (isBatching) {
-            this.storeStrategy = batchingStore(cassandraClient, insertStatement)
-        } else {
-            this.storeStrategy = individualStore(cassandraClient, insertStatement)
-        }
+        this.storeStrategy = batchingStore(cassandraClient, insertStatement)
     }
 
     store(streamMessage) {
@@ -309,8 +287,7 @@ const startCassandraStorage = async ({
     keyspace,
     username,
     password,
-    useTtl = true,
-    isBatching = true
+    useTtl = true
 }) => {
     const authProvider = new cassandra.auth.PlainTextAuthProvider(username || '', password || '')
     const requestLogger = new cassandra.tracker.RequestLogger({
@@ -334,7 +311,7 @@ const startCassandraStorage = async ({
         /* eslint-disable no-await-in-loop */
         try {
             await cassandraClient.connect().catch((err) => { throw err })
-            return new Storage(cassandraClient, useTtl, isBatching)
+            return new Storage(cassandraClient, useTtl)
         } catch (err) {
             console.log('Cassandra not responding yet...')
             retryCount -= 1
