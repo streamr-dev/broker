@@ -93,7 +93,4 @@ module.exports = class Connection extends EventEmitter {
         }
     }
 
-    sendError(requestId, errorMessage, errorCode) {
-        this.send(ErrorResponse.create(requestId, errorMessage, errorCode))
-    }
 }

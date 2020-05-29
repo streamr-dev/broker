@@ -100,6 +100,10 @@ module.exports = class StreamFetcher {
     _checkPermission(streamId, authKey, sessionToken, operation = 'stream_subscribe') {
         const headers = formHeaders(authKey, sessionToken)
 
+        if (streamId == null) {
+            throw new Error('streamId can not be null!')
+        }
+
         const url = `${this.streamResourceUrl}/${streamId}/permissions/me`
         return fetch(url, {
             headers,
