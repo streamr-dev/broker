@@ -146,7 +146,7 @@ module.exports = class MqttServer extends events.EventEmitter {
         const { topic, payload, qos } = packet
 
         try {
-            const streamObj = await this.streamFetcher.authenticate(topic, connection.apiKey, connection.token, 'write')
+            const streamObj = await this.streamFetcher.authenticate(topic, connection.apiKey, connection.token, 'stream_publish')
 
             // No way to define partition over MQTT, so choose a random partition
             const streamPartition = this.partitionFn(streamObj.partitions)
@@ -206,7 +206,7 @@ module.exports = class MqttServer extends events.EventEmitter {
         const { topic } = packet.subscriptions[0]
 
         try {
-            const streamObj = await this.streamFetcher.authenticate(topic, connection.apiKey, connection.token, 'read')
+            const streamObj = await this.streamFetcher.authenticate(topic, connection.apiKey, connection.token, 'stream_subscribe')
             const newOrExistingStream = this.streams.getOrCreate(streamObj.id, 0, streamObj.name)
 
             // Subscribe now if the stream is not already subscribed or subscribing

@@ -215,13 +215,13 @@ module.exports = class WebsocketServer extends EventEmitter {
 
     async handlePublishRequest(connection, request) {
         const streamMessage = request.getStreamMessage()
-        
+
         try {
             // Legacy validation: for unsigned messages, we additionally need to do an authenticated check of publish permission
             // This can be removed when support for unsigned messages is dropped!
             if (!streamMessage.signature) {
                 // checkPermission is cached
-                await this.streamFetcher.checkPermission(request.getStreamId(), request.apiKey, request.sessionToken, 'write')
+                await this.streamFetcher.checkPermission(request.getStreamId(), request.apiKey, request.sessionToken, 'stream_publish')
             }
 
             await this.publisher.validateAndPublish(streamMessage)

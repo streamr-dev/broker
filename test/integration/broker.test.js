@@ -86,9 +86,11 @@ describe('broker: end-to-end', () => {
         })
         freshStreamId = freshStream.id
 
-        await freshStream.grantPermission('read', 'tester2@streamr.com')
-        await freshStream.grantPermission('read', ethereumAccount.address)
-        await freshStream.grantPermission('write', ethereumAccount.address)
+        await freshStream.grantPermission('stream_get', 'tester2@streamr.com')
+        await freshStream.grantPermission('stream_subscribe', 'tester2@streamr.com')
+        await freshStream.grantPermission('stream_get', ethereumAccount.address)
+        await freshStream.grantPermission('stream_subscribe', ethereumAccount.address)
+        await freshStream.grantPermission('stream_publish', ethereumAccount.address)
     }, 10 * 1000)
 
     afterAll(async () => {
