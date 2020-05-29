@@ -58,10 +58,9 @@ module.exports = class WebsocketServer extends EventEmitter {
         this.requestHandlersByMessageType = {
             [ControlLayer.SubscribeRequest.TYPE]: this.handleSubscribeRequest,
             [ControlLayer.UnsubscribeRequest.TYPE]: this.handleUnsubscribeRequest,
-            [ControlLayer.ResendRequestV0.TYPE]: this.handleResendRequestV0,
-            [ControlLayer.ResendLastRequestV1.TYPE]: this.handleResendLastRequest,
-            [ControlLayer.ResendFromRequestV1.TYPE]: this.handleResendFromRequest,
-            [ControlLayer.ResendRangeRequestV1.TYPE]: this.handleResendRangeRequest,
+            [ControlLayer.ResendLastRequest.TYPE]: this.handleResendLastRequest,
+            [ControlLayer.ResendFromRequest.TYPE]: this.handleResendFromRequest,
+            [ControlLayer.ResendRangeRequest.TYPE]: this.handleResendRangeRequest,
             [ControlLayer.PublishRequest.TYPE]: this.handlePublishRequest,
         }
 
@@ -335,50 +334,6 @@ module.exports = class WebsocketServer extends EventEmitter {
             request.publisherId,
             request.msgChainId,
         ))
-    }
-
-    // TODO: should this be moved to streamr-client-protocol-js ?
-    /* eslint-disable class-methods-use-this */
-    handleResendRequestV0(connection, request) {
-        if (request.resendOptions.resend_last != null) {
-            const requestV1 = ControlLayer.ResendLastRequest.create(
-                request.streamId,
-                request.streamPartition,
-                request.requestId,
-                request.resendOptions.resend_last,
-                request.sessionToken,
-            )
-            requestV1.apiKey = request.apiKey
-            this.handleResendLastRequest(connection, requestV1)
-        } else if (request.resendOptions.resend_from != null && request.resendOptions.resend_to != null) {
-            const requestV1 = ControlLayer.ResendRangeRequest.create(
-                request.streamId,
-                request.streamPartition,
-                request.requestId,
-                [request.resendOptions.resend_from, 0], // use offset as timestamp
-                [request.resendOptions.resend_to, 0], // use offset as timestamp)
-                null,
-                null,
-                request.sessionToken,
-            )
-            requestV1.apiKey = request.apiKey
-            this.handleResendRangeRequest(connection, requestV1)
-        } else if (request.resendOptions.resend_from != null) {
-            const requestV1 = ControlLayer.ResendFromRequest.create(
-                request.streamId,
-                request.streamPartition,
-                request.requestId,
-                [request.resendOptions.resend_from, 0], // use offset as timestamp
-                null,
-                null,
-                request.sessionToken,
-            )
-            requestV1.apiKey = request.apiKey
-            this.handleResendFromRequest(connection, requestV1)
-        } else {
-            debug('handleResendRequest: unknown resend request: %o', JSON.stringify(request))
-            connection.sendError(`Unknown resend options: ${JSON.stringify(request.resendOptions)}`)
-        }
     }
 
     _broadcastMessage(streamMessage) {

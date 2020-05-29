@@ -116,11 +116,11 @@ module.exports = async (config) => {
     const unauthenticatedClient = new StreamrClient({
         restUrl: config.streamrUrl + '/api/v1',
     })
-    const streamMessageValidator = new Utils.CachingStreamMessageValidator(
-        (sId) => unauthenticatedClient.getStreamValidationInfo(sId),
-        (address, sId) => unauthenticatedClient.isStreamPublisher(sId, address),
-        (address, sId) => unauthenticatedClient.isStreamSubscriber(sId, address),
-    )
+    const streamMessageValidator = new Utils.CachingStreamMessageValidator({
+        getStream: (sId) => unauthenticatedClient.getStreamValidationInfo(sId),
+        isPublisher: (address, sId) => unauthenticatedClient.isStreamPublisher(sId, address),
+        isSubscriber: (address, sId) => unauthenticatedClient.isStreamSubscriber(sId, address),
+    })
     const streamFetcher = new StreamFetcher(config.streamrUrl)
     const subscriptionManager = new SubscriptionManager(networkNode)
     const publisher = new Publisher(networkNode, streamMessageValidator, volumeLogger)
