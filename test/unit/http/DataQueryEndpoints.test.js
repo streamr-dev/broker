@@ -3,7 +3,7 @@ const request = require('supertest')
 const sinon = require('sinon')
 const intoStream = require('into-stream')
 const { ControlLayer } = require('streamr-client-protocol')
-const { StreamMessage, StreamMessageV30 } = require('streamr-client-protocol').MessageLayer
+const { StreamMessage, MessageID } = require('streamr-client-protocol').MessageLayer
 
 const restEndpointRouter = require('../../../src/http/DataQueryEndpoints')
 const HttpError = require('../../../src/errors/HttpError')
@@ -22,18 +22,15 @@ describe('DataQueryEndpoints', () => {
     }
 
     function createStreamMessage(content) {
-        return new StreamMessageV30(
-            ['streamId', 0, new Date(2017, 3, 1, 12, 0, 0).getTime(), 0, 'publisherId', '1'],
+        return new StreamMessage(
+            new MessageID('streamId', 0, new Date(2017, 3, 1, 12, 0, 0).getTime(), 0, 'publisherId', '1'),
             null,
-            StreamMessage.CONTENT_TYPES.MESSAGE,
-            content,
-            StreamMessage.SIGNATURE_TYPES.NONE,
-            null,
+            JSON.stringify(content),
         )
     }
 
     function createUnicastMessage(streamMessage) {
-        return ControlLayer.UnicastMessage.create('subId', streamMessage)
+        return ControlLayer.UnicastMessage.create('requestId', streamMessage)
     }
 
     beforeEach(() => {
@@ -107,9 +104,9 @@ describe('DataQueryEndpoints', () => {
                     .expect(200, done)
             })
 
-            it('responds with arrays as body', (done) => {
+            it('responds with object representation of messages by default', (done) => {
                 testGetRequest('/api/v1/streams/streamId/data/partitions/0/last')
-                    .expect(streamMessages.map((m) => m.toArray()), done)
+                    .expect(streamMessages.map((m) => m.toObject()), done)
             })
 
             it('reports to volumeLogger', (done) => {
@@ -120,19 +117,14 @@ describe('DataQueryEndpoints', () => {
                     })
             })
 
-            it('responds with objects as body given ?wrapper=object', (done) => {
-                testGetRequest('/api/v1/streams/streamId/data/partitions/0/last?wrapper=obJECt')
-                    .expect(streamMessages.map((msg) => msg.toArray(/* parseContent */ false)), done)
+            it('responds with latest version protocol serialization of messages given format=protocol', (done) => {
+                testGetRequest('/api/v1/streams/streamId/data/partitions/0/last?format=protocol')
+                    .expect(streamMessages.map((msg) => msg.serialize(StreamMessage.LATEST_VERSION)), done)
             })
 
-            it('responds with arrays as body and parsed content given ?content=json', (done) => {
-                testGetRequest('/api/v1/streams/streamId/data/partitions/0/last?content=json')
-                    .expect(streamMessages.map((msg) => msg.toArray(/* parseContent */ true)), done)
-            })
-
-            it('responds with objects as body and parsed content given ?wrapper=object&content=json', (done) => {
-                testGetRequest('/api/v1/streams/streamId/data/partitions/0/last?wrapper=object&content=json')
-                    .expect(streamMessages.map((msg) => msg.toArray(/* parseContent */ true)), done)
+            it('responds with specific version protocol serialization of messages given format=protocol&version=30', (done) => {
+                testGetRequest('/api/v1/streams/streamId/data/partitions/0/last?format=protocol&version=30')
+                    .expect(streamMessages.map((msg) => msg.serialize(30)), done)
             })
 
             it('invokes networkNode#requestResendLast once with correct arguments', (done) => {
@@ -198,7 +190,7 @@ describe('DataQueryEndpoints', () => {
 
             it('responds with data points as body', (done) => {
                 testGetRequest('/api/v1/streams/streamId/data/partitions/0/from?fromTimestamp=1496408255672')
-                    .expect(streamMessages.map((msg) => msg.toArray()), done)
+                    .expect(streamMessages.map((msg) => msg.toObject()), done)
             })
 
             it('invokes networkNode#requestResendFrom once with correct arguments', async () => {
@@ -240,7 +232,7 @@ describe('DataQueryEndpoints', () => {
 
             it('responds with data points as body', (done) => {
                 testGetRequest(`/api/v1/streams/streamId/data/partitions/0/from?${query}`)
-                    .expect(streamMessages.map((msg) => msg.toArray()), done)
+                    .expect(streamMessages.map((msg) => msg.toObject()), done)
             })
 
             it('invokes networkNode#requestResendFrom once with correct arguments', async () => {
@@ -344,7 +336,7 @@ describe('DataQueryEndpoints', () => {
             it('responds with data points as body', (done) => {
                 // eslint-disable-next-line max-len
                 testGetRequest('/api/v1/streams/streamId/data/partitions/0/range?fromTimestamp=1496408255672&toTimestamp=1496415670909')
-                    .expect(streamMessages.map((msg) => msg.toArray()), done)
+                    .expect(streamMessages.map((msg) => msg.toObject()), done)
             })
 
             it('invokes networkNode#requestResendRange once with correct arguments', async () => {
@@ -405,7 +397,7 @@ describe('DataQueryEndpoints', () => {
 
             it('responds with data points as body', (done) => {
                 testGetRequest(`/api/v1/streams/streamId/data/partitions/0/range?${query}`)
-                    .expect(streamMessages.map((msg) => msg.toArray()), done)
+                    .expect(streamMessages.map((msg) => msg.toObject()), done)
             })
 
             it('invokes networkNode#requestResendRange once with correct arguments', async () => {

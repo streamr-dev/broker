@@ -1,22 +1,18 @@
 const { wait, waitForCondition } = require('streamr-test-utils')
-const { StreamMessage } = require('streamr-client-protocol').MessageLayer
+const { StreamMessage, MessageID } = require('streamr-client-protocol').MessageLayer
 
 const MicroBatchingStrategy = require('../../src/MicroBatchingStrategy')
 
 const BASE_COMMIT_INTERVAL = 1000
 
 function buildMsg(streamId, streamPartition, timestamp, sequenceNumber) {
-    return StreamMessage.create(
-        [streamId, streamPartition, timestamp, sequenceNumber, 'publisherId', 'msgChainId'],
+    return new StreamMessage(
+        new MessageID(streamId, streamPartition, timestamp, sequenceNumber, 'publisherId', 'msgChainId'),
         null,
-        StreamMessage.CONTENT_TYPES.MESSAGE,
-        StreamMessage.ENCRYPTION_TYPES.NONE,
-        {
+        JSON.stringify({
             hello: 'world',
             this: 'is some content',
-        },
-        StreamMessage.SIGNATURE_TYPES.NONE,
-        null,
+        }),
     )
 }
 

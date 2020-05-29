@@ -2,7 +2,6 @@ const { startNetworkNode, startStorageNode } = require('streamr-network')
 const StreamrClient = require('streamr-client')
 const publicIp = require('public-ip')
 const Sentry = require('@sentry/node')
-const { ethers } = require('ethers')
 const { Utils } = require('streamr-client-protocol')
 
 const CURRENT_VERSION = require('../package.json').version
@@ -121,7 +120,6 @@ module.exports = async (config) => {
         (sId) => unauthenticatedClient.getStreamValidationInfo(sId),
         (address, sId) => unauthenticatedClient.isStreamPublisher(sId, address),
         (address, sId) => unauthenticatedClient.isStreamSubscriber(sId, address),
-        (payload, signature) => ethers.utils.verifyMessage(payload, signature),
     )
     const streamFetcher = new StreamFetcher(config.streamrUrl)
     const subscriptionManager = new SubscriptionManager(networkNode)

@@ -1,6 +1,6 @@
 const express = require('express')
 const bodyParser = require('body-parser')
-const { StreamMessage } = require('streamr-client-protocol').MessageLayer
+const { StreamMessage, MessageID, MessageRef } = require('streamr-client-protocol').MessageLayer
 const { InvalidJsonError, ValidationError } = require('streamr-client-protocol').Errors
 
 const partition = require('../partition')
@@ -75,7 +75,7 @@ module.exports = (streamFetcher, publisher, partitionFn = partition) => {
                 sequenceNumber = req.query.seq ? parsePositiveInteger(req.query.seq) : 0
                 if (req.query.prev_ts) {
                     const previousSequenceNumber = req.query.prev_seq ? parsePositiveInteger(req.query.prev_seq) : 0
-                    previousMessageRef = [parsePositiveInteger(req.query.prev_ts), previousSequenceNumber]
+                    previousMessageRef = new MessageRef(parsePositiveInteger(req.query.prev_ts), previousSequenceNumber)
                 }
                 signatureType = req.query.signatureType ? parsePositiveInteger(req.query.signatureType) : 0
             } catch (err) {
@@ -87,18 +87,19 @@ module.exports = (streamFetcher, publisher, partitionFn = partition) => {
 
             // req.stream is written by authentication middleware
             try {
-                const streamMessage = StreamMessage.create(
-                    [req.stream.id,
+                const streamMessage = new StreamMessage(
+                    new MessageID(
+                        req.stream.id,
                         partitionFn(req.stream.partitions, req.query.pkey),
                         timestamp,
                         sequenceNumber, // sequenceNumber
                         req.query.address || '', // publisherId
                         req.query.msgChainId || '',
-                    ],
+                    ),
                     previousMessageRef,
+                    req.body.toString(),
                     StreamMessage.CONTENT_TYPES.MESSAGE,
                     StreamMessage.ENCRYPTION_TYPES.NONE,
-                    req.body.toString(),
                     signatureType,
                     req.query.signature || null,
                 )

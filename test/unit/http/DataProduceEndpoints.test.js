@@ -1,7 +1,7 @@
 const sinon = require('sinon')
 const express = require('express')
 const request = require('supertest')
-const { StreamMessage } = require('streamr-client-protocol').MessageLayer
+const { StreamMessage, MessageID, MessageRef } = require('streamr-client-protocol').MessageLayer
 
 const router = require('../../../src/http/DataProduceEndpoints')
 
@@ -58,14 +58,10 @@ describe('DataProduceEndpoints', () => {
     })
 
     it('should call Publisher.validateAndPublish() with correct arguments', (done) => {
-        const streamMessage = StreamMessage.create(
-            [stream.id, 0, Date.now(), 0, 'publisherId', '1'],
+        const streamMessage = new StreamMessage(
+            new MessageID(stream.id, 0, Date.now(), 0, 'publisherId', '1'),
             null,
-            StreamMessage.CONTENT_TYPES.MESSAGE,
-            StreamMessage.ENCRYPTION_TYPES.NONE,
             '{}',
-            StreamMessage.SIGNATURE_TYPES.NONE,
-            null,
         )
         postRequest({
             query: {
@@ -82,12 +78,12 @@ describe('DataProduceEndpoints', () => {
     })
 
     it('should read signature-related fields', (done) => {
-        const streamMessage = StreamMessage.create(
-            [stream.id, 0, Date.now(), 0, 'publisherId', ''],
+        const streamMessage = new StreamMessage(
+            new MessageID(stream.id, 0, Date.now(), 0, 'publisherId', ''),
             null,
+            '{}',
             StreamMessage.CONTENT_TYPES.MESSAGE,
             StreamMessage.ENCRYPTION_TYPES.NONE,
-            '{}',
             StreamMessage.SIGNATURE_TYPES.ETH,
             'signature',
         )
@@ -105,14 +101,10 @@ describe('DataProduceEndpoints', () => {
     })
 
     it('should read sequence number and previous reference fields', (done) => {
-        const streamMessage = StreamMessage.create(
-            [stream.id, 0, Date.now(), 1, 'publisherId', ''],
-            [325656645, 3],
-            StreamMessage.CONTENT_TYPES.MESSAGE,
-            StreamMessage.ENCRYPTION_TYPES.NONE,
+        const streamMessage = new StreamMessage(
+            new MessageID(stream.id, 0, Date.now(), 1, 'publisherId', ''),
+            new MessageRef(325656645, 3),
             '{}',
-            StreamMessage.SIGNATURE_TYPES.NONE,
-            null,
         )
         postRequest({
             query: {
