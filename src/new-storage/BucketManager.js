@@ -4,43 +4,6 @@ const CHECK_BUCKETS_INTERVAL = 1000
 
 const toKey = (streamId, partition) => `${streamId}-${partition}`
 
-class Bucket {
-    constructor(streamId, partition, records = 0, size = 0) {
-        this.streamId = streamId
-        this.partition = partition
-        this.records = records
-        this.size = size
-        this.uuid = undefined
-        this.dateCreate = undefined
-        this.ttl = new Date()
-    }
-
-    getUuid() {
-        return this.uuid
-    }
-
-    updateUuid(uuid) {
-        this.uuid = uuid
-    }
-
-    reset() {
-        this.uuid = undefined
-        this.records = 0
-        this.size = 0
-    }
-
-    incrementBucket(records, size) {
-        this.records += records
-        this.size += size
-
-        console.log(`bucket id: ${this.uuid}, size: ${this.size}, records: ${this.records}`)
-    }
-
-    updateTTL(minutes = 30) {
-        this.ttl.setMinutes(this.ttl.getMinutes() + minutes)
-    }
-}
-
 class BucketManager {
     constructor(cassandraClient, maxBucketSize = MAX_BUCKET_SIZE, maxBucketRecords = MAX_BUCKET_RECORDS, checkBucketsInterval = CHECK_BUCKETS_INTERVAL) {
         this.cassandraClient = cassandraClient

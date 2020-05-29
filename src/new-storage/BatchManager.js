@@ -16,6 +16,7 @@ class BatchManager extends EventEmitter {
 
         this.batches = {}
         this.pendingBatches = {}
+
         this.cassandraClient = cassandraClient
         this.insertStatement = useTtl ? INSERT_STATEMENT_WITH_TTL : INSERT_STATEMENT
         this.logErrors = logErrors
@@ -35,17 +36,18 @@ class BatchManager extends EventEmitter {
         }
 
         if (this.batches[key] === undefined) {
-            this.batches[key] = new Batch(10000, 100, 30000)
-            this.batches[key].on('state', (batchId, batchState, batchSize, batchNumberOfRecords) => this._batchChangedState(batchId, batchState, batchSize, batchNumberOfRecords))
+            const newBatch = new Batch(10000, 100, 30000)
+            newBatch.on('state', (id, state, size, numberOfRecords) => this._batchChangedState(id, state, size, numberOfRecords))
+            this.batches[key] = newBatch
         }
 
         this.batches[key].push(streamMessage)
     }
 
-    _batchChangedState(batchId, batchState, batchSize, batchNumberOfRecords) {
-        console.log(`batchId: ${batchId}, batchState: ${batchState}, batchSize: ${batchSize}, batchNumberOfRecords: ${batchNumberOfRecords}`)
-        if (batchState === Batch.states.PENDING) {
-            this._insert(batchId)
+    _batchChangedState(id, state, size, numberOfRecords) {
+        console.log(`batchId: ${id}, batchState: ${state}, batchSize: ${size}, batchNumberOfRecords: ${numberOfRecords}`)
+        if (state === Batch.states.PENDING) {
+            this._insert(id)
         }
     }
 
