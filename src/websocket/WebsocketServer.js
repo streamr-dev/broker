@@ -130,17 +130,24 @@ module.exports = class WebsocketServer extends EventEmitter {
                         if (connection.isDead()) {
                             return
                         }
+
+                        let request
                         try {
-                            const request = ControlLayer.ControlMessage.deserialize(ab2str(msg), false)
+                            request = ControlLayer.ControlMessage.deserialize(ab2str(msg), false)
+                        } catch (err) {
+                            connection.sendError(`unresolvable-requestId-${Date.now()}`, err.message || err, 'INVALID_REQUEST')
+                        }
+
+                        try {
                             const handler = this.requestHandlersByMessageType[request.type]
                             if (handler) {
                                 debug('socket "%s" sent request "%s" with contents "%o"', connection.id, request.type, request)
                                 handler.call(this, connection, request)
                             } else {
-                                connection.sendError(`Unknown request type: ${request.type}`)
+                                connection.sendError(request.requestId, `Unknown request type: ${request.type}`, 'INVALID_REQUEST')
                             }
                         } catch (err) {
-                            connection.sendError(err.message || err)
+                            connection.sendError(request.requestId,err.message || err, err.errorCode || 'ERROR_WHILE_HANDLING_REQUEST')
                         }
                     })
                 }
@@ -177,7 +184,7 @@ module.exports = class WebsocketServer extends EventEmitter {
         connection.forEachStream((stream) => {
             this.handleUnsubscribeRequest(
                 connection,
-                ControlLayer.UnsubscribeRequest.create(stream.id, stream.partition),
+                ControlLayer.UnsubscribeRequest.create(uuidv4(), stream.id, stream.partition),
                 true,
             )
         })
@@ -231,31 +238,36 @@ module.exports = class WebsocketServer extends EventEmitter {
             })
         } catch (err) {
             let errorMsg
+            let errorCode
             if (err instanceof HttpError && err.code === 401) {
                 errorMsg = `Authentication failed while trying to publish to stream ${streamMessage.getStreamId()}`
+                errorCode = 'AUTHENTICATION_FAILED'
             } else if (err instanceof HttpError && err.code === 403) {
                 errorMsg = `You are not allowed to write to stream ${streamMessage.getStreamId()}`
+                errorCode = 'PERMISSION_DENIED'
             } else if (err instanceof HttpError && err.code === 404) {
                 errorMsg = `Stream ${streamMessage.getStreamId()} not found.`
+                errorCode = 'NOT_FOUND'
             } else {
                 errorMsg = `Publish request failed: ${err}`
+                errorCode = 'REQUEST_FAILED'
             }
 
-            connection.sendError(errorMsg)
+            connection.sendError(request.requestId, errorMsg, errorCode)
         }
     }
 
     // TODO: Extract resend stuff to class?
-    handleResendRequest(connection, request, resendTypeHandler) {
+    async handleResendRequest(connection, request, resendTypeHandler) {
         let nothingToResend = true
 
         const msgHandler = (unicastMessage) => {
             if (nothingToResend) {
                 nothingToResend = false
                 connection.send(ControlLayer.ResendResponseResending.create(
+                    request.requestId,
                     request.streamId,
                     request.streamPartition,
-                    request.requestId,
                 ))
             }
 
@@ -267,21 +279,21 @@ module.exports = class WebsocketServer extends EventEmitter {
         const doneHandler = () => {
             if (nothingToResend) {
                 connection.send(ControlLayer.ResendResponseNoResend.create(
+                    request.requestId,
                     request.streamId,
                     request.streamPartition,
-                    request.requestId,
                 ))
             } else {
                 connection.send(ControlLayer.ResendResponseResent.create(
+                    request.requestId,
                     request.streamId,
                     request.streamPartition,
-                    request.requestId,
                 ))
             }
         }
 
-        // TODO: simplify with async-await
-        this.streamFetcher.authenticate(request.streamId, request.apiKey, request.sessionToken).then(() => {
+        try {
+            await this.streamFetcher.checkPermission(request.streamId, request.apiKey, request.sessionToken, 'stream_subscribe')
             if (connection.isDead()) {
                 return
             }
@@ -292,17 +304,17 @@ module.exports = class WebsocketServer extends EventEmitter {
             streamingStorageData.once('end', () => {
                 connection.removeOngoingResend(streamingStorageData)
             })
-        }).catch((err) => {
-            connection.sendError(`Failed to request resend from stream ${
+        } catch (err) {
+            connection.sendError(request.requestId, `Failed to request resend from stream ${
                 request.streamId
             } and partition ${
                 request.streamPartition
-            }: ${err.message}`)
-        })
+            }: ${err.message}`, err.errorCode || 'RESEND_FAILED')
+        }
     }
 
-    handleResendLastRequest(connection, request) {
-        this.handleResendRequest(connection, request, () => this.networkNode.requestResendLast(
+    async handleResendLastRequest(connection, request) {
+        await this.handleResendRequest(connection, request, () => this.networkNode.requestResendLast(
             request.streamId,
             request.streamPartition,
             uuidv4(),
@@ -310,8 +322,8 @@ module.exports = class WebsocketServer extends EventEmitter {
         ))
     }
 
-    handleResendFromRequest(connection, request) {
-        this.handleResendRequest(connection, request, () => this.networkNode.requestResendFrom(
+    async handleResendFromRequest(connection, request) {
+        await this.handleResendRequest(connection, request, () => this.networkNode.requestResendFrom(
             request.streamId,
             request.streamPartition,
             uuidv4(),
@@ -322,8 +334,8 @@ module.exports = class WebsocketServer extends EventEmitter {
         ))
     }
 
-    handleResendRangeRequest(connection, request) {
-        this.handleResendRequest(connection, request, () => this.networkNode.requestResendRange(
+    async handleResendRangeRequest(connection, request) {
+        await this.handleResendRequest(connection, request, () => this.networkNode.requestResendRange(
             request.streamId,
             request.streamPartition,
             uuidv4(),
@@ -343,8 +355,9 @@ module.exports = class WebsocketServer extends EventEmitter {
 
         if (stream) {
             stream.forEachConnection((connection) => {
-                // TODO: performance fix, no need to re-create on every loop iteration
-                connection.send(ControlLayer.BroadcastMessage.create(streamMessage))
+                // TODO: performance fix, do we need to re-create on every loop iteration?
+                // TODO: can we have here the requestId of the original SubscribeRequest?
+                connection.send(ControlLayer.BroadcastMessage.create('', streamMessage))
             })
 
             this.volumeLogger.logOutput(streamMessage.getSerializedContent().length * stream.getConnections().length)
@@ -384,41 +397,39 @@ module.exports = class WebsocketServer extends EventEmitter {
         }
     }
 
-    handleSubscribeRequest(connection, request) {
-        // TODO: simplify with async-await
-        this.streamFetcher.authenticate(request.streamId, request.apiKey, request.sessionToken)
-            .then((/* streamJson */) => {
-                if (connection.isDead()) {
-                    return
-                }
-                const stream = this.streams.getOrCreate(request.streamId, request.streamPartition)
+    async handleSubscribeRequest(connection, request) {
+        try {
+            await this.streamFetcher.checkPermission(request.streamId, request.apiKey, request.sessionToken)
+            if (connection.isDead()) {
+                return
+            }
+            const stream = this.streams.getOrCreate(request.streamId, request.streamPartition)
 
-                // Subscribe now if the stream is not already subscribed or subscribing
-                if (!stream.isSubscribed() && !stream.isSubscribing()) {
-                    stream.setSubscribing()
-                    this.subscriptionManager.subscribe(request.streamId, request.streamPartition)
-                    stream.setSubscribed()
-                }
+            // Subscribe now if the stream is not already subscribed or subscribing
+            if (!stream.isSubscribed() && !stream.isSubscribing()) {
+                stream.setSubscribing()
+                this.subscriptionManager.subscribe(request.streamId, request.streamPartition)
+                stream.setSubscribed()
+            }
 
-                stream.addConnection(connection)
-                connection.addStream(stream)
-                debug(
-                    'handleSubscribeRequest: socket "%s" is now subscribed to streams "%o"',
-                    connection.id, connection.streamsAsString()
-                )
-                connection.send(ControlLayer.SubscribeResponse.create(request.streamId, request.streamPartition))
-            })
-            .catch((response) => {
-                debug(
-                    'handleSubscribeRequest: socket "%s" failed to subscribe to stream %s:%d because of "%o"',
-                    connection.id, request.streamId, request.streamPartition, response
-                )
-                connection.sendError(`Not authorized to subscribe to stream ${
-                    request.streamId
-                } and partition ${
-                    request.streamPartition
-                }`)
-            })
+            stream.addConnection(connection)
+            connection.addStream(stream)
+            debug(
+                'handleSubscribeRequest: socket "%s" is now subscribed to streams "%o"',
+                connection.id, connection.streamsAsString()
+            )
+            connection.send(ControlLayer.SubscribeResponse.create(request.requestId, request.streamId, request.streamPartition))
+        } catch (err) {
+            debug(
+                'handleSubscribeRequest: socket "%s" failed to subscribe to stream %s:%d because of "%o"',
+                connection.id, request.streamId, request.streamPartition, err
+            )
+            connection.sendError(request.requestId,`Not authorized to subscribe to stream ${
+                request.streamId
+            } and partition ${
+                request.streamPartition
+            }`, 'PERMISSION_DENIED')
+        }
     }
 
     handleUnsubscribeRequest(connection, request, noAck = false) {
@@ -451,7 +462,7 @@ module.exports = class WebsocketServer extends EventEmitter {
             }
 
             if (!noAck) {
-                connection.send(ControlLayer.UnsubscribeResponse.create(request.streamId, request.streamPartition))
+                connection.send(ControlLayer.UnsubscribeResponse.create(request.requestId, request.streamId, request.streamPartition))
             }
         } else {
             debug(
@@ -459,7 +470,11 @@ module.exports = class WebsocketServer extends EventEmitter {
                 request.streamId, request.streamPartition
             )
             if (!noAck) {
-                connection.sendError(`Not subscribed to stream ${request.streamId} partition ${request.streamPartition}!`)
+                connection.sendError(
+                    request.requestId,
+                    `Not subscribed to stream ${request.streamId} partition ${request.streamPartition}!`,
+                    'INVALID_REQUEST',
+                )
             }
         }
     }

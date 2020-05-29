@@ -51,55 +51,39 @@ describe('WebsocketServer', () => {
         streamId3: fieldsStream,
     }
 
-    const streamMessagev29 = new MessageLayer.StreamMessageV29(
-        'streamId',
-        0, // partition
-        1491037200000,
-        0, // ttl
-        2, // offset
-        1,
-        MessageLayer.StreamMessage.CONTENT_TYPES.MESSAGE,
-        {
+    const streamMessage1 = new MessageLayer.StreamMessage(
+        new MessageLayer.MessageID('streamId', 0, 1491037200100, 0, 'publisherId', '1'),
+        new MessageLayer.MessageRef(1491037200000, 0),
+        JSON.stringify({
             hello: 'world',
-        },
-        MessageLayer.StreamMessage.SIGNATURE_TYPES.ETH,
-        'publisherId',
-        'signature',
-    )
-
-    const streamMessagev30 = new MessageLayer.StreamMessageV30(
-        ['streamId', 0, 1491037200100, 0, 'publisherId', '1'],
-        [1491037200000, 0],
+        }),
         MessageLayer.StreamMessage.CONTENT_TYPES.MESSAGE,
-        {
-            hello: 'world',
-        },
         MessageLayer.StreamMessage.SIGNATURE_TYPES.ETH,
         'signature',
     )
 
-    const streamMessage2v30 = new MessageLayer.StreamMessageV30(
-        ['streamId2', 0, 1491037200100, 0, 'publisherId', '1'],
-        [1491037200000, 0],
-        MessageLayer.StreamMessage.CONTENT_TYPES.MESSAGE,
-        {
+    const streamMessage2 = new MessageLayer.StreamMessage(
+        new MessageLayer.MessageID('streamId2', 0, 1491037200100, 0, 'publisherId', '1'),
+        new MessageLayer.MessageRef(1491037200000, 0),
+        JSON.stringify({
             field1: 'world',
             field2: 12,
             field3: true,
             field4: [],
             field5: {},
-        },
+        }),
+        MessageLayer.StreamMessage.CONTENT_TYPES.MESSAGE,
         MessageLayer.StreamMessage.SIGNATURE_TYPES.ETH,
         'signature',
     )
 
-    const streamMessage3v30 = new MessageLayer.StreamMessageV30(
-        ['streamId3', 0, 1491037200100, 0, 'publisherId', '1'],
-        [1491037200000, 0],
-        MessageLayer.StreamMessage.CONTENT_TYPES.MESSAGE,
-        {
+    const streamMessage3 = new MessageLayer.StreamMessage(
+        new MessageLayer.MessageID('streamId3', 0, 1491037200100, 0, 'publisherId', '1'),
+        new MessageLayer.MessageRef(1491037200000, 0),
+        JSON.stringify({
             hello: 'world',
-        },
+        }),
+        MessageLayer.StreamMessage.CONTENT_TYPES.MESSAGE,
         MessageLayer.StreamMessage.SIGNATURE_TYPES.ETH,
         'signature',
     )
@@ -132,7 +116,7 @@ describe('WebsocketServer', () => {
         }
 
         publisher = {
-            publish: sinon.stub()
+            validateAndPublish: sinon.stub()
                 .resolves(),
         }
 
@@ -188,10 +172,11 @@ describe('WebsocketServer', () => {
 
         it('sends a resending message before starting a resend', async (done) => {
             networkNode.requestResendLast.mockReturnValue(intoStream.object([
-                ControlLayer.UnicastMessage.create('subId', streamMessagev30)
+                ControlLayer.UnicastMessage.create('subId', streamMessage1)
             ]))
-            const request = ControlLayer.ResendLastRequest.create('streamId', 0, 'sub', 10, 'correct')
+            const request = ControlLayer.ResendLastRequest.create('requestId', 'streamId', 0, 'sub', 10, 'correct')
             const expectedResponse = ControlLayer.ResendResponseResending.create(
+                request.requestId,
                 request.streamId,
                 request.streamPartition,
                 request.requestId,
@@ -205,10 +190,10 @@ describe('WebsocketServer', () => {
 
         it('adds the subscription id to messages', (done) => {
             networkNode.requestResendLast.mockReturnValue(intoStream.object([
-                ControlLayer.UnicastMessage.create('subId', streamMessagev30)
+                ControlLayer.UnicastMessage.create('subId', streamMessage1)
             ]))
-            const request = ControlLayer.ResendLastRequest.create('streamId', 0, 'sub', 10, 'correct')
-            const expectedResponse = ControlLayer.UnicastMessage.create(request.requestId, streamMessagev30)
+            const request = ControlLayer.ResendLastRequest.create('requestId', 'streamId', 0, 'sub', 10, 'correct')
+            const expectedResponse = ControlLayer.UnicastMessage.create(request.requestId, request.requestId, streamMessage1)
             mockSocket.receive(request)
             mockSocket.on('test:send', (numOfMessages) => {
                 if (numOfMessages === 2) {
@@ -220,10 +205,11 @@ describe('WebsocketServer', () => {
 
         it('emits a resent event when resend is complete', (done) => {
             networkNode.requestResendLast.mockReturnValue(intoStream.object([
-                ControlLayer.UnicastMessage.create('subId', streamMessagev30)
+                ControlLayer.UnicastMessage.create('subId', streamMessage1)
             ]))
-            const request = ControlLayer.ResendLastRequest.create('streamId', 0, 'sub', 10, 'correct')
+            const request = ControlLayer.ResendLastRequest.create('requestId', 'streamId', 0, 'sub', 10, 'correct')
             const expectedResponse = ControlLayer.ResendResponseResent.create(
+                request.requestId,
                 request.streamId,
                 request.streamPartition,
                 request.requestId,
@@ -238,8 +224,9 @@ describe('WebsocketServer', () => {
         })
 
         it('emits no_resend if there is nothing to resend', (done) => {
-            const request = ControlLayer.ResendLastRequest.create('streamId', 0, 'sub', 10, 'correct')
+            const request = ControlLayer.ResendLastRequest.create('requestId', 'streamId', 0, 'sub', 10, 'correct')
             const expectedResponse = ControlLayer.ResendResponseNoResend.create(
+                request.requestId,
                 request.streamId,
                 request.streamPartition,
                 request.requestId,
@@ -256,7 +243,7 @@ describe('WebsocketServer', () => {
         describe('socket sends ResendRangeRequest', () => {
             it('requests messages from given timestamp range from networkNode (V1)', (done) => {
                 const request = ControlLayer.ResendRangeRequest.create(
-                    'streamId', 0, 'sub', [1000, 0],
+                    'requestId', 'streamId', 0, 'sub', [1000, 0],
                     [5000, 10], 'publsherId', 'msgChainId', 'correct',
                 )
 
@@ -285,7 +272,7 @@ describe('WebsocketServer', () => {
         describe('socket sends ResendFromRequest', () => {
             it('requests messages from given message ref from networkNode (V1)', (done) => {
                 const request = ControlLayer.ResendFromRequest.create(
-                    'streamId', 0, 'sub', [5000, 0], 'publisherId', 'msgChainId', 'correct',
+                    'requestId', 'streamId', 0, 'sub', [5000, 0], 'publisherId', 'msgChainId', 'correct',
                 )
 
                 mockSocket.receive(request)
@@ -310,7 +297,7 @@ describe('WebsocketServer', () => {
 
         describe('socket sends resend request with resend_last', () => {
             it('requests last N messages from networkNode (V1)', (done) => {
-                const request = ControlLayer.ResendLastRequest.create('streamId', 0, 'sub', 10, 'correct')
+                const request = ControlLayer.ResendLastRequest.create('requestId', 'streamId', 0, 'sub', 10, 'correct')
 
                 mockSocket.receive(request)
 
@@ -336,23 +323,6 @@ describe('WebsocketServer', () => {
             mockSocket.throwOnError = false
 
             wsMock.emit('connection', mockSocket, mockSocket.getRequest())
-        })
-
-        it('resend_all is not supported anymore.', (done) => {
-            const request = new ControlLayer.ResendRequestV0('streamId', 0, 'sub', {
-                resend_all: true,
-            }, 'correct')
-            mockSocket.receive(request)
-            const expectedResponse = ControlLayer.ErrorResponse.create('Unknown resend options: {"resend_all":true}')
-            setImmediate(() => {
-                assert.deepEqual(mockSocket.sentMessages, [
-                    expectedResponse.serialize(CONTROL_LAYER_VERSION, MESSAGE_LAYER_VERSION)
-                ])
-                expect(networkNode.requestResendLast).not.toHaveBeenCalled()
-                expect(networkNode.requestResendFrom).not.toHaveBeenCalled()
-                expect(networkNode.requestResendRange).not.toHaveBeenCalled()
-                done()
-            })
         })
 
         it('resend_last calls fetchLatest', (done) => {
@@ -458,6 +428,7 @@ describe('WebsocketServer', () => {
             })
 
             const expectedResponse = ControlLayer.ErrorResponse.create(
+                // TODO: requestId?
                 'Not authorized to subscribe to stream undefined and partition 0'
             )
 
@@ -472,13 +443,17 @@ describe('WebsocketServer', () => {
     })
 
     describe('on subscribe request', () => {
+        let request
+
         beforeEach(() => {
             wsMock.emit('connection', mockSocket, mockSocket.getRequest())
-            mockSocket.receive(ControlLayer.SubscribeRequest.create(
+            request = ControlLayer.SubscribeRequest.create(
+                'requestId',
                 'streamId',
                 0,
                 'correct',
-            ))
+            )
+            mockSocket.receive(request)
         })
 
         it('creates the Stream object with default partition', (done) => {
@@ -492,7 +467,8 @@ describe('WebsocketServer', () => {
             const socket2 = new MockSocket()
             wsMock.emit('connection', socket2, socket2.getRequest())
             socket2.receive(ControlLayer.SubscribeRequest.create(
-                'streamId',
+                'request2',
+                request.streamId,
                 1,
                 'correct',
             ))
@@ -515,19 +491,20 @@ describe('WebsocketServer', () => {
             setTimeout(() => {
                 assert.deepEqual(
                     mockSocket.sentMessages[0],
-                    ControlLayer.SubscribeResponse.create('streamId', 0)
+                    ControlLayer.SubscribeResponse.create(request.requestId, request.streamId, request.streamPartition)
                         .serialize(CONTROL_LAYER_VERSION, MESSAGE_LAYER_VERSION)
                 )
                 done()
             })
         })
 
-        it('does not resubscribe to networkNode on new subscription to same stream', (done) => {
+        it('does not resubscribe to networkNode on new subscription to same stream-partition', (done) => {
             const socket2 = new MockSocket()
             wsMock.emit('connection', socket2, socket2.getRequest())
             socket2.receive(ControlLayer.SubscribeRequest.create(
-                'streamId',
-                0,
+                'request2',
+                request.streamId,
+                request.streamPartition,
                 'correct',
             ))
 
@@ -540,16 +517,21 @@ describe('WebsocketServer', () => {
     })
 
     describe('on subscribe request with invalid key', () => {
+        let request
+
         beforeEach(() => {
             wsMock.emit('connection', mockSocket, mockSocket.getRequest())
 
-            // Expect error messages
-            mockSocket.throwOnError = false
-            mockSocket.receive(ControlLayer.SubscribeRequest.create(
+            request = ControlLayer.SubscribeRequest.create(
+                'requestId',
                 'streamId',
                 0,
                 'wrongApiKey',
-            ))
+            )
+
+            // Expect error messages
+            mockSocket.throwOnError = false
+            mockSocket.receive(request)
         })
 
         it('does not create the Stream object with default partition', (done) => {
@@ -568,7 +550,9 @@ describe('WebsocketServer', () => {
 
         it('sends error message to socket', (done) => {
             const expectedResponse = ControlLayer.ErrorResponse.create(
-                'Not authorized to subscribe to stream streamId and partition 0'
+                request.requestId,
+                'Not authorized to subscribe to stream streamId and partition 0',
+                'PERMISSION_DENIED',
             )
             setTimeout(() => {
                 assert.deepEqual(
@@ -623,6 +607,7 @@ describe('WebsocketServer', () => {
 
             // subscribe
             mockSocket.receive(ControlLayer.SubscribeRequest.create(
+                'request1',
                 'streamId',
                 0,
                 'correct',
@@ -632,6 +617,7 @@ describe('WebsocketServer', () => {
             socket2 = new MockSocket()
             wsMock.emit('connection', socket2, socket2.getRequest())
             socket2.receive(ControlLayer.SubscribeRequest.create(
+                'request2',
                 'streamId',
                 0,
                 'correct',
@@ -639,7 +625,7 @@ describe('WebsocketServer', () => {
 
             // unsubscribe 1
             setTimeout(() => {
-                mockSocket.receive(ControlLayer.UnsubscribeRequest.create('streamId', 0))
+                mockSocket.receive(ControlLayer.UnsubscribeRequest.create('request3','streamId', 0))
                 done()
             })
         })
@@ -664,6 +650,7 @@ describe('WebsocketServer', () => {
 
             // subscribe
             mockSocket.receive(ControlLayer.SubscribeRequest.create(
+                'request1',
                 'streamId',
                 0,
                 'correct',
@@ -673,6 +660,7 @@ describe('WebsocketServer', () => {
             socket2 = new MockSocket()
             wsMock.emit('connection', socket2, socket2.getRequest())
             socket2.receive(ControlLayer.SubscribeRequest.create(
+                'request2',
                 'streamId',
                 0,
                 'correct',
@@ -680,7 +668,7 @@ describe('WebsocketServer', () => {
 
             // unsubscribe 1
             setTimeout(() => {
-                mockSocket.receive(ControlLayer.UnsubscribeRequest.create('streamId', 0))
+                mockSocket.receive(ControlLayer.UnsubscribeRequest.create('request3', 'streamId', 0))
                 done()
             })
         })
@@ -705,6 +693,7 @@ describe('WebsocketServer', () => {
 
             // subscribe
             mockSocket.receive(ControlLayer.SubscribeRequest.create(
+                'request1',
                 'streamId',
                 0,
                 'correct',
@@ -713,6 +702,7 @@ describe('WebsocketServer', () => {
             setTimeout(() => {
                 // unsubscribe
                 mockSocket.receive(ControlLayer.UnsubscribeRequest.create(
+                    'request2',
                     'streamId',
                     0,
                 ))
@@ -720,6 +710,7 @@ describe('WebsocketServer', () => {
                 setTimeout(() => {
                     // subscribed
                     mockSocket.receive(ControlLayer.SubscribeRequest.create(
+                        'request3',
                         'streamId',
                         0,
                         'correct',
@@ -727,11 +718,11 @@ describe('WebsocketServer', () => {
 
                     setTimeout(() => {
                         assert.deepEqual(mockSocket.sentMessages, [
-                            ControlLayer.SubscribeResponse.create('streamId', 0)
+                            ControlLayer.SubscribeResponse.create('request1', 'streamId', 0)
                                 .serialize(CONTROL_LAYER_VERSION, MESSAGE_LAYER_VERSION),
-                            ControlLayer.UnsubscribeResponse.create('streamId', 0)
+                            ControlLayer.UnsubscribeResponse.create('request2', 'streamId', 0)
                                 .serialize(CONTROL_LAYER_VERSION, MESSAGE_LAYER_VERSION),
-                            ControlLayer.SubscribeResponse.create('streamId', 0)
+                            ControlLayer.SubscribeResponse.create('request3', 'streamId', 0)
                                 .serialize(CONTROL_LAYER_VERSION, MESSAGE_LAYER_VERSION),
                         ])
                         done()
@@ -747,28 +738,10 @@ describe('WebsocketServer', () => {
             wsMock.emit('connection', mockSocket, mockSocket.getRequest())
         })
 
-        it('calls the publisher for valid requests (V1&V29)', (done) => {
-            const req = ControlLayer.PublishRequest.create(streamMessagev29, 'correct')
+        it('calls the publisher for valid requests', (done) => {
+            const req = ControlLayer.PublishRequest.create('requestId', streamMessage1, 'correct')
 
-            publisher.publish = (stream, streamMessage) => {
-                assert.deepEqual(stream, myStream)
-                assert.equal(streamMessage.getStreamPartition(), req.streamMessage.getStreamPartition())
-                assert.equal(streamMessage.getTimestamp(), req.streamMessage.getTimestamp())
-                assert.equal(streamMessage.getPublisherId(), req.streamMessage.getPublisherId())
-                assert.equal(streamMessage.contentType, MessageLayer.StreamMessage.CONTENT_TYPES.MESSAGE)
-                assert.equal(streamMessage.getContent(), req.streamMessage.getContent())
-                assert.equal(streamMessage.signatureType, req.streamMessage.signatureType)
-                assert.equal(streamMessage.signature, req.streamMessage.signature)
-                done()
-            }
-
-            mockSocket.receive(req)
-        })
-
-        it('calls the publisher for valid requests (V1&V30)', (done) => {
-            const req = ControlLayer.PublishRequest.create(streamMessagev30, 'correct')
-
-            publisher.publish = (stream, streamMessage) => {
+            publisher.validateAndPublish = (stream, streamMessage) => {
                 assert.deepEqual(stream, myStream)
                 assert.equal(streamMessage.getStreamPartition(), req.streamMessage.getStreamPartition())
                 assert.equal(streamMessage.getTimestamp(), req.streamMessage.getTimestamp())
@@ -789,10 +762,10 @@ describe('WebsocketServer', () => {
         })
 
         it('sets the fields once for the stream', (done) => {
-            const req = ControlLayer.PublishRequest.create(streamMessage2v30, 'correct')
-            const req2 = ControlLayer.PublishRequest.create(streamMessage2v30, 'correct')
+            const req = ControlLayer.PublishRequest.create('req', streamMessage2, 'correct')
+            const req2 = ControlLayer.PublishRequest.create('req2', streamMessage2, 'correct')
 
-            publisher.publish = sinon.stub().onSecondCall().callsFake(() => {
+            publisher.validateAndPublish = sinon.stub().onSecondCall().callsFake(() => {
                 assert(streamFetcher.setFields.calledOnce)
                 done()
             })
@@ -823,9 +796,9 @@ describe('WebsocketServer', () => {
         })
 
         it('doesnt set the fields for stream with existing fields', (done) => {
-            const req = ControlLayer.PublishRequest.create(streamMessage3v30, 'correct')
+            const req = ControlLayer.PublishRequest.create('requestId', streamMessage3, 'correct')
 
-            publisher.publish = () => {
+            publisher.validateAndPublish = () => {
                 assert(streamFetcher.setFields.notCalled)
                 done()
             }
@@ -838,7 +811,7 @@ describe('WebsocketServer', () => {
         it('calls the publisher for valid requests (V0)', (done) => {
             const ts = Date.now()
             const req = new ControlLayer.PublishRequestV0(myStream.id, 'correct', undefined, '{}', ts)
-            publisher.publish = (stream, streamMessage) => {
+            publisher.validateAndPublish = (stream, streamMessage) => {
                 assert.deepEqual(stream, myStream)
                 assert.equal(streamMessage.getStreamPartition(), 0)
                 assert.equal(streamMessage.getTimestamp(), ts)
@@ -853,7 +826,7 @@ describe('WebsocketServer', () => {
         it('reads optional fields if specified (V0)', (done) => {
             const ts = Date.now()
             const req = new ControlLayer.PublishRequestV0(myStream.id, 'correct', undefined, '{}', ts, 'foo')
-            publisher.publish = (stream, streamMessage) => {
+            publisher.validateAndPublish = (stream, streamMessage) => {
                 assert.deepEqual(stream, myStream)
                 assert.equal(streamMessage.getStreamPartition(), 0)
                 assert.equal(streamMessage.getTimestamp(), ts)
@@ -871,7 +844,7 @@ describe('WebsocketServer', () => {
                 myStream.id, 'correct', undefined, '{}',
                 ts, undefined, 'address', MessageLayer.StreamMessage.SIGNATURE_TYPES.ETH, 'signature',
             )
-            publisher.publish = (stream, streamMessage) => {
+            publisher.validateAndPublish = (stream, streamMessage) => {
                 assert.deepEqual(stream, myStream)
                 assert.equal(streamMessage.getStreamPartition(), 0)
                 assert.equal(streamMessage.getTimestamp(), ts)
@@ -967,16 +940,19 @@ describe('WebsocketServer', () => {
         beforeEach((done) => {
             wsMock.emit('connection', mockSocket, mockSocket.getRequest())
             mockSocket.receive(ControlLayer.SubscribeRequest.create(
+                'request1',
                 'streamId',
                 6,
                 'correct',
             ))
             mockSocket.receive(ControlLayer.SubscribeRequest.create(
+                'request2',
                 'streamId',
                 4,
                 'correct',
             ))
             mockSocket.receive(ControlLayer.SubscribeRequest.create(
+                'request3',
                 'streamId2',
                 0,
                 'correct',
