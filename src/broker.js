@@ -139,6 +139,8 @@ module.exports = async (config) => {
             if (e instanceof MissingConfigError) {
                 throw new MissingConfigError(`adapters[${index}].${e.config}`)
             }
+            console.error(`Error thrown while starting adapter ${name}: ${e}`)
+            console.error(e.stack)
             return () => {}
         }
     })
