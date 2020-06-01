@@ -52,7 +52,7 @@
     "ws": "^7.3.0"
   },
   "devDependencies": {
-    "async-mqtt": "^2.6.0",
+    "async-mqtt": "^2.5.0",
     "buffer-reader": "^0.1.0",
     "eslint": "^7.1.0",
     "eslint-config-airbnb-base": "^14.1.0",
