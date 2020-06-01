@@ -1,5 +1,9 @@
-class Bucket {
-    constructor(streamId, partition, records = 0, size = 0) {
+const EventEmitter = require('events')
+
+class Bucket extends EventEmitter {
+    constructor(streamId, partition, maxSize, maxRecords, closeTimeout = 1000, maxRetries = 120) {
+        super()
+
         this.streamId = streamId
         this.partition = partition
         this.records = records

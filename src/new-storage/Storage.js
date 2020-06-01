@@ -48,7 +48,8 @@ class Storage extends EventEmitter {
     constructor(cassandraClient, useTtl) {
         super()
         this.cassandraClient = cassandraClient
-        this.batchManager = new BatchManager(cassandraClient)
+
+        this.batchManager = new BatchManager(cassandraClient, useTtl)
 
         // const insertStatement = useTtl ? INSERT_STATEMENT_WITH_TTL : INSERT_STATEMENT
         // this.storeStrategy = batchingStore(cassandraClient, insertStatement)
