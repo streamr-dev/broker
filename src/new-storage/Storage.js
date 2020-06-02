@@ -2,10 +2,12 @@
 const EventEmitter = require('events')
 
 // const merge2 = require('merge2')
+const NodeCache = require('node-cache')
 const cassandra = require('cassandra-driver')
 const { StreamMessageFactory } = require('streamr-client-protocol').MessageLayer
 
 const BatchManager = require('./BatchManager')
+const BucketManager = require('./BucketManager')
 
 // const PeriodicQuery = require('./PeriodicQuery')
 // const MicroBatchingStrategy = require('./MicroBatchingStrategy')
@@ -49,17 +51,33 @@ class Storage extends EventEmitter {
         super()
         this.cassandraClient = cassandraClient
 
-        this.batchManager = new BatchManager(cassandraClient, useTtl)
+        this.batchManager = new BatchManager(cassandraClient, useTtl, true)
+        this.bucketManager = new BucketManager(cassandraClient, true)
 
-        // const insertStatement = useTtl ? INSERT_STATEMENT_WITH_TTL : INSERT_STATEMENT
-        // this.storeStrategy = batchingStore(cassandraClient, insertStatement)
+        this.pendingMessages = new NodeCache({
+            stdTTL: 1,
+            checkperiod: 1
+        })
+
+        this.pendingMessages.on('expired', (messageId, streamMessage) => {
+            setImmediate(() => {
+                console.log('expired cache')
+                console.log(streamMessage)
+
+                this.store(streamMessage)
+            })
+        })
     }
 
     store(streamMessage) {
-        this.batchManager.store(streamMessage)
-        // const p = this.storeStrategy.store(streamMessage)
-        // p.then(() => this.emit('write', streamMessage), () => {})
-        // return p
+        const bucketId = this.bucketManager.getBucketId(streamMessage.getStreamId(), streamMessage.getStreamPartition(), streamMessage.getTimestamp())
+
+        if (bucketId) {
+            this.batchManager.store(bucketId, streamMessage)
+        } else {
+            console.log('put to cache')
+            this.pendingMessages.set(streamMessage.messageId.serialize(), streamMessage)
+        }
     }
 
     requestLast(streamId, streamPartition, n) {
