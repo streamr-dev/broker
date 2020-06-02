@@ -2,7 +2,7 @@ const Heap = require('heap')
 
 const Bucket = require('./Bucket')
 
-const MAX_BUCKET_SIZE = 10000 // 1024 * 1024 * 100
+const MAX_BUCKET_SIZE = 100000 // 1024 * 1024 * 100
 const MAX_BUCKET_RECORDS = 10 // 1000 * 1000
 
 const toKey = (streamId, partition) => `${streamId}-${partition}`
@@ -109,6 +109,39 @@ class BucketManager {
                 console.log('current buckets')
             }
         }
+    }
+
+    async getBucketsFromTimestamp(streamId, partition, fromTimestamp) {
+        const GET_LAST_BUCKETS_TIMESTAMP = 'SELECT * FROM bucket WHERE stream_id = ? and partition = ? AND date_create >= ?'
+        const params = [streamId, partition, fromTimestamp]
+
+        const buckets = []
+
+        try {
+            console.log(GET_LAST_BUCKETS_TIMESTAMP)
+            console.log(params, fromTimestamp)
+
+            const resultSet = await this.cassandraClient.execute(GET_LAST_BUCKETS_TIMESTAMP, params, {
+                prepare: true,
+            })
+
+            if (resultSet.rows.length) {
+                resultSet.rows.forEach((row) => {
+                    const { id, records, size, date_create: dateCreate } = row
+
+                    const bucket = new Bucket(
+                        id.toString(), streamId, partition, size, records,
+                        new Date(dateCreate).getTime(), MAX_BUCKET_RECORDS, MAX_BUCKET_SIZE
+                    )
+
+                    buckets.push(bucket)
+                })
+            }
+        } catch (e) {
+            console.error(e)
+        }
+
+        return buckets
     }
 
     async getLastBuckets(streamId, partition, limit = 1, timestamp = undefined) {

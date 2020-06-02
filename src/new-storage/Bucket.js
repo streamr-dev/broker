@@ -1,7 +1,7 @@
 const EventEmitter = require('events')
 
 class Bucket extends EventEmitter {
-    constructor(id, streamId, partition, records, size, dateCreate, maxRecords, maxSize) {
+    constructor(id, streamId, partition, size, records, dateCreate, maxRecords, maxSize) {
         super()
 
         this.id = id

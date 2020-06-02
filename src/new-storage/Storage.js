@@ -63,7 +63,8 @@ class Storage extends EventEmitter {
             read() {},
         })
 
-        this.bucketManager.getLastBuckets(streamId, partition, limit).then((buckets) => {
+        this.bucketManager.getLastBuckets(streamId, partition, 10).then((buckets) => {
+            console.log(buckets)
             const bucketsForQuery = []
             let total = 0
             for (let i = 0; i < buckets.length; i++) {
@@ -71,12 +72,16 @@ class Storage extends EventEmitter {
                 total += bucket.records
                 bucketsForQuery.push(bucket.id)
 
+                console.log(total >= limit)
+                console.log(`${total} >= ${limit}`)
                 if (total >= limit) {
                     break
                 }
             }
 
             const params = [streamId, partition, bucketsForQuery, limit]
+            console.log(params)
+            console.log(GET_LAST_MESSAGES)
             return this.cassandraClient.execute(GET_LAST_MESSAGES, params, {
                 prepare: true,
                 fetchSize: 0
@@ -95,43 +100,122 @@ class Storage extends EventEmitter {
     }
 
     requestFrom(streamId, streamPartition, fromTimestamp, fromSequenceNo, publisherId, msgChainId) {
-        // // TODO replace with protocol validations.js
-        // if (!Number.isInteger(streamPartition) || parseInt(streamPartition) < 0) {
-        //     throw new Error('streamPartition must be >= 0')
-        // }
-        //
-        // if (!Number.isInteger(fromTimestamp) || parseInt(fromTimestamp) < 0) {
-        //     throw new Error('fromTimestamp must be zero or positive')
-        // }
-        // if (fromSequenceNo != null && (!Number.isInteger(fromSequenceNo) || parseInt(fromSequenceNo) < 0)) {
-        //     throw new Error('fromSequenceNo must be positive')
-        // }
-        //
-        // if (fromSequenceNo != null && publisherId != null && msgChainId != null) {
-        //     return this._fetchFromMessageRefForPublisher(streamId, streamPartition, fromTimestamp,
-        //         fromSequenceNo, publisherId, msgChainId)
-        // }
-        // if ((fromSequenceNo == null || fromSequenceNo === 0) && publisherId == null && msgChainId == null) {
-        //     return this._fetchFromTimestamp(streamId, streamPartition, fromTimestamp)
-        // }
-        //
-        // throw new Error('Invalid combination of requestFrom arguments')
+        // TODO replace with protocol validations.js
+        if (!Number.isInteger(streamPartition) || parseInt(streamPartition) < 0) {
+            throw new Error('streamPartition must be >= 0')
+        }
+
+        if (!Number.isInteger(fromTimestamp) || parseInt(fromTimestamp) < 0) {
+            throw new Error('fromTimestamp must be zero or positive')
+        }
+        if (fromSequenceNo != null && (!Number.isInteger(fromSequenceNo) || parseInt(fromSequenceNo) < 0)) {
+            throw new Error('fromSequenceNo must be positive')
+        }
+
+        if (fromSequenceNo != null && publisherId != null && msgChainId != null) {
+            return this._fetchFromMessageRefForPublisher(streamId, streamPartition, fromTimestamp,
+                fromSequenceNo, publisherId, msgChainId)
+        }
+        if ((fromSequenceNo == null || fromSequenceNo === 0) && publisherId == null && msgChainId == null) {
+            return this._fetchFromTimestamp(streamId, streamPartition, fromTimestamp)
+        }
+
+        throw new Error('Invalid combination of requestFrom arguments')
     }
 
-    // _fetchFromTimestamp(streamId, streamPartition, fromTimestamp) {
-    //     // TODO replace with protocol validations.js
-    //     if (!Number.isInteger(streamPartition) || parseInt(streamPartition) < 0) {
-    //         throw new Error('streamPartition must be >= 0')
-    //     }
-    //
-    //     if (!Number.isInteger(fromTimestamp) || Number.isInteger(fromTimestamp) < 0) {
-    //         throw new Error('fromTimestamp must be zero or positive')
-    //     }
-    //
-    //     const query = 'SELECT * FROM stream_data WHERE id = ? AND partition = ? AND ts >= ? ORDER BY ts ASC, sequence_no ASC'
-    //     const queryParams = [streamId, streamPartition, fromTimestamp]
-    //     return this._queryWithStreamingResults(query, queryParams)
-    // }
+    _fetchFromTimestamp(streamId, partition, fromTimestamp) {
+        // TODO replace with protocol validations.js
+        if (!Number.isInteger(partition) || parseInt(partition) < 0) {
+            throw new Error('streamPartition must be >= 0')
+        }
+
+        if (!Number.isInteger(fromTimestamp) || Number.isInteger(fromTimestamp) < 0) {
+            throw new Error('fromTimestamp must be zero or positive')
+        }
+
+        const readableStream = new Readable({
+            objectMode: true,
+            read() {},
+        })
+
+        const query = 'SELECT * FROM stream_data_new WHERE '
+                    + 'stream_id = ? AND partition = ? AND bucket_id IN ? AND ts >= ?'
+
+        this.bucketManager.getBucketsFromTimestamp(streamId, partition, fromTimestamp).then((buckets) => {
+            const bucketsForQuery = []
+            for (let i = 0; i < buckets.length; i++) {
+                const bucket = buckets[i]
+                bucketsForQuery.push(bucket.id)
+            }
+
+            const queryParams = [streamId, partition, bucketsForQuery, fromTimestamp]
+            console.log(query)
+            console.log(queryParams)
+            const cassandraStream = this.cassandraClient.stream(query, queryParams, {
+                prepare: true,
+                autoPage: true,
+            })
+
+            // To avoid blocking main thread for too long, on every 1000th message
+            // pause & resume the cassandraStream to give other events in the event
+            // queue a chance to be handled.
+            let resultCount = 0
+            cassandraStream.on('data', (r) => {
+                resultCount += 1
+                if (resultCount % 1000 === 0) {
+                    cassandraStream.pause()
+                    setImmediate(() => cassandraStream.resume())
+                }
+                readableStream.push(this._parseRow(r))
+            })
+            cassandraStream.on('end', () => {
+                readableStream.push(null)
+            })
+            cassandraStream.on('error', (err) => {
+                console.error(err)
+                readableStream.push(null)
+            })
+        }).catch((e) => {
+            console.error(e)
+            readableStream.push(null)
+        })
+
+
+
+        return readableStream
+
+        // this.bucketManager.getLastBuckets(streamId, partition, limit).then((buckets) => {
+        //     const bucketsForQuery = []
+        //     let total = 0
+        //     for (let i = 0; i < buckets.length; i++) {
+        //         const bucket = buckets[i]
+        //         total += bucket.records
+        //         bucketsForQuery.push(bucket.id)
+        //
+        //         if (total >= limit) {
+        //             break
+        //         }
+        //     }
+        //
+        //     const params = [streamId, partition, bucketsForQuery, limit]
+        //     return this.cassandraClient.execute(GET_LAST_MESSAGES, params, {
+        //         prepare: true,
+        //         fetchSize: 0
+        //     })
+        // }).then((resultSet) => {
+        //     resultSet.rows.reverse().forEach((r) => {
+        //         readableStream.push(this._parseRow(r))
+        //     })
+        //     readableStream.push(null)
+        // }).catch((e) => {
+        //     console.error(e)
+        //     readableStream.push(null)
+        // })
+
+        // const query = 'SELECT * FROM stream_data WHERE id = ? AND partition = ? AND ts >= ? ORDER BY ts ASC, sequence_no ASC'
+        // const queryParams = [streamId, streamPartition, fromTimestamp]
+        // return this._queryWithStreamingResults(query, queryParams)
+    }
     //
     // _fetchFromMessageRefForPublisher(streamId, streamPartition, fromTimestamp, fromSequenceNo, publisherId, msgChainId) {
     //     // Cassandra doesn't allow ORs in WHERE clause so we need to do 2 queries.
@@ -239,35 +323,35 @@ class Storage extends EventEmitter {
         return this.cassandraClient.shutdown()
     }
 
-    // _queryWithStreamingResults(query, queryParams) {
-    //     const cassandraStream = this.cassandraClient.stream(query, queryParams, {
-    //         prepare: true,
-    //         autoPage: true,
-    //     })
-    //
-    //     // To avoid blocking main thread for too long, on every 1000th message
-    //     // pause & resume the cassandraStream to give other events in the event
-    //     // queue a chance to be handled.
-    //     let resultCount = 0
-    //     cassandraStream.on('data', () => {
-    //         resultCount += 1
-    //         if (resultCount % 1000 === 0) {
-    //             cassandraStream.pause()
-    //             setImmediate(() => cassandraStream.resume())
-    //         }
-    //     })
-    //
-    //     cassandraStream.on('error', (err) => {
-    //         console.error(err)
-    //     })
-    //
-    //     return cassandraStream.pipe(new Transform({
-    //         objectMode: true,
-    //         transform: (row, _, done) => {
-    //             done(null, this._parseRow(row))
-    //         },
-    //     }))
-    // }
+    _queryWithStreamingResults(query, queryParams) {
+        const cassandraStream = this.cassandraClient.stream(query, queryParams, {
+            prepare: true,
+            autoPage: true,
+        })
+
+        // To avoid blocking main thread for too long, on every 1000th message
+        // pause & resume the cassandraStream to give other events in the event
+        // queue a chance to be handled.
+        let resultCount = 0
+        cassandraStream.on('data', () => {
+            resultCount += 1
+            if (resultCount % 1000 === 0) {
+                cassandraStream.pause()
+                setImmediate(() => cassandraStream.resume())
+            }
+        })
+
+        cassandraStream.on('error', (err) => {
+            console.error(err)
+        })
+
+        return cassandraStream.pipe(new Transform({
+            objectMode: true,
+            transform: (row, _, done) => {
+                done(null, this._parseRow(row))
+            },
+        }))
+    }
 
     _parseRow(row) {
         const streamMessage = StreamMessageFactory.deserialize(row.payload.toString())
