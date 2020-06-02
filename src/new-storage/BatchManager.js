@@ -22,9 +22,8 @@ class BatchManager extends EventEmitter {
         this.logErrors = logErrors
     }
 
-    store(streamMessage) {
-        const key = `${streamMessage.getStreamId()}::${streamMessage.getStreamPartition()}`
-        const batch = this.batches[key]
+    store(bucketId, streamMessage) {
+        const batch = this.batches[bucketId]
 
         if (batch && batch.isFull()) {
             batch.close()
@@ -32,16 +31,16 @@ class BatchManager extends EventEmitter {
             this.pendingBatches[batch.id] = batch
             this.pendingBatches[batch.id].setPending()
 
-            this.batches[key] = undefined
+            this.batches[bucketId] = undefined
         }
 
-        if (this.batches[key] === undefined) {
-            const newBatch = new Batch(10000, 100, 30000)
+        if (this.batches[bucketId] === undefined) {
+            const newBatch = new Batch(10000, 10, 30000)
             newBatch.on('state', (id, state, size, numberOfRecords) => this._batchChangedState(id, state, size, numberOfRecords))
-            this.batches[key] = newBatch
+            this.batches[bucketId] = newBatch
         }
 
-        this.batches[key].push(streamMessage)
+        this.batches[bucketId].push(streamMessage)
     }
 
     _batchChangedState(id, state, size, numberOfRecords) {

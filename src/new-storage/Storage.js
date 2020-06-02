@@ -73,7 +73,7 @@ class Storage extends EventEmitter {
 
         if (bucketId) {
             console.log(`found bucketId: ${bucketId}`)
-            this.batchManager.store(streamMessage)
+            this.batchManager.store(bucketId, streamMessage)
         } else {
             console.log('put to cache')
             this.pendingMessages.set(streamMessage.messageId.serialize(), streamMessage)
