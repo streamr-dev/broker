@@ -64,7 +64,6 @@ class BucketManager {
         const stream = this.streams[key]
         if (stream) {
             const currentBuckets = stream.buckets.toArray()
-            console.log(currentBuckets)
             for (let i = 0; i < currentBuckets.length; i++) {
                 if (currentBuckets[i].dateCreate < timestamp) {
                     bucketId = currentBuckets[i].id
@@ -108,7 +107,6 @@ class BucketManager {
                 await this._insertNewBucket(stream.streamId, stream.partition)
             } else {
                 console.log('current buckets')
-                console.log(currentBuckets)
             }
         }
     }
@@ -132,13 +130,11 @@ class BucketManager {
             if (resultSet.rows.length) {
                 resultSet.rows.forEach((row) => {
                     const { id, records, size, date_create: dateCreate } = row
-                    console.log(id, records, size, new Date(dateCreate).getTime())
 
                     const bucket = new Bucket(
                         id.toString(), streamId, partition, size, records,
                         new Date(dateCreate).getTime(), MAX_BUCKET_RECORDS, MAX_BUCKET_SIZE
                     )
-                    console.log(bucket)
 
                     result.push(bucket)
                 })

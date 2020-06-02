@@ -1,50 +1,12 @@
-// const { Readable, Transform } = require('stream')
+const { Readable, Transform } = require('stream')
 const EventEmitter = require('events')
 
-// const merge2 = require('merge2')
 const NodeCache = require('node-cache')
 const cassandra = require('cassandra-driver')
 const { StreamMessageFactory } = require('streamr-client-protocol').MessageLayer
 
 const BatchManager = require('./BatchManager')
 const BucketManager = require('./BucketManager')
-
-// const PeriodicQuery = require('./PeriodicQuery')
-// const MicroBatchingStrategy = require('./MicroBatchingStrategy')
-//
-// const INSERT_STATEMENT = 'INSERT INTO stream_data '
-//     + '(id, partition, ts, sequence_no, publisher_id, msg_chain_id, payload) '
-//     + 'VALUES (?, ?, ?, ?, ?, ?, ?)'
-//
-// const INSERT_STATEMENT_WITH_TTL = 'INSERT INTO stream_data '
-//     + '(id, partition, ts, sequence_no, publisher_id, msg_chain_id, payload) '
-//     + 'VALUES (?, ?, ?, ?, ?, ?, ?) USING TTL 259200' // 3 days
-
-// const batchingStore = (cassandraClient, insertStatement) => new MicroBatchingStrategy({
-//     insertFn: (streamMessages) => {
-//         const queries = streamMessages.map((streamMessage) => {
-//             return {
-//                 query: insertStatement,
-//                 params: [
-//                     streamMessage.getStreamId(),
-//                     streamMessage.getStreamPartition(),
-//                     streamMessage.getTimestamp(),
-//                     streamMessage.getSequenceNumber(),
-//                     streamMessage.getPublisherId(),
-//                     streamMessage.getMsgChainId(),
-//                     Buffer.from(streamMessage.serialize()),
-//                 ]
-//             }
-//         })
-//         return cassandraClient.batch(queries, {
-//             prepare: true
-//         })
-//     }
-// })
-//
-// const RANGE_THRESHOLD = 30 * 1000
-// const RETRY_INTERVAL = 2000
-// const RETRY_TIMEOUT = 15 * 1000
 
 class Storage extends EventEmitter {
     constructor(cassandraClient, useTtl) {
@@ -81,42 +43,55 @@ class Storage extends EventEmitter {
         }
     }
 
-    requestLast(streamId, streamPartition, n) {
-        // // TODO replace with protocol validations.js
-        // if (!Number.isInteger(streamPartition) || parseInt(streamPartition) < 0) {
-        //     throw new Error('streamPartition must be >= 0')
-        // }
-        //
-        // if (!Number.isInteger(n) || parseInt(n) <= 0) {
-        //     throw new Error('LIMIT must be strictly positive')
-        // }
-        // const query = 'SELECT * FROM stream_data '
-        //     + 'WHERE id = ? AND partition = ? '
-        //     + 'ORDER BY ts DESC, sequence_no DESC '
-        //     + 'LIMIT ?'
-        // const queryParams = [streamId, streamPartition, n]
-        //
-        // // Wrap as stream for consistency with other fetch functions
-        // const readableStream = new Readable({
-        //     objectMode: true,
-        //     read() {},
-        // })
-        //
-        // this.cassandraClient.execute(query, queryParams, {
-        //     prepare: true,
-        // })
-        //     .then((resultSet) => {
-        //         resultSet.rows.reverse().forEach((r) => {
-        //             readableStream.push(this._parseRow(r))
-        //         })
-        //         readableStream.push(null)
-        //     })
-        //     .catch((err) => {
-        //         console.error(err)
-        //         readableStream.push(null)
-        //     })
-        //
-        // return readableStream
+    requestLast(streamId, partition, limit) {
+        // TODO replace with protocol validations.js
+        if (!Number.isInteger(partition) || parseInt(partition) < 0) {
+            throw new Error('streamPartition must be >= 0')
+        }
+
+        if (!Number.isInteger(limit) || parseInt(limit) <= 0) {
+            throw new Error('LIMIT must be strictly positive')
+        }
+
+        const GET_LAST_MESSAGES = 'SELECT * FROM stream_data_new WHERE '
+                                + 'stream_id = ? AND partition = ? AND bucket_id IN ? '
+                                + 'ORDER BY ts DESC '
+                                + 'LIMIT ?'
+
+        const readableStream = new Readable({
+            objectMode: true,
+            read() {},
+        })
+
+        this.bucketManager.getLastBuckets(streamId, partition, limit).then((buckets) => {
+            const bucketsForQuery = []
+            let total = 0
+            for (let i = 0; i < buckets.length; i++) {
+                const bucket = buckets[i]
+                total += bucket.records
+                bucketsForQuery.push(bucket.id)
+
+                if (total >= limit) {
+                    break
+                }
+            }
+
+            const params = [streamId, partition, bucketsForQuery, limit]
+            return this.cassandraClient.execute(GET_LAST_MESSAGES, params, {
+                prepare: true,
+                fetchSize: 0
+            })
+        }).then((resultSet) => {
+            resultSet.rows.reverse().forEach((r) => {
+                readableStream.push(this._parseRow(r))
+            })
+            readableStream.push(null)
+        }).catch((e) => {
+            console.error(e)
+            readableStream.push(null)
+        })
+
+        return readableStream
     }
 
     requestFrom(streamId, streamPartition, fromTimestamp, fromSequenceNo, publisherId, msgChainId) {

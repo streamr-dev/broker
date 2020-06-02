@@ -10,10 +10,11 @@ const STATES = Object.freeze({
 })
 
 class Batch extends EventEmitter {
-    constructor(maxSize, maxRecords, closeTimeout = 1000, maxRetries = 120) {
+    constructor(bucketId, maxSize, maxRecords, closeTimeout = 1000, maxRetries = 120) {
         super()
 
         this.id = uuidv4()
+        this.bucketId = bucketId
         this.streamMessages = []
         this.size = 0
         this.retries = 0
