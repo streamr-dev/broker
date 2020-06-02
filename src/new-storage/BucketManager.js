@@ -1,20 +1,22 @@
 const Heap = require('heap')
 
-const MAX_BUCKET_SIZE = 1024 * 1024 * 100
-const MAX_BUCKET_RECORDS = 1000 * 1000
+const Bucket = require('./Bucket')
+
+const MAX_BUCKET_SIZE = 10000 // 1024 * 1024 * 100
+const MAX_BUCKET_RECORDS = 10 // 1000 * 1000
 
 const toKey = (streamId, partition) => `${streamId}-${partition}`
 
 class BucketManager {
     constructor(cassandraClient, logErrors = true) {
         this.streams = {}
+        this.buckets = {}
 
         this.cassandraClient = cassandraClient
         this.logErrors = logErrors
 
-        setInterval(() => {
-            this._checkBuckets()
-        }, 3000)
+        this._checkBucketsInterval = setInterval(() => this._checkBuckets(), 3000)
+        this._storeBucketsInterval = setInterval(() => this._storeBuckets(), 10000)
     }
 
     getBucketId(streamId, partition, timestamp) {
@@ -38,7 +40,7 @@ class BucketManager {
                 streamId,
                 partition,
                 buckets: new Heap(((a, b) => {
-                    return a.dateCreate - b.dateCreate
+                    return b.dateCreate - a.dateCreate
                 })),
                 minTimestamp: timestamp,
                 maxTimestamp: timestamp
@@ -48,6 +50,13 @@ class BucketManager {
         return bucketId
     }
 
+    incrementBucket(bucketId, size, records = 1) {
+        const bucket = this.buckets[bucketId]
+        if (bucket) {
+            bucket.incrementBucket(size, records)
+        }
+    }
+
     _findBucketId(key, timestamp) {
         let bucketId
         console.log(`looking for stream: ${key}, timestamp: ${timestamp}`)
@@ -55,6 +64,7 @@ class BucketManager {
         const stream = this.streams[key]
         if (stream) {
             const currentBuckets = stream.buckets.toArray()
+            console.log(currentBuckets)
             for (let i = 0; i < currentBuckets.length; i++) {
                 if (currentBuckets[i].dateCreate < timestamp) {
                     bucketId = currentBuckets[i].id
@@ -72,21 +82,22 @@ class BucketManager {
             const stream = this.streams[streamId]
             let currentBuckets = stream.buckets.toArray()
 
-            if (!currentBuckets.length) {
-                // eslint-disable-next-line no-await-in-loop
-                const foundBuckets = await this.getLastBuckets(stream.streamId, stream.partition, 10)
-                if (foundBuckets) {
-                    foundBuckets.forEach((foundBucket) => {
+            // eslint-disable-next-line no-await-in-loop
+            const foundBuckets = await this.getLastBuckets(stream.streamId, stream.partition, 10)
+            if (foundBuckets) {
+                foundBuckets.forEach((foundBucket) => {
+                    if (!(foundBucket.id in this.buckets)) {
                         stream.buckets.push(foundBucket)
-                    })
-                }
+                        this.buckets[foundBucket.id] = foundBucket
+                    }
+                })
             }
 
             let latestBucketIsFull = false
             currentBuckets = stream.buckets.toArray()
             if (currentBuckets.length) {
-                const firstRow = currentBuckets[0]
-                if (firstRow.records >= MAX_BUCKET_RECORDS || firstRow.size >= MAX_BUCKET_SIZE) {
+                const firstBucketId = currentBuckets[0].id
+                if (this.buckets[firstBucketId].isFull()) {
                     latestBucketIsFull = true
                 }
             }
@@ -120,12 +131,16 @@ class BucketManager {
 
             if (resultSet.rows.length) {
                 resultSet.rows.forEach((row) => {
-                    result.push({
-                        id: row.id.toString(),
-                        dateCreate: new Date(row.date_create).getTime(),
-                        records: row.records,
-                        size: row.size
-                    })
+                    const { id, records, size, date_create: dateCreate } = row
+                    console.log(id, records, size, new Date(dateCreate).getTime())
+
+                    const bucket = new Bucket(
+                        id.toString(), streamId, partition, size, records,
+                        new Date(dateCreate).getTime(), MAX_BUCKET_RECORDS, MAX_BUCKET_SIZE
+                    )
+                    console.log(bucket)
+
+                    result.push(bucket)
                 })
             }
         } catch (e) {
@@ -149,120 +164,29 @@ class BucketManager {
         }
     }
 
-    // stop() {
-    //     clearInterval(this._checkBucketsInterval)
-    // }
-    //
-    // addBucket(streamId, partition) {
-    //     return this.getBucket(streamId, partition)
-    // }
-    //
-    // getBucketId(streamId, partition) {
-    //     const key = toKey(streamId, partition)
-    //     const bucket = this.buckets.get(key)
-    //     if (bucket) {
-    //         return bucket.getUuid()
-    //     }
-    //     return undefined
-    // }
-    //
-    // getBucket(streamId, partition) {
-    //     const key = toKey(streamId, partition)
-    //     let bucket = this.buckets.get(key)
-    //     if (bucket) {
-    //         bucket.updateTTL()
-    //     } else {
-    //         bucket = new Bucket(streamId, partition)
-    //         this.buckets.set(key, bucket)
-    //     }
-    //     return bucket
-    // }
-    //
-    // async resetBucket(bucket) {
-    //     await this._storeBucket(bucket)
-    //     bucket.reset()
-    // }
-    //
-    // async incrementBucket(streamId, partition, records, size) {
-    //     const bucket = this.getBucket(streamId, partition)
-    //     bucket.incrementBucket(records, size)
-    //     if (bucket.getUuid()) {
-    //         await this._storeBucket(bucket)
-    //     }
-    // }
-    //
-    // async _storeBucket(bucket) {
-    //     const {
-    //         records, size, uuid, streamId, partition, dateCreate
-    //     } = bucket
-    //
-    //     const UPDATE_BUCKET = 'UPDATE bucket SET records = ?, size = ? WHERE stream_id = ? AND partition = ? AND date_create = ?'
-    //     const params = [records, size, streamId, partition, new Date(dateCreate).getTime()]
-    //     console.log(UPDATE_BUCKET)
-    //     console.log(params)
-    //     return this.cassandraClient.execute(UPDATE_BUCKET, params, { prepare: true })
-    // }
-    //
-    // async _getLastNotFullBucketOrCreate(streamId, partition) {
-    //     let bucket
-    //
-    //     const INSERT_NEW_BUCKET = 'INSERT INTO bucket (id, stream_id, partition, date_create, records, size) '
-    //                                + 'VALUES (now(), ?, ?, toTimestamp(now()), 0, 0)'
-    //     const GET_LAST_BUCKET = 'SELECT * FROM bucket WHERE stream_id = ? AND partition = ? LIMIT 1'
-    //
-    //     const params = [streamId, partition]
-    //     const resultSet = await this.cassandraClient.execute(GET_LAST_BUCKET, params, {
-    //         prepare: true,
-    //     })
-    //
-    //     let bucketIsFull = false
-    //     if (resultSet.rows.length) {
-    //         const row = resultSet.rows[0]
-    //         if (row.records < MAX_BUCKET_RECORDS && row.size < MAX_BUCKET_SIZE) {
-    //             console.log('found bucket')
-    //             console.log(row)
-    //             bucket = row
-    //         } else {
-    //             bucketIsFull = true
-    //         }
-    //     }
-    //
-    //     if (!resultSet.rows.length || bucketIsFull) {
-    //         console.log('basket is fill, insert new basket')
-    //         await this.cassandraClient.execute(INSERT_NEW_BUCKET, params, {
-    //             prepare: true,
-    //         })
-    //     }
-    //
-    //     return bucket
-    // }
-    //
-    // async _checkBuckets() {
-    //     console.log('checking buckets')
-    //     const buckets = [...this.buckets.values()]
-    //
-    //     for (const bucket of buckets) {
-    //         console.log(bucket)
-    //         const { streamId, partition, records, size } = bucket
-    //
-    //         if (!bucket.getUuid()) {
-    //             console.log('empty bucket')
-    //             // eslint-disable-next-line no-await-in-loop
-    //             const found = await this._getLastNotFullBucketOrCreate(streamId, partition)
-    //             if (found) {
-    //                 bucket.updateUuid(found.id.toString())
-    //                 bucket.dateCreate = found.date_create
-    //                 bucket.size = found.size
-    //                 bucket.records = found.records
-    //             }
-    //         }
-    //
-    //         if (bucket.getUuid() && (records >= this.maxBucketRecords || size > this.maxBucketSize)) {
-    //             console.log(`full backet: records - ${records}, maxBucketRecords: ${this.maxBucketRecords}, size: ${size}, maxSize: ${this.maxBucketSize}`)
-    //             this.resetBucket(bucket)
-    //         }
-    //     }
-    // }
+    stop() {
+        clearInterval(this._checkBucketsInterval)
+        clearInterval(this._storeBucketsInterval)
+    }
+
+    async _storeBuckets() {
+        const UPDATE_BUCKET = 'UPDATE bucket SET size = ?, records = ? WHERE stream_id = ? AND partition = ? AND date_create = ?'
+
+        // eslint-disable-next-line no-restricted-syntax
+        for (const bucket of Object.values(this.buckets)) {
+            const {
+                size, records, streamId, partition, dateCreate
+            } = bucket
+            const params = [size, records, streamId, partition, dateCreate]
+
+            // eslint-disable-next-line no-await-in-loop
+            await this.cassandraClient.execute(UPDATE_BUCKET, params, {
+                prepare: true
+            })
+
+            // if expired removed
+        }
+    }
 }
 
 module.exports = BucketManager

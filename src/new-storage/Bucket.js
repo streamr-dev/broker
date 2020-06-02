@@ -1,40 +1,39 @@
 const EventEmitter = require('events')
 
 class Bucket extends EventEmitter {
-    constructor(streamId, partition, maxSize, maxRecords, closeTimeout = 1000, maxRetries = 120) {
+    constructor(id, streamId, partition, records, size, dateCreate, maxRecords, maxSize) {
         super()
 
+        this.id = id
         this.streamId = streamId
         this.partition = partition
-        this.records = records
         this.size = size
-        this.uuid = undefined
-        this.dateCreate = undefined
+        this.records = records
+        this.dateCreate = dateCreate
+
+        this._maxSize = maxSize
+        this._maxRecords = maxRecords
+
         this.ttl = new Date()
     }
 
-    getUuid() {
-        return this.uuid
+    isFull() {
+        return this.size >= this._maxSize || this.records >= this._maxRecords
     }
 
-    updateUuid(uuid) {
-        this.uuid = uuid
+    getId() {
+        return this.id
     }
 
-    reset() {
-        this.uuid = undefined
-        this.records = 0
-        this.size = 0
-    }
-
-    incrementBucket(records, size) {
+    incrementBucket(size, records = 1) {
         this.records += records
         this.size += size
 
-        console.log(`bucket id: ${this.uuid}, size: ${this.size}, records: ${this.records}`)
+        console.log(`incremented bucket id: ${this.id}, size: ${this.size}, records: ${this.records}`)
+        this._updateTTL()
     }
 
-    updateTTL(minutes = 30) {
+    _updateTTL(minutes = 30) {
         this.ttl.setMinutes(this.ttl.getMinutes() + minutes)
     }
 }
