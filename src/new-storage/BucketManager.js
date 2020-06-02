@@ -1,3 +1,5 @@
+const Heap = require('heap')
+
 const MAX_BUCKET_SIZE = 1024 * 1024 * 100
 const MAX_BUCKET_RECORDS = 1000 * 1000
 
@@ -5,11 +7,14 @@ const toKey = (streamId, partition) => `${streamId}-${partition}`
 
 class BucketManager {
     constructor(cassandraClient, logErrors = true) {
-        this.buckets = {}
         this.streams = {}
 
         this.cassandraClient = cassandraClient
         this.logErrors = logErrors
+
+        setInterval(() => {
+            this._checkBuckets()
+        }, 3000)
     }
 
     getBucketId(streamId, partition, timestamp) {
@@ -18,9 +23,11 @@ class BucketManager {
 
         if (this.streams[key]) {
             const stream = this.streams[key]
+
             this.streams[key] = {
                 streamId: stream.streamId,
                 partition: stream.partition,
+                buckets: stream.buckets,
                 minTimestamp: Math.min(stream.minTimestamp, timestamp),
                 maxTimestamp: Math.min(stream.maxTimestamp, timestamp),
             }
@@ -30,6 +37,9 @@ class BucketManager {
             this.streams[key] = {
                 streamId,
                 partition,
+                buckets: new Heap(((a, b) => {
+                    return a.dateCreate - b.dateCreate
+                })),
                 minTimestamp: timestamp,
                 maxTimestamp: timestamp
             }
@@ -39,18 +49,105 @@ class BucketManager {
     }
 
     _findBucketId(key, timestamp) {
-        return undefined
+        let bucketId
+        console.log(`looking for stream: ${key}, timestamp: ${timestamp}`)
+
+        const stream = this.streams[key]
+        if (stream) {
+            const currentBuckets = stream.buckets.toArray()
+            for (let i = 0; i < currentBuckets.length; i++) {
+                if (currentBuckets[i].dateCreate < timestamp) {
+                    bucketId = currentBuckets[i].id
+                    break
+                }
+            }
+        }
+
+        return bucketId
     }
 
-    _checkStreams() {
+    async _checkBuckets() {
+        // eslint-disable-next-line no-restricted-syntax
+        for (const streamId of Object.keys(this.streams)) {
+            const stream = this.streams[streamId]
+            let currentBuckets = stream.buckets.toArray()
 
+            if (!currentBuckets.length) {
+                // eslint-disable-next-line no-await-in-loop
+                const foundBuckets = await this.getLastBuckets(stream.streamId, stream.partition, 10)
+                if (foundBuckets) {
+                    foundBuckets.forEach((foundBucket) => {
+                        stream.buckets.push(foundBucket)
+                    })
+                }
+            }
+
+            let latestBucketIsFull = false
+            currentBuckets = stream.buckets.toArray()
+            if (currentBuckets.length) {
+                const firstRow = currentBuckets[0]
+                if (firstRow.records >= MAX_BUCKET_RECORDS || firstRow.size >= MAX_BUCKET_SIZE) {
+                    latestBucketIsFull = true
+                }
+            }
+
+            if (!currentBuckets.length || latestBucketIsFull) {
+                console.log('basket is fill or no buckets, insert new basket')
+                // eslint-disable-next-line no-await-in-loop
+                await this._insertNewBucket(stream.streamId, stream.partition)
+            } else {
+                console.log('current buckets')
+                console.log(currentBuckets)
+            }
+        }
     }
 
-    _checkBuckets() {
+    async getLastBuckets(streamId, partition, limit = 1, timestamp = undefined) {
+        const GET_LAST_BUCKETS = 'SELECT * FROM bucket WHERE stream_id = ? and partition = ? LIMIT ?'
+        const GET_LAST_BUCKETS_TIMESTAMP = 'SELECT * FROM bucket WHERE stream_id = ? and partition = ? AND date_create < ? LIMIT ?'
 
+        const result = []
+
+        const params = [streamId, partition, limit]
+        if (timestamp) {
+            params.push(timestamp)
+        }
+
+        try {
+            const resultSet = await this.cassandraClient.execute(timestamp ? GET_LAST_BUCKETS_TIMESTAMP : GET_LAST_BUCKETS, params, {
+                prepare: true,
+            })
+
+            if (resultSet.rows.length) {
+                resultSet.rows.forEach((row) => {
+                    result.push({
+                        id: row.id.toString(),
+                        dateCreate: new Date(row.date_create).getTime(),
+                        records: row.records,
+                        size: row.size
+                    })
+                })
+            }
+        } catch (e) {
+            console.error(e)
+        }
+
+        return result
     }
 
+    async _insertNewBucket(streamId, partition) {
+        const INSERT_NEW_BUCKET = 'INSERT INTO bucket (stream_id, partition, date_create, records, size, id) '
+                                    + 'VALUES (?, ?, toTimestamp(now()), 0, 0, now())'
+        const params = [streamId, partition]
 
+        try {
+            await this.cassandraClient.execute(INSERT_NEW_BUCKET, params, {
+                prepare: true,
+            })
+        } catch (e) {
+            console.error(e)
+        }
+    }
 
     // stop() {
     //     clearInterval(this._checkBucketsInterval)

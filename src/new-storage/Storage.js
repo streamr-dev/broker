@@ -55,15 +55,14 @@ class Storage extends EventEmitter {
         this.bucketManager = new BucketManager(cassandraClient, true)
 
         this.pendingMessages = new NodeCache({
-            stdTTL: 1,
-            checkperiod: 1
+            stdTTL: 3,
+            checkperiod: 3
         })
 
         this.pendingMessages.on('expired', (messageId, streamMessage) => {
             setImmediate(() => {
                 console.log('expired cache')
-                console.log(streamMessage)
-
+                // console.log(streamMessage)
                 this.store(streamMessage)
             })
         })
@@ -73,7 +72,8 @@ class Storage extends EventEmitter {
         const bucketId = this.bucketManager.getBucketId(streamMessage.getStreamId(), streamMessage.getStreamPartition(), streamMessage.getTimestamp())
 
         if (bucketId) {
-            this.batchManager.store(bucketId, streamMessage)
+            console.log(`found bucketId: ${bucketId}`)
+            this.batchManager.store(streamMessage)
         } else {
             console.log('put to cache')
             this.pendingMessages.set(streamMessage.messageId.serialize(), streamMessage)
