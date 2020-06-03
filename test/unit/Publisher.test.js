@@ -1,10 +1,9 @@
 const events = require('events')
 
 const sinon = require('sinon')
-const { StreamMessage, MessageID } = require('streamr-client-protocol').MessageLayer
+const { StreamMessage, MessageID } = require('streamr-network').Protocol.MessageLayer
 
 const Publisher = require('../../src/Publisher')
-const { MessageNotSignedError, MessageNotEncryptedError } = require('../../src/errors/MessageNotSignedError')
 
 describe('Publisher', () => {
     const stream = {
@@ -16,11 +15,10 @@ describe('Publisher', () => {
         hello: 'world'
     }
 
-    const streamMessage = new StreamMessage(
-        new MessageID(stream.id, 0, 135135135, 0, 'publisherId', 'msgChainId'),
-        null,
-        JSON.stringify(msg)
-    )
+    const streamMessage = new StreamMessage({
+        messageId: new MessageID(stream.id, 0, 135135135, 0, 'publisherId', 'msgChainId'),
+        content: msg,
+    })
 
     let networkNode
     let validator

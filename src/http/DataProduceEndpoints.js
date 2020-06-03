@@ -1,7 +1,9 @@
 const express = require('express')
 const bodyParser = require('body-parser')
-const { StreamMessage, MessageID, MessageRef } = require('streamr-client-protocol').MessageLayer
-const { InvalidJsonError, ValidationError } = require('streamr-client-protocol').Errors
+const { Protocol } = require('streamr-network')
+
+const { StreamMessage, MessageID, MessageRef } = Protocol.MessageLayer
+const { InvalidJsonError, ValidationError } = Protocol.Errors
 
 const partition = require('../partition')
 
@@ -87,8 +89,8 @@ module.exports = (streamFetcher, publisher, partitionFn = partition) => {
 
             // req.stream is written by authentication middleware
             try {
-                const streamMessage = new StreamMessage(
-                    new MessageID(
+                const streamMessage = new StreamMessage({
+                    messageId: new MessageID(
                         req.stream.id,
                         partitionFn(req.stream.partitions, req.query.pkey),
                         timestamp,
@@ -96,13 +98,11 @@ module.exports = (streamFetcher, publisher, partitionFn = partition) => {
                         req.query.address || '', // publisherId
                         req.query.msgChainId || '',
                     ),
-                    previousMessageRef,
-                    req.body.toString(),
-                    StreamMessage.CONTENT_TYPES.MESSAGE,
-                    StreamMessage.ENCRYPTION_TYPES.NONE,
+                    prevMsgRef: previousMessageRef,
+                    content: req.body.toString(),
                     signatureType,
-                    req.query.signature || null,
-                )
+                    signature: req.query.signature || null,
+                })
 
                 await publisher.validateAndPublish(streamMessage)
                 res.status(200)

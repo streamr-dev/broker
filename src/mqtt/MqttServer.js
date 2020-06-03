@@ -2,18 +2,19 @@ const events = require('events')
 
 const debug = require('debug')('streamr:MqttServer')
 const mqttCon = require('mqtt-connection')
-const { MessageLayer } = require('streamr-client-protocol')
+const { MessageLayer } = require('streamr-network').Protocol
 
 const VolumeLogger = require('../VolumeLogger')
 const partition = require('../partition')
 const StreamStateManager = require('../StreamStateManager')
-const { MessageNotSignedError, MessageNotEncryptedError } = require('../errors/MessageNotSignedError')
 
 const Connection = require('./Connection')
 
+const { StreamMessage, MessageID } = MessageLayer
+
 let sequenceNumber = 0
 
-function mqttPayloadToJson(payload) {
+function mqttPayloadToObject(payload) {
     try {
         JSON.parse(payload)
     } catch (e) {
@@ -153,22 +154,10 @@ module.exports = class MqttServer extends events.EventEmitter {
 
             const textPayload = payload.toString()
             sequenceNumber += 1
-            const streamMessage = MessageLayer.StreamMessage.create(
-                [
-                    streamObj.id,
-                    streamPartition,
-                    Date.now(),
-                    sequenceNumber,
-                    connection.id, // publisherId
-                    connection.id, // msgChainId
-                ],
-                null, // No message chaining!
-                MessageLayer.StreamMessage.CONTENT_TYPES.MESSAGE,
-                MessageLayer.StreamMessage.ENCRYPTION_TYPES.NONE,
-                mqttPayloadToJson(textPayload),
-                MessageLayer.StreamMessage.SIGNATURE_TYPES.NONE,
-                null
-            )
+            const streamMessage = new StreamMessage({
+                messageId: new MessageID(streamObj.id, streamPartition, Date.now(), sequenceNumber, connection.id, connection.id),
+                content: mqttPayloadToObject(textPayload),
+            })
 
             await this.publisher.validateAndPublish(streamMessage)
 

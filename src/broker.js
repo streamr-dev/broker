@@ -1,8 +1,7 @@
-const { startNetworkNode, startStorageNode } = require('streamr-network')
+const { startNetworkNode, startStorageNode, Protocol } = require('streamr-network')
 const StreamrClient = require('streamr-client')
 const publicIp = require('public-ip')
 const Sentry = require('@sentry/node')
-const { Utils } = require('streamr-client-protocol')
 
 const CURRENT_VERSION = require('../package.json').version
 
@@ -15,6 +14,8 @@ const MissingConfigError = require('./errors/MissingConfigError')
 const adapterRegistry = require('./adapterRegistry')
 const getTrackers = require('./helpers/getTrackers')
 const validateConfig = require('./helpers/validateConfig')
+
+const { Utils } = Protocol
 
 module.exports = async (config) => {
     validateConfig(config)

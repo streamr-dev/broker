@@ -1,5 +1,3 @@
-const { exec } = require('child_process')
-
 const StreamrClient = require('streamr-client')
 const WebSocket = require('ws')
 const { startTracker } = require('streamr-network')
@@ -18,9 +16,6 @@ const networkPort1 = 12361
 const networkPort2 = 12362
 const networkPort3 = 12363
 const trackerPort = 12370
-
-// The index for content/body/payload in array response of HTTP resend requests
-const CONTENT_IDX_IN_ARRAY = 5
 
 describe('ws and wss connections', () => {
     it('can connect to ws endpoint', async (done) => {
@@ -670,7 +665,7 @@ describe('broker: end-to-end', () => {
 
         await wait(1500) // wait for propagation
 
-        const jsons = await Promise.all([httpPort1, httpPort2, httpPort3].map(async (httpPort) => {
+        const messageContents = await Promise.all([httpPort1, httpPort2, httpPort3].map(async (httpPort) => {
             const url = `http://localhost:${httpPort}/api/v1/streams/${freshStreamId}/data/partitions/0/last?count=2`
             const response = await fetch(url, {
                 method: 'get',
@@ -678,11 +673,11 @@ describe('broker: end-to-end', () => {
                     Authorization: 'token tester1-api-key'
                 },
             })
-            const messagesAsArrays = await response.json()
-            return messagesAsArrays.map((msgAsArr) => JSON.parse(msgAsArr[CONTENT_IDX_IN_ARRAY]))
+            const messagesAsObjects = await response.json()
+            return messagesAsObjects.map((msgAsObject) => msgAsObject.content)
         }))
 
-        expect(jsons[0]).toEqual([
+        expect(messageContents[0]).toEqual([
             {
                 key: 3
             },
@@ -691,7 +686,7 @@ describe('broker: end-to-end', () => {
             },
         ])
 
-        expect(jsons[1]).toEqual([
+        expect(messageContents[1]).toEqual([
             {
                 key: 3
             },
@@ -700,7 +695,7 @@ describe('broker: end-to-end', () => {
             },
         ])
 
-        expect(jsons[2]).toEqual([
+        expect(messageContents[2]).toEqual([
             {
                 key: 3
             },
@@ -743,7 +738,7 @@ describe('broker: end-to-end', () => {
 
         await wait(1500) // wait for propagation
 
-        const jsons = await Promise.all([httpPort1, httpPort2, httpPort3].map(async (httpPort) => {
+        const messageContents = await Promise.all([httpPort1, httpPort2, httpPort3].map(async (httpPort) => {
             const url = `http://localhost:${httpPort}/api/v1/streams/${freshStreamId}/data/partitions/0/from`
                 + `?fromTimestamp=${timeAfterFirstMessagePublished}`
             const response = await fetch(url, {
@@ -752,11 +747,11 @@ describe('broker: end-to-end', () => {
                     Authorization: 'token tester1-api-key'
                 },
             })
-            const messagesAsArrays = await response.json()
-            return messagesAsArrays.map((msgAsArr) => JSON.parse(msgAsArr[CONTENT_IDX_IN_ARRAY]))
+            const messagesAsObjects = await response.json()
+            return messagesAsObjects.map((msgAsObject) => msgAsObject.content)
         }))
 
-        expect(jsons[0]).toEqual([
+        expect(messageContents[0]).toEqual([
             {
                 key: 2
             },
@@ -768,7 +763,7 @@ describe('broker: end-to-end', () => {
             },
         ])
 
-        expect(jsons[1]).toEqual([
+        expect(messageContents[1]).toEqual([
             {
                 key: 2
             },
@@ -780,7 +775,7 @@ describe('broker: end-to-end', () => {
             },
         ])
 
-        expect(jsons[2]).toEqual([
+        expect(messageContents[2]).toEqual([
             {
                 key: 2
             },
@@ -829,7 +824,7 @@ describe('broker: end-to-end', () => {
 
         await wait(1500) // wait for propagation
 
-        const jsons = await Promise.all([httpPort1, httpPort2, httpPort3].map(async (httpPort) => {
+        const messageContents = await Promise.all([httpPort1, httpPort2, httpPort3].map(async (httpPort) => {
             const url = `http://localhost:${httpPort}/api/v1/streams/${freshStreamId}/data/partitions/0/range`
                 + `?fromTimestamp=${timeAfterFirstMessagePublished}`
                 + `&toTimestamp=${timeAfterThirdMessagePublished}`
@@ -839,11 +834,11 @@ describe('broker: end-to-end', () => {
                     Authorization: 'token tester1-api-key'
                 },
             })
-            const messagesAsArrays = await response.json()
-            return messagesAsArrays.map((msgAsArr) => JSON.parse(msgAsArr[CONTENT_IDX_IN_ARRAY]))
+            const messagesAsObjects = await response.json()
+            return messagesAsObjects.map((msgAsObject) => msgAsObject.content)
         }))
 
-        expect(jsons[0]).toEqual([
+        expect(messageContents[0]).toEqual([
             {
                 key: 2
             },
@@ -852,7 +847,7 @@ describe('broker: end-to-end', () => {
             },
         ])
 
-        expect(jsons[1]).toEqual([
+        expect(messageContents[1]).toEqual([
             {
                 key: 2
             },
@@ -861,7 +856,7 @@ describe('broker: end-to-end', () => {
             },
         ])
 
-        expect(jsons[2]).toEqual([
+        expect(messageContents[2]).toEqual([
             {
                 key: 2
             },

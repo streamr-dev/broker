@@ -1,7 +1,7 @@
 const sinon = require('sinon')
 const express = require('express')
 const request = require('supertest')
-const { StreamMessage, MessageID, MessageRef } = require('streamr-client-protocol').MessageLayer
+const { StreamMessage, MessageID, MessageRef } = require('streamr-network').Protocol.MessageLayer
 
 const router = require('../../../src/http/DataProduceEndpoints')
 
@@ -58,11 +58,10 @@ describe('DataProduceEndpoints', () => {
     })
 
     it('should call Publisher.validateAndPublish() with correct arguments', (done) => {
-        const streamMessage = new StreamMessage(
-            new MessageID(stream.id, 0, Date.now(), 0, 'publisherId', '1'),
-            null,
-            '{}',
-        )
+        const streamMessage = new StreamMessage({
+            messageId: new MessageID(stream.id, 0, Date.now(), 0, 'publisherId', '1'),
+            content: '{}',
+        })
         postRequest({
             query: {
                 ts: streamMessage.getTimestamp(),
@@ -78,15 +77,12 @@ describe('DataProduceEndpoints', () => {
     })
 
     it('should read signature-related fields', (done) => {
-        const streamMessage = new StreamMessage(
-            new MessageID(stream.id, 0, Date.now(), 0, 'publisherId', ''),
-            null,
-            '{}',
-            StreamMessage.CONTENT_TYPES.MESSAGE,
-            StreamMessage.ENCRYPTION_TYPES.NONE,
-            StreamMessage.SIGNATURE_TYPES.ETH,
-            'signature',
-        )
+        const streamMessage = new StreamMessage({
+            messageId: new MessageID(stream.id, 0, Date.now(), 0, 'publisherId', ''),
+            content: '{}',
+            signatureType: StreamMessage.SIGNATURE_TYPES.ETH,
+            signature: 'signature',
+        })
         postRequest({
             query: {
                 ts: streamMessage.getTimestamp(),
@@ -101,11 +97,11 @@ describe('DataProduceEndpoints', () => {
     })
 
     it('should read sequence number and previous reference fields', (done) => {
-        const streamMessage = new StreamMessage(
-            new MessageID(stream.id, 0, Date.now(), 1, 'publisherId', ''),
-            new MessageRef(325656645, 3),
-            '{}',
-        )
+        const streamMessage = new StreamMessage({
+            messageId: new MessageID(stream.id, 0, Date.now(), 1, 'publisherId', ''),
+            prevMsgRef: new MessageRef(325656645, 3),
+            content: '{}',
+        })
         postRequest({
             query: {
                 ts: streamMessage.getTimestamp(),

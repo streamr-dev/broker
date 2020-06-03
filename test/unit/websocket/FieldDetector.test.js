@@ -1,18 +1,17 @@
-const { StreamMessage, MessageID } = require('streamr-client-protocol').MessageLayer
+const { StreamMessage, MessageID } = require('streamr-network').Protocol.MessageLayer
 
 const FieldDetector = require('../../../src/websocket/FieldDetector.js')
 
-const STREAM_MESSAGE = new StreamMessage(
-    new MessageID('streamId', 0, 0, 0, 'publisherId', 'msgChainId'),
-    null,
-    JSON.stringify({
+const STREAM_MESSAGE = new StreamMessage({
+    messageId: new MessageID('streamId', 0, 0, 0, 'publisherId', 'msgChainId'),
+    content: {
         aString: 'hello',
         aNumber: 412,
         aBoolean: true,
         aList: [1, 2, 3],
         anObject: {}
-    }),
-)
+    },
+})
 
 describe('FieldDetector#detectAndSetFields', () => {
     let stream

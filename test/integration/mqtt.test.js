@@ -47,7 +47,7 @@ describe('mqtt: end-to-end', () => {
 
         mqttClient1 = createMqttClient(mqttPort1)
         mqttClient2 = createMqttClient(mqttPort2)
-        mqttClient3 = createMqttClient(mqttPort1)
+        mqttClient3 = createMqttClient(mqttPort3)
 
         freshStream1 = await client1.createStream({
             name: 'mqtt.test.js-' + Date.now()
@@ -84,7 +84,7 @@ describe('mqtt: end-to-end', () => {
             done()
         })
 
-        mqttClient1.publish('NOT_VALID_STREARM', 'key: 1', {
+        mqttClient1.publish('NOT_VALID_STREAM', 'key: 1', {
             qos: 1
         })
     })

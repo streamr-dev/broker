@@ -2,8 +2,10 @@ const express = require('express')
 const request = require('supertest')
 const sinon = require('sinon')
 const intoStream = require('into-stream')
-const { ControlLayer } = require('streamr-client-protocol')
-const { StreamMessage, MessageID } = require('streamr-client-protocol').MessageLayer
+const { Protocol } = require('streamr-network')
+
+const { ControlLayer, MessageLayer } = Protocol
+const { StreamMessage, MessageID } = MessageLayer
 
 const restEndpointRouter = require('../../../src/http/DataQueryEndpoints')
 const HttpError = require('../../../src/errors/HttpError')
@@ -22,15 +24,17 @@ describe('DataQueryEndpoints', () => {
     }
 
     function createStreamMessage(content) {
-        return new StreamMessage(
-            new MessageID('streamId', 0, new Date(2017, 3, 1, 12, 0, 0).getTime(), 0, 'publisherId', '1'),
-            null,
-            JSON.stringify(content),
-        )
+        return new StreamMessage({
+            messageId: new MessageID('streamId', 0, new Date(2017, 3, 1, 12, 0, 0).getTime(), 0, 'publisherId', '1'),
+            content,
+        })
     }
 
     function createUnicastMessage(streamMessage) {
-        return ControlLayer.UnicastMessage.create('requestId', streamMessage)
+        return new ControlLayer.UnicastMessage({
+            requestId: 'requestId',
+            streamMessage,
+        })
     }
 
     beforeEach(() => {
