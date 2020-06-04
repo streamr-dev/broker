@@ -18,6 +18,7 @@ class Bucket extends EventEmitter {
     }
 
     isFull() {
+        console.log(`id: ${this.id} => ${this.size} >= ${this._maxSize} || ${this.records} >= ${this._maxRecords}`)
         return this.size >= this._maxSize || this.records >= this._maxRecords
     }
 
