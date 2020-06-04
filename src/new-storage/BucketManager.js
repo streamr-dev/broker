@@ -1,3 +1,4 @@
+const debug = require('debug')('streamr:bucket-manager')
 const Heap = require('heap')
 const { TimeUuid } = require('cassandra-driver').types
 
@@ -25,6 +26,7 @@ class BucketManager {
 
         const key = toKey(streamId, partition)
         if (this.streams[key]) {
+            debug(`stream ${key} found`)
             bucketId = this._findBucketId(key, timestamp)
 
             if (!bucketId) {
@@ -38,6 +40,8 @@ class BucketManager {
                 this.streams[key] = stream
             }
         } else {
+            debug(`stream ${key} not found, create new`)
+
             this.streams[key] = {
                 streamId,
                 partition,
@@ -64,18 +68,22 @@ class BucketManager {
 
     _findBucketId(key, timestamp) {
         let bucketId
-        console.log(`looking for stream: ${key}, timestamp: ${timestamp}`)
+        debug(`checking stream: ${key}, timestamp: ${timestamp} in BucketManager state`)
 
         const stream = this.streams[key]
         if (stream) {
             const currentBuckets = stream.buckets.toArray()
-            console.log(currentBuckets)
             for (let i = 0; i < currentBuckets.length; i++) {
                 if (currentBuckets[i].dateCreate < timestamp) {
                     bucketId = currentBuckets[i].id
+                    debug(`bucketId ${bucketId} for stream: ${key}, timestamp: ${timestamp} found`)
                     break
                 }
             }
+        }
+
+        if (!bucketId) {
+            debug(`bucketId for stream: ${key}, timestamp: ${timestamp} NOT found`)
         }
 
         return bucketId
@@ -88,6 +96,8 @@ class BucketManager {
 
             const stream = this.streams[streamId]
             const minTimestamp = stream.timestamps.min
+
+            debug(`checking stream: ${streamId}, timestamp: ${minTimestamp}`)
 
             const bucketId = this._findBucketId(streamId, minTimestamp)
             if (!bucketId) {
@@ -110,7 +120,7 @@ class BucketManager {
                 const latestBucket = currentBuckets[0]
                 insertNewBucket = latestBucket.isFull()
                 if (latestBucket.isFull()) {
-                    console.log(`latest bucket isFull: ${latestBucket.isFull()}`)
+                    debug(`latest bucket ${latestBucket.id} isFull: ${latestBucket.isFull()}`)
                     insertNewBucket = true
 
                     // eslint-disable-next-line no-await-in-loop
@@ -127,7 +137,7 @@ class BucketManager {
             }
 
             if (insertNewBucket) {
-                console.log(`bucket for timestamp: ${minTimestamp} not found, insert new basket`)
+                debug(`bucket for timestamp: ${minTimestamp} not found, insert new basket`)
                 // eslint-disable-next-line no-await-in-loop
                 await this._insertNewBucket(stream.streamId, stream.partition, minTimestamp)
             }
@@ -143,9 +153,6 @@ class BucketManager {
         const buckets = []
 
         try {
-            console.log(GET_LAST_BUCKETS_TIMESTAMP)
-            console.log(params, fromTimestamp)
-
             const resultSet = await this.cassandraClient.execute(GET_LAST_BUCKETS_TIMESTAMP, params, {
                 prepare: true,
             })
@@ -190,8 +197,11 @@ class BucketManager {
                         new Date(dateCreate).getTime(), MAX_BUCKET_RECORDS, MAX_BUCKET_SIZE
                     )
 
+                    debug(`found bucket: ${bucket.id}, size: ${size}, records: ${records}, dateCreate: ${bucket.dateCreate} for streamId: ${streamId}, partition: ${partition}, timestamp: ${timestamp}, limit: ${limit}`)
                     result.push(bucket)
                 })
+            } else {
+                debug(`no buckets found for streamId: ${streamId}, partition: ${partition}, timestamp: ${timestamp}, limit: ${limit}`)
             }
         } catch (e) {
             console.error(e)
@@ -209,6 +219,7 @@ class BucketManager {
             await this.cassandraClient.execute(INSERT_NEW_BUCKET, params, {
                 prepare: true,
             })
+            debug(`inserted new bucket for streamId: ${streamId}, partition: ${partition}, timestamp: ${timestamp}`)
         } catch (e) {
             console.error(e)
         }
@@ -229,10 +240,15 @@ class BucketManager {
             } = bucket
             const params = [size, records, streamId, partition, dateCreate]
 
-            // eslint-disable-next-line no-await-in-loop
-            await this.cassandraClient.execute(UPDATE_BUCKET, params, {
-                prepare: true
-            })
+            try {
+                // eslint-disable-next-line no-await-in-loop
+                await this.cassandraClient.execute(UPDATE_BUCKET, params, {
+                    prepare: true
+                })
+                debug(`stored in database bucket state, params: ${params}`)
+            } catch (e) {
+                console.error(e)
+            }
         }
     }
 }

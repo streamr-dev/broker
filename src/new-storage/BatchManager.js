@@ -1,5 +1,7 @@
 const EventEmitter = require('events')
 
+const debug = require('debug')('streamr:batch-manager')
+
 const Batch = require('./Batch')
 
 const INSERT_STATEMENT = 'INSERT INTO stream_data_new '
@@ -26,6 +28,7 @@ class BatchManager extends EventEmitter {
         const batch = this.batches[bucketId]
 
         if (batch && batch.isFull()) {
+            debug('batch is full, closing')
             batch.close()
 
             this.pendingBatches[batch.id] = batch
@@ -35,6 +38,7 @@ class BatchManager extends EventEmitter {
         }
 
         if (this.batches[bucketId] === undefined) {
+            debug('creating new batch')
             const newBatch = new Batch(bucketId, 10000, 10, 30000)
             newBatch.on('state', (id, state, size, numberOfRecords) => this._batchChangedState(id, state, size, numberOfRecords))
             this.batches[bucketId] = newBatch
@@ -44,7 +48,7 @@ class BatchManager extends EventEmitter {
     }
 
     _batchChangedState(id, state, size, numberOfRecords) {
-        console.log(`batchId: ${id}, batchState: ${state}, batchSize: ${size}, batchNumberOfRecords: ${numberOfRecords}`)
+        debug(`_batchChangedState, id: ${id}, state: ${state}, size: ${size}, records: ${numberOfRecords}`)
         if (state === Batch.states.PENDING) {
             this._insert(id)
         }
@@ -53,6 +57,7 @@ class BatchManager extends EventEmitter {
     async _insert(batchId) {
         const batch = this.pendingBatches[batchId]
 
+        // if bucket not found throw
         const queries = batch.streamMessages.map((streamMessage) => {
             return {
                 query: this.insertStatement,
@@ -76,12 +81,13 @@ class BatchManager extends EventEmitter {
 
             batch.clear()
             delete this.pendingBatches[batch.id]
+            debug(`inserted ${batch.id}`)
         } catch (e) {
             const key = `${batch.streamMessages[0].getStreamId()}::${batch.streamMessages[0].getStreamPartition()}`
             if (this.logErrors) {
                 console.error(`Failed to insert (${key}): ${e.stack ? e.stack : e}`)
             }
-
+            debug(`failed to insert ${batch.id}, error ${e}`)
             batch.scheduleRetry()
         }
     }

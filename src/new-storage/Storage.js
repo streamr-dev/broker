@@ -1,6 +1,7 @@
 const { Readable, Transform } = require('stream')
 const EventEmitter = require('events')
 
+const debug = require('debug')('streamr:storage')
 const NodeCache = require('node-cache')
 const cassandra = require('cassandra-driver')
 const { StreamMessageFactory } = require('streamr-client-protocol').MessageLayer
@@ -23,8 +24,7 @@ class Storage extends EventEmitter {
 
         this.pendingMessages.on('expired', (messageId, streamMessage) => {
             setImmediate(() => {
-                console.log('expired cache')
-                // console.log(streamMessage)
+                debug(`pendingMessage expired: ${messageId}, storing again`)
                 this.store(streamMessage)
             })
         })
@@ -34,12 +34,13 @@ class Storage extends EventEmitter {
         const bucketId = this.bucketManager.getBucketId(streamMessage.getStreamId(), streamMessage.getStreamPartition(), streamMessage.getTimestamp())
 
         if (bucketId) {
-            console.log(`found bucketId: ${bucketId}`)
+            debug(`found bucketId: ${bucketId}`)
             this.batchManager.store(bucketId, streamMessage)
             this.bucketManager.incrementBucket(bucketId, Buffer.from(streamMessage.serialize()).length, 1)
         } else {
-            console.log('put to cache')
-            this.pendingMessages.set(streamMessage.messageId.serialize(), streamMessage)
+            const messageId = streamMessage.messageId.serialize()
+            debug(`bucket not found, put ${messageId} to pendingMessages`)
+            this.pendingMessages.set(messageId, streamMessage)
         }
     }
 
@@ -53,6 +54,8 @@ class Storage extends EventEmitter {
             throw new Error('LIMIT must be strictly positive')
         }
 
+        debug(`requestLast, streamId: "${streamId}", partition: "${partition}", limit: "${limit}"`)
+
         const GET_LAST_MESSAGES = 'SELECT * FROM stream_data_new WHERE '
                                 + 'stream_id = ? AND partition = ? AND bucket_id IN ? '
                                 + 'ORDER BY ts DESC '
@@ -64,24 +67,20 @@ class Storage extends EventEmitter {
         })
 
         this.bucketManager.getLastBuckets(streamId, partition, 10).then((buckets) => {
-            console.log(buckets)
             const bucketsForQuery = []
             let total = 0
             for (let i = 0; i < buckets.length; i++) {
                 const bucket = buckets[i]
                 total += bucket.records
                 bucketsForQuery.push(bucket.id)
-
-                console.log(total >= limit)
-                console.log(`${total} >= ${limit}`)
                 if (total >= limit) {
                     break
                 }
             }
 
             const params = [streamId, partition, bucketsForQuery, limit]
-            console.log(params)
-            console.log(GET_LAST_MESSAGES)
+            debug(`requestLast: ${GET_LAST_MESSAGES}, params: ${params}`)
+
             return this.cassandraClient.execute(GET_LAST_MESSAGES, params, {
                 prepare: true,
                 fetchSize: 0
@@ -180,41 +179,7 @@ class Storage extends EventEmitter {
             readableStream.push(null)
         })
 
-
-
         return readableStream
-
-        // this.bucketManager.getLastBuckets(streamId, partition, limit).then((buckets) => {
-        //     const bucketsForQuery = []
-        //     let total = 0
-        //     for (let i = 0; i < buckets.length; i++) {
-        //         const bucket = buckets[i]
-        //         total += bucket.records
-        //         bucketsForQuery.push(bucket.id)
-        //
-        //         if (total >= limit) {
-        //             break
-        //         }
-        //     }
-        //
-        //     const params = [streamId, partition, bucketsForQuery, limit]
-        //     return this.cassandraClient.execute(GET_LAST_MESSAGES, params, {
-        //         prepare: true,
-        //         fetchSize: 0
-        //     })
-        // }).then((resultSet) => {
-        //     resultSet.rows.reverse().forEach((r) => {
-        //         readableStream.push(this._parseRow(r))
-        //     })
-        //     readableStream.push(null)
-        // }).catch((e) => {
-        //     console.error(e)
-        //     readableStream.push(null)
-        // })
-
-        // const query = 'SELECT * FROM stream_data WHERE id = ? AND partition = ? AND ts >= ? ORDER BY ts ASC, sequence_no ASC'
-        // const queryParams = [streamId, streamPartition, fromTimestamp]
-        // return this._queryWithStreamingResults(query, queryParams)
     }
     //
     // _fetchFromMessageRefForPublisher(streamId, streamPartition, fromTimestamp, fromSequenceNo, publisherId, msgChainId) {
@@ -241,34 +206,34 @@ class Storage extends EventEmitter {
         publisherId,
         msgChainId
     ) {
-        // if (!Number.isInteger(fromTimestamp)) {
-        //     throw new Error('fromTimestamp is not an integer')
-        // }
-        // if (fromSequenceNo != null && !Number.isInteger(fromSequenceNo)) {
-        //     throw new Error('fromSequenceNo is not an integer')
-        // }
-        // if (!Number.isInteger(toTimestamp)) {
-        //     throw new Error('toTimestamp is not an integer')
-        // }
-        // if (toSequenceNo != null && !Number.isInteger(toSequenceNo)) {
-        //     throw new Error('toSequenceNo is not an integer')
-        // }
-        //
-        // if (fromSequenceNo != null && toSequenceNo != null && publisherId != null && msgChainId != null) {
-        //     if (toTimestamp > (Date.now() - RANGE_THRESHOLD)) {
-        //         const periodicQuery = new PeriodicQuery(() => this._fetchBetweenMessageRefsForPublisher(streamId, streamPartition, fromTimestamp,
-        //             fromSequenceNo, toTimestamp, toSequenceNo, publisherId, msgChainId), RETRY_INTERVAL, RETRY_TIMEOUT)
-        //         return periodicQuery.getStreamingResults()
-        //     }
-        //     return this._fetchBetweenMessageRefsForPublisher(streamId, streamPartition, fromTimestamp,
-        //         fromSequenceNo, toTimestamp, toSequenceNo, publisherId, msgChainId)
-        // }
-        // if ((fromSequenceNo == null || fromSequenceNo === 0) && (toSequenceNo == null || toSequenceNo === 0)
-        //     && publisherId == null && msgChainId == null) {
-        //     return this._fetchBetweenTimestamps(streamId, streamPartition, fromTimestamp, toTimestamp)
-        // }
-        //
-        // throw new Error('Invalid combination of requestFrom arguments')
+        if (!Number.isInteger(fromTimestamp)) {
+            throw new Error('fromTimestamp is not an integer')
+        }
+        if (fromSequenceNo != null && !Number.isInteger(fromSequenceNo)) {
+            throw new Error('fromSequenceNo is not an integer')
+        }
+        if (!Number.isInteger(toTimestamp)) {
+            throw new Error('toTimestamp is not an integer')
+        }
+        if (toSequenceNo != null && !Number.isInteger(toSequenceNo)) {
+            throw new Error('toSequenceNo is not an integer')
+        }
+
+        if (fromSequenceNo != null && toSequenceNo != null && publisherId != null && msgChainId != null) {
+            // if (toTimestamp > (Date.now() - RANGE_THRESHOLD)) {
+            //     const periodicQuery = new PeriodicQuery(() => this._fetchBetweenMessageRefsForPublisher(streamId, streamPartition, fromTimestamp,
+            //         fromSequenceNo, toTimestamp, toSequenceNo, publisherId, msgChainId), RETRY_INTERVAL, RETRY_TIMEOUT)
+            //     return periodicQuery.getStreamingResults()
+            // }
+            // return this._fetchBetweenMessageRefsForPublisher(streamId, streamPartition, fromTimestamp,
+            //     fromSequenceNo, toTimestamp, toSequenceNo, publisherId, msgChainId)
+        }
+        if ((fromSequenceNo == null || fromSequenceNo === 0) && (toSequenceNo == null || toSequenceNo === 0)
+            && publisherId == null && msgChainId == null) {
+            return this._fetchBetweenTimestamps(streamId, streamPartition, fromTimestamp, toTimestamp)
+        }
+
+        throw new Error('Invalid combination of requestFrom arguments')
     }
 
     // _fetchBetweenTimestamps(streamId, streamPartition, from, to) {
@@ -312,6 +277,7 @@ class Storage extends EventEmitter {
     //     return merge2(stream1, stream2, stream3)
     // }
 
+    // eslint-disable-next-line class-methods-use-this
     metrics() {
         return {
             storeStrategy: undefined // this.storeStrategy.metrics()

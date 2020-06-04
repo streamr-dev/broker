@@ -1,5 +1,6 @@
 const EventEmitter = require('events')
 
+const createDebug = require('debug')
 const { v4: uuidv4 } = require('uuid')
 
 const STATES = Object.freeze({
@@ -20,6 +21,8 @@ class Batch extends EventEmitter {
         this.retries = 0
         this.state = STATES.OPENED
 
+        this.debug = createDebug(`streamr:storage:batch:${this.id}`)
+
         this._maxSize = maxSize
         this._maxRecords = maxRecords
         this._maxRetries = maxRetries
@@ -34,6 +37,8 @@ class Batch extends EventEmitter {
     }
 
     scheduleRetry() {
+        this.debug(`scheduleRetry. retries:${this.retries}`)
+
         if (this.retries < this._maxRetries) {
             this.retries += 1
         }
@@ -50,15 +55,17 @@ class Batch extends EventEmitter {
     push(streamMessage) {
         this.streamMessages.push(streamMessage)
         this.size += Buffer.from(streamMessage.serialize()).length
-        return this.donePromise
     }
 
     close() {
+        this.debug('closing batch by timeout')
         this._setState(STATES.CLOSED)
     }
 
     isFull() {
-        return this.size >= this._maxSize || this._getNumberOrMessages() >= this._maxRecords
+        const isFull = this.size >= this._maxSize || this._getNumberOrMessages() >= this._maxRecords
+        this.debug(`isFull: ${isFull}`)
+        return isFull
     }
 
     _getNumberOrMessages() {
@@ -66,6 +73,7 @@ class Batch extends EventEmitter {
     }
 
     _setState(state) {
+        this.debug(`change state, current: ${this.state}, new state: ${state}`)
         this.state = state
         this._emitState()
     }

@@ -1,9 +1,7 @@
-const EventEmitter = require('events')
+const createDebug = require('debug')
 
-class Bucket extends EventEmitter {
-    constructor(id, streamId, partition, size, records, dateCreate, maxRecords, maxSize) {
-        super()
-
+class Bucket {
+    constructor(id, streamId, partition, size, records, dateCreate, maxRecords, maxSize, keepAlive = 5) {
         this.id = id
         this.streamId = streamId
         this.partition = partition
@@ -11,14 +9,17 @@ class Bucket extends EventEmitter {
         this.records = records
         this.dateCreate = dateCreate
 
+        this.debug = createDebug(`streamr:storage:bucket:${this.id}`)
+
         this._maxSize = maxSize
         this._maxRecords = maxRecords
+        this._keepAlive = keepAlive
 
         this.ttl = new Date()
     }
 
     isFull() {
-        console.log(`id: ${this.id} => ${this.size} >= ${this._maxSize} || ${this.records} >= ${this._maxRecords}`)
+        this.debug(`id: ${this.id} => ${this.size} >= ${this._maxSize} || ${this.records} >= ${this._maxRecords}`)
         return this.size >= this._maxSize || this.records >= this._maxRecords
     }
 
@@ -27,15 +28,22 @@ class Bucket extends EventEmitter {
     }
 
     incrementBucket(size, records = 1) {
-        this.records += records
         this.size += size
+        this.records += records
 
-        console.log(`incremented bucket id: ${this.id}, size: ${this.size}, records: ${this.records}`)
+        this.debug(`incremented bucket => size: ${this.size}, records: ${this.records}`)
         this._updateTTL()
     }
 
-    _updateTTL(minutes = 30) {
-        this.ttl.setMinutes(this.ttl.getMinutes() + minutes)
+    _updateTTL() {
+        this.ttl.setMinutes(this.ttl.getMinutes() + this._keepAlive)
+        this.debug(`new ttl: ${this.ttl}`)
+    }
+
+    isAlive() {
+        const isAlive = new Date() > this.ttl
+        this.debug(`isAlive: ${isAlive}`)
+        return new Date() > this.ttl
     }
 }
 
