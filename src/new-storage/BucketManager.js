@@ -10,8 +10,8 @@ class BucketManager {
     constructor(cassandraClient, opts) {
         const defaultOptions = {
             logErrors: true,
-            checkFullBucketsInterval: 1000,
-            storeBucketsInterval: 3000,
+            checkFullBucketsTimeout: 1000,
+            storeBucketsTimeout: 3000,
             maxBucketSize: 10000,
             maxBucketRecords: 10,
             bucketKeepAliveMinutes: 5
@@ -26,8 +26,8 @@ class BucketManager {
 
         this.cassandraClient = cassandraClient
 
-        this._checkFullBucketsInterval = setInterval(() => this._checkFullBuckets(), this.opts.checkFullBucketsInterval)
-        this._storeBucketsInterval = setInterval(() => this._storeBuckets(), this.opts.storeBucketsInterval)
+        this._checkFullBuckets()
+        this._storeBuckets()
     }
 
     getBucketId(streamId, partition, timestamp) {
@@ -85,8 +85,8 @@ class BucketManager {
         if (stream) {
             const currentBuckets = stream.buckets.toArray()
             for (let i = 0; i < currentBuckets.length; i++) {
-                if (currentBuckets[i].dateCreate < timestamp) {
-                    bucketId = currentBuckets[i].id
+                if (currentBuckets[i].dateCreate <= timestamp) {
+                    bucketId = currentBuckets[i].getId()
                     debug(`bucketId ${bucketId} for stream: ${key}, timestamp: ${timestamp} found`)
                     break
                 }
@@ -124,7 +124,7 @@ class BucketManager {
                 const latestBucket = currentBuckets[0]
 
                 if (latestBucket.isFull()) {
-                    debug(`latest bucket ${latestBucket.id} isFull: ${latestBucket.isFull()}`)
+                    debug(`latest bucket ${latestBucket.getId()} isFull: ${latestBucket.isFull()}`)
                     isFullOrNotFound = true
                 }
             }
@@ -136,9 +136,9 @@ class BucketManager {
                 const foundBucket = foundBuckets.length ? foundBuckets[0] : undefined
 
                 // add if found new not empty bucket
-                if (foundBucket && !foundBucket.isFull() && !(foundBucket.id in this.buckets)) {
+                if (foundBucket && !foundBucket.isFull() && !(foundBucket.getId() in this.buckets)) {
                     stream.buckets.push(foundBucket)
-                    this.buckets[foundBucket.id] = foundBucket
+                    this.buckets[foundBucket.getId()] = foundBucket
                     stream.timestamps.min = undefined
                     isFullOrNotFound = false
                 }
@@ -153,6 +153,8 @@ class BucketManager {
 
             this.streams[streamIds[i]] = stream
         }
+
+        setTimeout(() => this._checkFullBuckets(), this.opts.checkFullBucketsTimeout)
     }
 
     async getBucketsFromTimestamp(streamId, partition, fromTimestamp) {
@@ -208,8 +210,9 @@ class BucketManager {
                         this.opts.maxBucketSize, this.opts.maxBucketRecords, this.opts.bucketKeepAliveMinutes
                     )
 
-                    debug(`found bucket: ${bucket.id}, size: ${size}, records: ${records}, dateCreate: ${bucket.dateCreate} for 
-                           streamId: ${streamId}, partition: ${partition}, timestamp: ${timestamp}, limit: ${limit}`)
+                    debug(`found bucket: ${bucket.getId()}, size: ${size}, records: ${records}, dateCreate: ${bucket.dateCreate}`)
+                    debug(`for streamId: ${streamId}, partition: ${partition}, timestamp: ${timestamp}, limit: ${limit}`)
+
                     result.push(bucket)
                 })
             } else {
@@ -271,6 +274,8 @@ class BucketManager {
                 }
             }
         }
+
+        setTimeout(() => this._storeBuckets(), this.opts.storeBucketsTimeout)
     }
 }
 
