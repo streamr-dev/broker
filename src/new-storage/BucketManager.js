@@ -13,7 +13,8 @@ class BucketManager {
             checkFullBucketsInterval: 1000,
             storeBucketsInterval: 3000,
             maxBucketSize: 10000,
-            maxBucketRecords: 10
+            maxBucketRecords: 10,
+            bucketKeepAliveMinutes: 5
         }
 
         this.opts = {
@@ -24,7 +25,6 @@ class BucketManager {
         this.buckets = {}
 
         this.cassandraClient = cassandraClient
-        this.logErrors = this.opts.logErrors
 
         this._checkFullBucketsInterval = setInterval(() => this._checkFullBuckets(), this.opts.checkFullBucketsInterval)
         this._storeBucketsInterval = setInterval(() => this._storeBuckets(), this.opts.storeBucketsInterval)
@@ -171,8 +171,8 @@ class BucketManager {
                     const { id, records, size, date_create: dateCreate } = row
 
                     const bucket = new Bucket(
-                        id.toString(), streamId, partition, size, records,
-                        new Date(dateCreate).getTime(), this.opts.maxBucketSize, this.opts.maxBucketRecords,
+                        id.toString(), streamId, partition, size, records, new Date(dateCreate).getTime(),
+                        this.opts.maxBucketSize, this.opts.maxBucketRecords, this.opts.bucketKeepAliveMinutes
                     )
 
                     buckets.push(bucket)
@@ -204,11 +204,12 @@ class BucketManager {
                     const { id, records, size, date_create: dateCreate } = row
 
                     const bucket = new Bucket(
-                        id.toString(), streamId, partition, size, records,
-                        new Date(dateCreate).getTime(), this.opts.maxBucketSize, this.opts.maxBucketRecords,
+                        id.toString(), streamId, partition, size, records, new Date(dateCreate).getTime(),
+                        this.opts.maxBucketSize, this.opts.maxBucketRecords, this.opts.bucketKeepAliveMinutes
                     )
 
-                    debug(`found bucket: ${bucket.id}, size: ${size}, records: ${records}, dateCreate: ${bucket.dateCreate} for streamId: ${streamId}, partition: ${partition}, timestamp: ${timestamp}, limit: ${limit}`)
+                    debug(`found bucket: ${bucket.id}, size: ${size}, records: ${records}, dateCreate: ${bucket.dateCreate} for 
+                           streamId: ${streamId}, partition: ${partition}, timestamp: ${timestamp}, limit: ${limit}`)
                     result.push(bucket)
                 })
             } else {

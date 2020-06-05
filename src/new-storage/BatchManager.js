@@ -34,7 +34,6 @@ class BatchManager extends EventEmitter {
 
         this.cassandraClient = cassandraClient
         this.insertStatement = this.opts.useTtl ? INSERT_STATEMENT_WITH_TTL : INSERT_STATEMENT
-        this.logErrors = this.opts.logErrors
     }
 
     store(bucketId, streamMessage) {
@@ -96,7 +95,7 @@ class BatchManager extends EventEmitter {
             debug(`inserted ${batch.getId()}`)
         } catch (e) {
             const key = `${batch.streamMessages[0].getStreamId()}::${batch.streamMessages[0].getStreamPartition()}`
-            if (this.logErrors) {
+            if (this.opts.logErrors) {
                 console.error(`Failed to insert (${key}): ${e.stack ? e.stack : e}`)
             }
             debug(`failed to insert ${batch.getId()}, error ${e}`)
