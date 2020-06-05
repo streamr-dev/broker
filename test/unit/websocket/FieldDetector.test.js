@@ -1,6 +1,7 @@
 const { StreamMessage, MessageID } = require('streamr-network').Protocol.MessageLayer
 
-const FieldDetector = require('../../../src/websocket/FieldDetector.js')
+const HttpError = require('../../../src/errors/HttpError')
+const FieldDetector = require('../../../src/websocket/FieldDetector')
 
 const STREAM_MESSAGE = new StreamMessage({
     messageId: new MessageID('streamId', 0, 0, 0, 'publisherId', 'msgChainId'),
@@ -109,6 +110,49 @@ describe('FieldDetector#detectAndSetFields', () => {
         expect(streamFetcher.setFields).toHaveBeenCalledTimes(1)
     })
 
+    test('if streamFetcher#fetch throws a 403, do not try again', async () => {
+        streamFetcher.fetch.mockRejectedValue(new HttpError(403, 'method', 'url'))
+        stream = {
+            ...stream,
+            autoConfigure: true
+        }
+
+        try {
+            await fieldDetector.detectAndSetFields(STREAM_MESSAGE, 'apiKey', 'sessionToken')
+        } catch (e) {
+            // no op
+        }
+        try {
+            await fieldDetector.detectAndSetFields(STREAM_MESSAGE, 'apiKey', 'sessionToken')
+        } catch (e) {
+            // no op
+        }
+
+        expect(streamFetcher.fetch).toHaveBeenCalledTimes(1)
+        expect(streamFetcher.setFields).toHaveBeenCalledTimes(0)
+    })
+
+    test('if streamFetcher#setFields throws a 403, do not try again', async () => {
+        streamFetcher.setFields.mockRejectedValue(new HttpError(403, 'method', 'url'))
+        stream = {
+            ...stream,
+            autoConfigure: true
+        }
+
+        try {
+            await fieldDetector.detectAndSetFields(STREAM_MESSAGE, 'apiKey', 'sessionToken')
+        } catch (e) {
+            // no op
+        }
+        try {
+            await fieldDetector.detectAndSetFields(STREAM_MESSAGE, 'apiKey', 'sessionToken')
+        } catch (e) {
+            // no op
+        }
+
+        expect(streamFetcher.setFields).toHaveBeenCalledTimes(1)
+    })
+
     test('if streamFetcher#setFields throws error can try to set fields again', async () => {
         streamFetcher.setFields
             .mockRejectedValueOnce(new Error('error #1'))
@@ -132,4 +176,6 @@ describe('FieldDetector#detectAndSetFields', () => {
 
         expect(streamFetcher.setFields).toHaveBeenCalledTimes(3)
     })
+
+
 })
