@@ -12,8 +12,8 @@ const BucketManager = require('./BucketManager')
 class Storage extends EventEmitter {
     constructor(cassandraClient, useTtl) {
         super()
-        this.cassandraClient = cassandraClient
 
+        this.cassandraClient = cassandraClient
         this.batchManager = new BatchManager(cassandraClient, useTtl, true)
         this.bucketManager = new BucketManager(cassandraClient, true)
 
@@ -24,7 +24,7 @@ class Storage extends EventEmitter {
 
         this.pendingMessages.on('expired', (messageId, streamMessage) => {
             setImmediate(() => {
-                debug(`pendingMessage expired: ${messageId}, storing again`)
+                debug(`pendingMessage expired: ${messageId}, store again`)
                 this.store(streamMessage)
             })
         })
@@ -285,6 +285,7 @@ class Storage extends EventEmitter {
     }
 
     close() {
+        // TODO close properly buckets and batches
         this.storeStrategy.close()
         return this.cassandraClient.shutdown()
     }

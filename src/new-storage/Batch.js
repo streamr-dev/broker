@@ -11,24 +11,57 @@ const STATES = Object.freeze({
 })
 
 class Batch extends EventEmitter {
-    constructor(bucketId, maxSize, maxRecords, closeTimeout = 1000, maxRetries = 120) {
+    constructor(bucketId, maxSize, maxRecords, closeTimeout, maxRetries) {
+        if (!bucketId || !bucketId.length) {
+            throw new Error('bucketId must be not empty string')
+        }
+
+        if (!Number.isInteger(maxSize) || parseInt(maxSize) < 0) {
+            throw new Error('maxSize must be >= 0')
+        }
+
+        if (!Number.isInteger(maxRecords) || parseInt(maxRecords) < 0) {
+            throw new Error('maxRecords must be >= 0')
+        }
+
+        if (!Number.isInteger(closeTimeout) || parseInt(closeTimeout) < 0) {
+            throw new Error('closeTimeout must be >= 0')
+        }
+
+        if (!Number.isInteger(maxRetries) || parseInt(maxRetries) < 0) {
+            throw new Error('maxRetries must be >= 0')
+        }
+
         super()
 
-        this.id = uuidv4()
-        this.bucketId = bucketId
+        this._id = uuidv4()
+        this._bucketId = bucketId
         this.streamMessages = []
         this.size = 0
         this.retries = 0
         this.state = STATES.OPENED
 
-        this.debug = createDebug(`streamr:storage:batch:${this.id}`)
+        this.debug = createDebug(`streamr:storage:batch:${this.getId()}`)
 
         this._maxSize = maxSize
         this._maxRecords = maxRecords
         this._maxRetries = maxRetries
         this._closeTimeout = closeTimeout
 
-        this._timeout = setTimeout(() => this.close(), closeTimeout)
+        this._timeout = setTimeout(() => this.setClose(), closeTimeout)
+    }
+
+    getId() {
+        return this._id
+    }
+
+    getBucketId() {
+        return this._bucketId
+    }
+
+    setClose() {
+        this.debug('closing batch by timeout or direct call')
+        this._setState(STATES.CLOSED)
     }
 
     setPending() {
@@ -57,11 +90,6 @@ class Batch extends EventEmitter {
         this.size += Buffer.from(streamMessage.serialize()).length
     }
 
-    close() {
-        this.debug('closing batch by timeout')
-        this._setState(STATES.CLOSED)
-    }
-
     isFull() {
         const isFull = this.size >= this._maxSize || this._getNumberOrMessages() >= this._maxRecords
         this.debug(`isFull: ${isFull}`)
@@ -79,7 +107,7 @@ class Batch extends EventEmitter {
     }
 
     _emitState() {
-        this.emit('state', this.id, this.state, this.size, this._getNumberOrMessages())
+        this.emit('state', this.getId(), this.state, this.size, this._getNumberOrMessages())
     }
 }
 

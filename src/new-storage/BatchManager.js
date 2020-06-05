@@ -13,15 +13,28 @@ const INSERT_STATEMENT_WITH_TTL = 'INSERT INTO stream_data_new '
     + 'VALUES (?, ?, ?, ?, ?, ?, ?, ?) USING TTL 259200' // 3 days
 
 class BatchManager extends EventEmitter {
-    constructor(cassandraClient, useTtl = true, logErrors = true) {
+    constructor(cassandraClient, opts) {
         super()
+
+        const defaultOptions = {
+            useTtl: false,
+            logErrors: false,
+            batchMaxSize: 10000,
+            batchMaxRecords: 10,
+            batchCloseTimeout: 1000 * 10,
+            batchMaxRetries: 120
+        }
+
+        this.opts = {
+            ...defaultOptions, ...opts
+        }
 
         this.batches = {}
         this.pendingBatches = {}
 
         this.cassandraClient = cassandraClient
-        this.insertStatement = useTtl ? INSERT_STATEMENT_WITH_TTL : INSERT_STATEMENT
-        this.logErrors = logErrors
+        this.insertStatement = this.opts.useTtl ? INSERT_STATEMENT_WITH_TTL : INSERT_STATEMENT
+        this.logErrors = this.opts.logErrors
     }
 
     store(bucketId, streamMessage) {
@@ -31,15 +44,15 @@ class BatchManager extends EventEmitter {
             debug('batch is full, closing')
             batch.close()
 
-            this.pendingBatches[batch.id] = batch
-            this.pendingBatches[batch.id].setPending()
+            this.pendingBatches[batch.getId()] = batch
+            this.pendingBatches[batch.getId()].setPending()
 
             this.batches[bucketId] = undefined
         }
 
         if (this.batches[bucketId] === undefined) {
             debug('creating new batch')
-            const newBatch = new Batch(bucketId, 10000, 10, 30000)
+            const newBatch = new Batch(bucketId, this.opts.batchMaxSize, this.opts.batchMaxRecords, this.opts.batchCloseTimeout, this.opts.batchMaxRetries)
             newBatch.on('state', (id, state, size, numberOfRecords) => this._batchChangedState(id, state, size, numberOfRecords))
             this.batches[bucketId] = newBatch
         }
@@ -57,37 +70,36 @@ class BatchManager extends EventEmitter {
     async _insert(batchId) {
         const batch = this.pendingBatches[batchId]
 
-        // if bucket not found throw
-        const queries = batch.streamMessages.map((streamMessage) => {
-            return {
-                query: this.insertStatement,
-                params: [
-                    streamMessage.getStreamId(),
-                    streamMessage.getStreamPartition(),
-                    batch.bucketId,
-                    streamMessage.getTimestamp(),
-                    streamMessage.getSequenceNumber(),
-                    streamMessage.getPublisherId(),
-                    streamMessage.getMsgChainId(),
-                    Buffer.from(streamMessage.serialize()),
-                ]
-            }
-        })
-
         try {
+            const queries = batch.streamMessages.map((streamMessage) => {
+                return {
+                    query: this.insertStatement,
+                    params: [
+                        streamMessage.getStreamId(),
+                        streamMessage.getStreamPartition(),
+                        batch.getBucketId(),
+                        streamMessage.getTimestamp(),
+                        streamMessage.getSequenceNumber(),
+                        streamMessage.getPublisherId(),
+                        streamMessage.getMsgChainId(),
+                        Buffer.from(streamMessage.serialize()),
+                    ]
+                }
+            })
+
             await this.cassandraClient.batch(queries, {
                 prepare: true
             })
 
             batch.clear()
-            delete this.pendingBatches[batch.id]
-            debug(`inserted ${batch.id}`)
+            delete this.pendingBatches[batch.getId()]
+            debug(`inserted ${batch.getId()}`)
         } catch (e) {
             const key = `${batch.streamMessages[0].getStreamId()}::${batch.streamMessages[0].getStreamPartition()}`
             if (this.logErrors) {
                 console.error(`Failed to insert (${key}): ${e.stack ? e.stack : e}`)
             }
-            debug(`failed to insert ${batch.id}, error ${e}`)
+            debug(`failed to insert ${batch.getId()}, error ${e}`)
             batch.scheduleRetry()
         }
     }
