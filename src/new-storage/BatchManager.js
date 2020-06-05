@@ -42,7 +42,7 @@ class BatchManager extends EventEmitter {
 
         if (batch && batch.isFull()) {
             debug('batch is full, closing')
-            batch.close()
+            batch.setClose()
 
             this.pendingBatches[batch.getId()] = batch
             this.pendingBatches[batch.getId()].setPending()
