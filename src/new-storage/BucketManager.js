@@ -4,21 +4,30 @@ const { TimeUuid } = require('cassandra-driver').types
 
 const Bucket = require('./Bucket')
 
-const MAX_BUCKET_SIZE = 100000 // 1024 * 1024 * 100
-const MAX_BUCKET_RECORDS = 10 // 1000 * 1000
-
 const toKey = (streamId, partition) => `${streamId}-${partition}`
 
 class BucketManager {
-    constructor(cassandraClient, logErrors = true) {
+    constructor(cassandraClient, opts) {
+        const defaultOptions = {
+            logErrors: true,
+            checkFullBucketsInterval: 1000,
+            storeBucketsInterval: 3000,
+            maxBucketSize: 10000,
+            maxBucketRecords: 10
+        }
+
+        this.opts = {
+            ...defaultOptions, ...opts
+        }
+
         this.streams = {}
         this.buckets = {}
 
         this.cassandraClient = cassandraClient
-        this.logErrors = logErrors
+        this.logErrors = this.opts.logErrors
 
-        this._checkBucketsInterval = setInterval(() => this._checkFullBuckets(), 1000)
-        this._storeBucketsInterval = setInterval(() => this._storeBuckets(), 3000)
+        this._checkFullBucketsInterval = setInterval(() => this._checkFullBuckets(), this.opts.checkFullBucketsInterval)
+        this._storeBucketsInterval = setInterval(() => this._storeBuckets(), this.opts.storeBucketsInterval)
     }
 
     getBucketId(streamId, partition, timestamp) {
@@ -163,14 +172,16 @@ class BucketManager {
 
                     const bucket = new Bucket(
                         id.toString(), streamId, partition, size, records,
-                        new Date(dateCreate).getTime(), MAX_BUCKET_RECORDS, MAX_BUCKET_SIZE
+                        new Date(dateCreate).getTime(), this.opts.maxBucketSize, this.opts.maxBucketRecords,
                     )
 
                     buckets.push(bucket)
                 })
             }
         } catch (e) {
-            console.error(e)
+            if (this.opts.logErrors) {
+                console.error(e)
+            }
         }
 
         return buckets
@@ -194,7 +205,7 @@ class BucketManager {
 
                     const bucket = new Bucket(
                         id.toString(), streamId, partition, size, records,
-                        new Date(dateCreate).getTime(), MAX_BUCKET_RECORDS, MAX_BUCKET_SIZE
+                        new Date(dateCreate).getTime(), this.opts.maxBucketSize, this.opts.maxBucketRecords,
                     )
 
                     debug(`found bucket: ${bucket.id}, size: ${size}, records: ${records}, dateCreate: ${bucket.dateCreate} for streamId: ${streamId}, partition: ${partition}, timestamp: ${timestamp}, limit: ${limit}`)
@@ -204,7 +215,9 @@ class BucketManager {
                 debug(`no buckets found for streamId: ${streamId}, partition: ${partition}, timestamp: ${timestamp}, limit: ${limit}`)
             }
         } catch (e) {
-            console.error(e)
+            if (this.opts.logErrors) {
+                console.error(e)
+            }
         }
 
         return result
@@ -224,12 +237,14 @@ class BucketManager {
             }
             debug(`inserted new bucket for streamId: ${streamId}, partition: ${partition}, timestamp: ${timestamp}`)
         } catch (e) {
-            console.error(e)
+            if (this.opts.logErrors) {
+                console.error(e)
+            }
         }
     }
 
     stop() {
-        clearInterval(this._checkBucketsInterval)
+        clearInterval(this._checkFullBucketsInterval)
         clearInterval(this._storeBucketsInterval)
     }
 
@@ -250,7 +265,9 @@ class BucketManager {
                 })
                 debug(`stored in database bucket state, params: ${params}`)
             } catch (e) {
-                console.error(e)
+                if (this.opts.logErrors) {
+                    console.error(e)
+                }
             }
         }
     }

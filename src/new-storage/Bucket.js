@@ -1,7 +1,7 @@
 const createDebug = require('debug')
 
 class Bucket {
-    constructor(id, streamId, partition, size, records, dateCreate, maxRecords, maxSize, keepAlive = 5) {
+    constructor(id, streamId, partition, size, records, dateCreate, maxSize, maxRecords, keepAlive = 5) {
         this.id = id
         this.streamId = streamId
         this.partition = partition
