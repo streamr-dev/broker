@@ -6,30 +6,29 @@ const { v4: uuidv4 } = require('uuid')
 const STATES = Object.freeze({
     OPENED: 'batch:opened',
     CLOSED: 'batch:closed',
-    PENDING: 'batch:pending',
-    INSERTED: 'batch:inserted'
+    PENDING: 'batch:pending'
 })
 
 class Batch extends EventEmitter {
     constructor(bucketId, maxSize, maxRecords, closeTimeout, maxRetries) {
         if (!bucketId || !bucketId.length) {
-            throw new Error('bucketId must be not empty string')
+            throw new TypeError('bucketId must be not empty string')
         }
 
-        if (!Number.isInteger(maxSize) || parseInt(maxSize) < 0) {
-            throw new Error('maxSize must be >= 0')
+        if (!Number.isInteger(maxSize) || parseInt(maxSize) <= 0) {
+            throw new TypeError('maxSize must be > 0')
         }
 
-        if (!Number.isInteger(maxRecords) || parseInt(maxRecords) < 0) {
-            throw new Error('maxRecords must be >= 0')
+        if (!Number.isInteger(maxRecords) || parseInt(maxRecords) <= 0) {
+            throw new TypeError('maxRecords must be > 0')
         }
 
-        if (!Number.isInteger(closeTimeout) || parseInt(closeTimeout) < 0) {
-            throw new Error('closeTimeout must be >= 0')
+        if (!Number.isInteger(closeTimeout) || parseInt(closeTimeout) <= 0) {
+            throw new TypeError('closeTimeout must be > 0')
         }
 
-        if (!Number.isInteger(maxRetries) || parseInt(maxRetries) < 0) {
-            throw new Error('maxRetries must be >= 0')
+        if (!Number.isInteger(maxRetries) || parseInt(maxRetries) <= 0) {
+            throw new TypeError('maxRetries must be > 0')
         }
 
         super()
@@ -69,6 +68,7 @@ class Batch extends EventEmitter {
         this._setState(STATES.PENDING)
     }
 
+    // TODO refactor to scheduleInsert()
     scheduleRetry() {
         this.debug(`scheduleRetry. retries:${this.retries}`)
 
