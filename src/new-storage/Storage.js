@@ -1,9 +1,10 @@
-const { Readable, Transform, Duplex } = require('stream')
+const { Readable, Transform } = require('stream')
 const EventEmitter = require('events')
 
 const debug = require('debug')('streamr:storage')
 const NodeCache = require('node-cache')
 const cassandra = require('cassandra-driver')
+const pump = require('pump')
 const { StreamMessageFactory } = require('streamr-client-protocol').MessageLayer
 
 const BatchManager = require('./BatchManager')
@@ -118,9 +119,12 @@ class Storage extends EventEmitter {
     }
 
     _fetchFromTimestamp(streamId, partition, fromTimestamp) {
-        const duplexStream = new Duplex({
+        const resultStream = new Transform({
             objectMode: true,
-            read() {},
+            transform: (row, _, done) => {
+                console.log(row)
+                done(null, this._parseRow(row))
+            }
         })
 
         const query = 'SELECT * FROM stream_data_new WHERE '
@@ -140,68 +144,22 @@ class Storage extends EventEmitter {
                 autoPage: true,
             })
 
-            let resultCount = 0
-            cassandraStream.on('data', (r) => {
-                resultCount += 1
-                if (resultCount % 1000 === 0) {
-                    cassandraStream.pause()
-                    setImmediate(() => cassandraStream.resume())
+            pump(
+                cassandraStream,
+                resultStream,
+                (err) => {
+                    if (err) {
+                        console.error('pipe finished with error', err)
+                        resultStream.push(null)
+                    }
                 }
-                duplexStream.push(this._parseRow(r))
-            }).on('end', () => {
-                duplexStream.push(null)
-            }).on('error', (err) => {
-                console.error(err)
-                duplexStream.push(null)
-            })
+            )
         }).catch((e) => {
             console.error(e)
-            duplexStream.push(null)
+            resultStream.push(null)
         })
 
-        return duplexStream
-        // //
-        // const query = 'SELECT * FROM stream_data_new WHERE '
-        //             + 'stream_id = ? AND partition = ? AND bucket_id IN ? AND ts >= ?'
-        //
-        // this.bucketManager.getBucketsFromTimestamp(streamId, partition, fromTimestamp).then((buckets) => {
-        //     const bucketsForQuery = []
-        //     for (let i = 0; i < buckets.length; i++) {
-        //         const bucket = buckets[i]
-        //         bucketsForQuery.push(bucket.id)
-        //     }
-        //
-        //     const queryParams = [streamId, partition, bucketsForQuery, fromTimestamp]
-        //     const cassandraStream = this.cassandraClient.stream(query, queryParams, {
-        //         prepare: true,
-        //         autoPage: true,
-        //     })
-        //
-        //     // To avoid blocking main thread for too long, on every 1000th message
-        //     // pause & resume the cassandraStream to give other events in the event
-        //     // queue a chance to be handled.
-        //     let resultCount = 0
-        //     cassandraStream.on('data', (r) => {
-        //         resultCount += 1
-        //         if (resultCount % 1000 === 0) {
-        //             cassandraStream.pause()
-        //             setImmediate(() => cassandraStream.resume())
-        //         }
-        //         readableStream.push(this._parseRow(r))
-        //     })
-        //     cassandraStream.on('end', () => {
-        //         readableStream.push(null)
-        //     })
-        //     cassandraStream.on('error', (err) => {
-        //         console.error(err)
-        //         readableStream.push(null)
-        //     })
-        // }).catch((e) => {
-        //     console.error(e)
-        //     readableStream.push(null)
-        // })
-        //
-        // return readableStream
+        return resultStream
     }
     //
     // _fetchFromMessageRefForPublisher(streamId, streamPartition, fromTimestamp, fromSequenceNo, publisherId, msgChainId) {
