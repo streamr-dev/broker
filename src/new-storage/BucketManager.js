@@ -176,7 +176,7 @@ class BucketManager {
                     const { id, records, size, date_create: dateCreate } = row
 
                     const bucket = new Bucket(
-                        id.toString(), streamId, partition, size, records, new Date(dateCreate).getTime(),
+                        id.toString(), streamId, partition, size, records, new Date(dateCreate),
                         this.opts.maxBucketSize, this.opts.maxBucketRecords, this.opts.bucketKeepAliveSeconds
                     )
 

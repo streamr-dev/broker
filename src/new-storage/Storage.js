@@ -1,4 +1,4 @@
-const { Readable, Transform } = require('stream')
+const { Readable, Transform, Duplex } = require('stream')
 const EventEmitter = require('events')
 
 const debug = require('debug')('streamr:storage')
@@ -106,18 +106,6 @@ class Storage extends EventEmitter {
     }
 
     requestFrom(streamId, streamPartition, fromTimestamp, fromSequenceNo, publisherId, msgChainId) {
-        // TODO replace with protocol validations.js
-        if (!Number.isInteger(streamPartition) || parseInt(streamPartition) < 0) {
-            throw new Error('streamPartition must be >= 0')
-        }
-
-        if (!Number.isInteger(fromTimestamp) || parseInt(fromTimestamp) < 0) {
-            throw new Error('fromTimestamp must be zero or positive')
-        }
-        if (fromSequenceNo != null && (!Number.isInteger(fromSequenceNo) || parseInt(fromSequenceNo) < 0)) {
-            throw new Error('fromSequenceNo must be positive')
-        }
-
         if (fromSequenceNo != null && publisherId != null && msgChainId != null) {
             return this._fetchFromMessageRefForPublisher(streamId, streamPartition, fromTimestamp,
                 fromSequenceNo, publisherId, msgChainId)
@@ -130,16 +118,7 @@ class Storage extends EventEmitter {
     }
 
     _fetchFromTimestamp(streamId, partition, fromTimestamp) {
-        // TODO replace with protocol validations.js
-        if (!Number.isInteger(partition) || parseInt(partition) < 0) {
-            throw new Error('streamPartition must be >= 0')
-        }
-
-        if (!Number.isInteger(fromTimestamp) || Number.isInteger(fromTimestamp) < 0) {
-            throw new Error('fromTimestamp must be zero or positive')
-        }
-
-        const readableStream = new Readable({
+        const duplexStream = new Duplex({
             objectMode: true,
             read() {},
         })
@@ -149,6 +128,7 @@ class Storage extends EventEmitter {
 
         this.bucketManager.getBucketsFromTimestamp(streamId, partition, fromTimestamp).then((buckets) => {
             const bucketsForQuery = []
+
             for (let i = 0; i < buckets.length; i++) {
                 const bucket = buckets[i]
                 bucketsForQuery.push(bucket.id)
@@ -160,9 +140,6 @@ class Storage extends EventEmitter {
                 autoPage: true,
             })
 
-            // To avoid blocking main thread for too long, on every 1000th message
-            // pause & resume the cassandraStream to give other events in the event
-            // queue a chance to be handled.
             let resultCount = 0
             cassandraStream.on('data', (r) => {
                 resultCount += 1
@@ -170,21 +147,61 @@ class Storage extends EventEmitter {
                     cassandraStream.pause()
                     setImmediate(() => cassandraStream.resume())
                 }
-                readableStream.push(this._parseRow(r))
-            })
-            cassandraStream.on('end', () => {
-                readableStream.push(null)
-            })
-            cassandraStream.on('error', (err) => {
+                duplexStream.push(this._parseRow(r))
+            }).on('end', () => {
+                duplexStream.push(null)
+            }).on('error', (err) => {
                 console.error(err)
-                readableStream.push(null)
+                duplexStream.push(null)
             })
         }).catch((e) => {
             console.error(e)
-            readableStream.push(null)
+            duplexStream.push(null)
         })
 
-        return readableStream
+        return duplexStream
+        // //
+        // const query = 'SELECT * FROM stream_data_new WHERE '
+        //             + 'stream_id = ? AND partition = ? AND bucket_id IN ? AND ts >= ?'
+        //
+        // this.bucketManager.getBucketsFromTimestamp(streamId, partition, fromTimestamp).then((buckets) => {
+        //     const bucketsForQuery = []
+        //     for (let i = 0; i < buckets.length; i++) {
+        //         const bucket = buckets[i]
+        //         bucketsForQuery.push(bucket.id)
+        //     }
+        //
+        //     const queryParams = [streamId, partition, bucketsForQuery, fromTimestamp]
+        //     const cassandraStream = this.cassandraClient.stream(query, queryParams, {
+        //         prepare: true,
+        //         autoPage: true,
+        //     })
+        //
+        //     // To avoid blocking main thread for too long, on every 1000th message
+        //     // pause & resume the cassandraStream to give other events in the event
+        //     // queue a chance to be handled.
+        //     let resultCount = 0
+        //     cassandraStream.on('data', (r) => {
+        //         resultCount += 1
+        //         if (resultCount % 1000 === 0) {
+        //             cassandraStream.pause()
+        //             setImmediate(() => cassandraStream.resume())
+        //         }
+        //         readableStream.push(this._parseRow(r))
+        //     })
+        //     cassandraStream.on('end', () => {
+        //         readableStream.push(null)
+        //     })
+        //     cassandraStream.on('error', (err) => {
+        //         console.error(err)
+        //         readableStream.push(null)
+        //     })
+        // }).catch((e) => {
+        //     console.error(e)
+        //     readableStream.push(null)
+        // })
+        //
+        // return readableStream
     }
     //
     // _fetchFromMessageRefForPublisher(streamId, streamPartition, fromTimestamp, fromSequenceNo, publisherId, msgChainId) {
