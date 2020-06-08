@@ -45,21 +45,12 @@ class Storage extends EventEmitter {
     }
 
     requestLast(streamId, partition, limit) {
-        // TODO replace with protocol validations.js
-        if (!Number.isInteger(partition) || parseInt(partition) < 0) {
-            throw new Error('streamPartition must be >= 0')
-        }
-
-        if (!Number.isInteger(limit) || parseInt(limit) <= 0) {
-            throw new Error('LIMIT must be strictly positive')
-        }
-
         debug(`requestLast, streamId: "${streamId}", partition: "${partition}", limit: "${limit}"`)
 
-        const GET_LAST_MESSAGES = 'SELECT * FROM stream_data_new WHERE '
-                                + 'stream_id = ? AND partition = ? AND bucket_id IN ? '
-                                + 'ORDER BY ts DESC '
-                                + 'LIMIT ?'
+        const GET_LAST_N_MESSAGES = 'SELECT * FROM stream_data_new WHERE '
+                                  + 'stream_id = ? AND partition = ? AND bucket_id IN ? '
+                                  + 'ORDER BY ts DESC, sequence_no DESC '
+                                  + 'LIMIT ?'
 
         const readableStream = new Readable({
             objectMode: true,
@@ -68,6 +59,7 @@ class Storage extends EventEmitter {
 
         this.bucketManager.getLastBuckets(streamId, partition, 10).then((buckets) => {
             const bucketsForQuery = []
+
             let total = 0
             for (let i = 0; i < buckets.length; i++) {
                 const bucket = buckets[i]
@@ -79,9 +71,9 @@ class Storage extends EventEmitter {
             }
 
             const params = [streamId, partition, bucketsForQuery, limit]
-            debug(`requestLast: ${GET_LAST_MESSAGES}, params: ${params}`)
+            debug(`requestLast: ${GET_LAST_N_MESSAGES}, params: ${params}`)
 
-            return this.cassandraClient.execute(GET_LAST_MESSAGES, params, {
+            return this.cassandraClient.execute(GET_LAST_N_MESSAGES, params, {
                 prepare: true,
                 fetchSize: 0
             })
@@ -148,8 +140,6 @@ class Storage extends EventEmitter {
             }
 
             const queryParams = [streamId, partition, bucketsForQuery, fromTimestamp]
-            console.log(query)
-            console.log(queryParams)
             const cassandraStream = this.cassandraClient.stream(query, queryParams, {
                 prepare: true,
                 autoPage: true,

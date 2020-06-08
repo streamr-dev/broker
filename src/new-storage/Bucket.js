@@ -1,7 +1,5 @@
 const createDebug = require('debug')
 
-const isDate = (date) => new Date(date) !== 'Invalid Date'
-
 class Bucket {
     constructor(id, streamId, partition, size, records, dateCreate, maxSize, maxRecords, keepAliveSeconds) {
         if (!id || !id.length) {
