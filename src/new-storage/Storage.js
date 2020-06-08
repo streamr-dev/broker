@@ -9,6 +9,8 @@ const { StreamMessageFactory } = require('streamr-client-protocol').MessageLayer
 const BatchManager = require('./BatchManager')
 const BucketManager = require('./BucketManager')
 
+const MAX_RESEND_LAST = 10000
+
 class Storage extends EventEmitter {
     constructor(cassandraClient, useTtl) {
         super()
@@ -57,34 +59,47 @@ class Storage extends EventEmitter {
             read() {},
         })
 
-        this.bucketManager.getLastBuckets(streamId, partition, 10).then((buckets) => {
-            const bucketsForQuery = []
+        let total = 0
+        const bucketsForQuery = []
+        const options = {
+            prepare: true, fetchSize: 10
+        }
 
-            let total = 0
-            for (let i = 0; i < buckets.length; i++) {
-                const bucket = buckets[i]
-                total += bucket.records
-                bucketsForQuery.push(bucket.id)
-                if (total >= limit) {
-                    break
-                }
-            }
-
+        const makeLastQuery = () => {
             const params = [streamId, partition, bucketsForQuery, limit]
             debug(`requestLast: ${GET_LAST_N_MESSAGES}, params: ${params}`)
 
-            return this.cassandraClient.execute(GET_LAST_N_MESSAGES, params, {
+            this.cassandraClient.execute(GET_LAST_N_MESSAGES, params, {
                 prepare: true,
-                fetchSize: 0
+                fetchSize: 0 // disable paging
+            }).then((resultSet) => {
+                resultSet.rows.reverse().forEach((r) => {
+                    readableStream.push(this._parseRow(r))
+                })
+                readableStream.push(null)
+            }).catch((e) => {
+                console.error(e)
+                readableStream.push(null)
             })
-        }).then((resultSet) => {
-            resultSet.rows.reverse().forEach((r) => {
-                readableStream.push(this._parseRow(r))
-            })
-            readableStream.push(null)
-        }).catch((e) => {
-            console.error(e)
-            readableStream.push(null)
+        }
+
+        // eachRow is used to get needed amount of buckets dynamically
+        this.cassandraClient.eachRow('SELECT id, records FROM bucket WHERE stream_id = ? AND partition = ?', [streamId, partition], options, (n, row) => {
+            if (total <= limit) {
+                total += row.records
+                bucketsForQuery.push(row.id)
+            }
+        }, (err, result) => {
+            if (err) {
+                console.error(err)
+            }
+
+            // if fetched buckets, but found not enough records => continue
+            if (result.nextPage && total < limit && total < MAX_RESEND_LAST) {
+                result.nextPage()
+            } else {
+                makeLastQuery()
+            }
         })
 
         return readableStream
