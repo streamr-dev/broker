@@ -24,27 +24,27 @@ describe('Bucket', () => {
 
         expect(() => {
             const a = new Bucket('id', 'streamId', 0, 0, 0)
-        }).toThrow(new TypeError('dateCreate must be not valid string date'))
+        }).toThrow(new TypeError('dateCreate must be instance of Date'))
 
         expect(() => {
-            const a = new Bucket('id', 'streamId', 0, 0, 0, '2019-07-19')
+            const a = new Bucket('id', 'streamId', 0, 0, 0, new Date('2019-07-19'))
         }).toThrow(new TypeError('maxSize must be > 0'))
 
         expect(() => {
-            const a = new Bucket('id', 'streamId', 0, 0, 0, '2019-07-19', 1)
+            const a = new Bucket('id', 'streamId', 0, 0, 0, new Date('2019-07-19'), 1)
         }).toThrow(new TypeError('maxRecords must be > 0'))
 
         expect(() => {
-            const a = new Bucket('id', 'streamId', 0, 0, 0, '2019-07-19', 1, 1)
+            const a = new Bucket('id', 'streamId', 0, 0, 0, new Date('2019-07-19'), 1, 1)
         }).toThrow(new TypeError('keepAliveSeconds must be > 0'))
 
         expect(() => {
-            const a = new Bucket('id', 'streamId', 0, 0, 0, '2019-07-19', 1, 1, 1)
+            const a = new Bucket('id', 'streamId', 0, 0, 0, new Date('2019-07-19'), 1, 1, 1)
         }).not.toThrow()
     })
 
     it('incrementBucket and isFull', () => {
-        const bucket = new Bucket('id', 'streamId', 0, 0, 0, new Date().toISOString(), 3, 9, 1)
+        const bucket = new Bucket('id', 'streamId', 0, 0, 0, new Date(), 3, 9, 1)
 
         expect(bucket.isFull()).toBeFalsy()
         bucket.incrementBucket(1, 3)
@@ -61,7 +61,7 @@ describe('Bucket', () => {
     })
 
     it('isAlive and getId', (done) => {
-        const bucket = new Bucket('id', 'streamId', 0, 0, 0, new Date().toISOString(), 3, 9, 1)
+        const bucket = new Bucket('id', 'streamId', 0, 0, 0, new Date(), 3, 9, 1)
 
         expect(bucket.getId()).toEqual('id')
         expect(bucket.isAlive()).toBeTruthy()

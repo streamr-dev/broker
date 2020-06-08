@@ -24,8 +24,8 @@ class Bucket {
             throw new TypeError('records must be => 0')
         }
 
-        if (!dateCreate || !dateCreate.length || new Date(dateCreate) === 'Invalid Date') {
-            throw new TypeError('dateCreate must be not valid string date')
+        if (!(dateCreate instanceof Date)) {
+            throw new TypeError('dateCreate must be instance of Date')
         }
 
         if (!Number.isInteger(maxSize) || parseInt(maxSize) <= 0) {
@@ -48,6 +48,7 @@ class Bucket {
         this.dateCreate = dateCreate
 
         this.debug = createDebug(`streamr:storage:bucket:${this.id}`)
+        this.debug(`init bucket: ${this.getId()}, dateCreate: ${this.dateCreate}`)
 
         this._maxSize = maxSize
         this._maxRecords = maxRecords

@@ -1,6 +1,6 @@
 const EventEmitter = require('events')
 
-const debug = require('debug')('streamr:batch-manager')
+const debug = require('debug')('streamr:storage:batch-manager')
 
 const Batch = require('./Batch')
 

@@ -1,4 +1,4 @@
-const debug = require('debug')('streamr:bucket-manager')
+const debug = require('debug')('streamr:storage:bucket-manager')
 const Heap = require('heap')
 const { TimeUuid } = require('cassandra-driver').types
 
@@ -45,6 +45,8 @@ class BucketManager {
             stream.timestamps.min = min ? Math.min(min, timestamp) : timestamp
             stream.timestamps.avg = Math.ceil((stream.timestamps.max + stream.timestamps.min) / 2)
 
+            console.log(stream)
+
             this.streams[key] = stream
         } else {
             debug(`stream ${key} not found, create new`)
@@ -77,24 +79,22 @@ class BucketManager {
         let bucketId
         debug(`checking stream: ${key}, timestamp: ${timestamp} in BucketManager state`)
 
-        if (timestamp === undefined) {
-            console.log('timestamp undefined')
-        }
-
         const stream = this.streams[key]
         if (stream) {
             const currentBuckets = stream.buckets.toArray()
+            debug('======> checking buckets')
             for (let i = 0; i < currentBuckets.length; i++) {
-                if (currentBuckets[i].dateCreate <= timestamp) {
+                debug(`bucketId: ${currentBuckets[i].getId()}, ${currentBuckets[i].dateCreate} <= ${new Date(timestamp)} = ${currentBuckets[i].dateCreate <= new Date(timestamp)}`)
+                if (currentBuckets[i].dateCreate <= new Date(timestamp)) {
                     bucketId = currentBuckets[i].getId()
-                    debug(`bucketId ${bucketId} for stream: ${key}, timestamp: ${timestamp} found`)
+                    debug(`bucketId ${bucketId} FOUND for stream: ${key}, timestamp: ${timestamp}`)
                     break
                 }
             }
         }
 
         if (!bucketId) {
-            debug(`bucketId for stream: ${key}, timestamp: ${timestamp} NOT found`)
+            debug(`bucketId NOT FOUND for stream: ${key}, timestamp: ${timestamp} `)
         }
 
         return bucketId
@@ -120,12 +120,16 @@ class BucketManager {
             // check latest known
             const currentBuckets = stream.buckets.toArray()
             let isFullOrNotFound = currentBuckets.length === 0
+            let latestBucketId
             if (currentBuckets.length) {
                 const latestBucket = currentBuckets[0]
 
                 if (latestBucket.isFull()) {
-                    debug(`latest bucket ${latestBucket.getId()} isFull: ${latestBucket.isFull()}`)
+                    latestBucketId = latestBucket.getId()
+                    debug(`latest bucket ${latestBucketId} isFull: ${latestBucket.isFull()}`)
                     isFullOrNotFound = true
+                } else {
+                    stream.timestamps.min = undefined
                 }
             }
 
@@ -136,9 +140,10 @@ class BucketManager {
                 const foundBucket = foundBuckets.length ? foundBuckets[0] : undefined
 
                 // add if found new not empty bucket
-                if (foundBucket && !foundBucket.isFull() && !(foundBucket.getId() in this.buckets)) {
+                if (foundBucket && !foundBucket.isFull() && latestBucketId !== foundBucket.getId() && !(foundBucket.getId() in this.buckets)) {
                     stream.buckets.push(foundBucket)
                     this.buckets[foundBucket.getId()] = foundBucket
+
                     stream.timestamps.min = undefined
                     isFullOrNotFound = false
                 }
@@ -206,17 +211,17 @@ class BucketManager {
                     const { id, records, size, date_create: dateCreate } = row
 
                     const bucket = new Bucket(
-                        id.toString(), streamId, partition, size, records, new Date(dateCreate).getTime(),
+                        id.toString(), streamId, partition, size, records, new Date(dateCreate),
                         this.opts.maxBucketSize, this.opts.maxBucketRecords, this.opts.bucketKeepAliveMinutes
                     )
 
                     debug(`found bucket: ${bucket.getId()}, size: ${size}, records: ${records}, dateCreate: ${bucket.dateCreate}`)
-                    debug(`for streamId: ${streamId}, partition: ${partition}, timestamp: ${timestamp}, limit: ${limit}`)
+                    debug(`for streamId: ${streamId}, partition: ${partition} ${timestamp ? `,timestamp: ${timestamp}` : ''}, limit: ${limit}`)
 
                     result.push(bucket)
                 })
             } else {
-                debug(`no buckets found for streamId: ${streamId}, partition: ${partition}, timestamp: ${timestamp}, limit: ${limit}`)
+                debug(`getLastBuckets: no buckets found for streamId: ${streamId} partition: ${partition} ${timestamp ? `,timestamp: ${timestamp}` : ''}, limit: ${limit}`)
             }
         } catch (e) {
             if (this.opts.logErrors) {
