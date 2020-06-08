@@ -12,6 +12,13 @@ const BucketManager = require('./BucketManager')
 
 const MAX_RESEND_LAST = 10000
 
+const createResultStream = () => new Transform({
+    objectMode: true,
+    transform: (row, _, done) => {
+        done(null, this._parseRow(row))
+    }
+})
+
 class Storage extends EventEmitter {
     constructor(cassandraClient, useTtl) {
         super()
@@ -54,11 +61,9 @@ class Storage extends EventEmitter {
                                   + 'stream_id = ? AND partition = ? AND bucket_id IN ? '
                                   + 'ORDER BY ts DESC, sequence_no DESC '
                                   + 'LIMIT ?'
+        const GET_BUCKETS = 'SELECT id, records FROM bucket WHERE stream_id = ? AND partition = ?'
 
-        const readableStream = new Readable({
-            objectMode: true,
-            read() {},
-        })
+        const resultStream = this._createResultStream()
 
         let total = 0
         const bucketsForQuery = []
@@ -75,17 +80,17 @@ class Storage extends EventEmitter {
                 fetchSize: 0 // disable paging
             }).then((resultSet) => {
                 resultSet.rows.reverse().forEach((r) => {
-                    readableStream.push(this._parseRow(r))
+                    resultStream.write(r)
                 })
-                readableStream.push(null)
+                resultStream.push(null)
             }).catch((e) => {
                 console.error(e)
-                readableStream.push(null)
+                resultStream.push(null)
             })
         }
 
         // eachRow is used to get needed amount of buckets dynamically
-        this.cassandraClient.eachRow('SELECT id, records FROM bucket WHERE stream_id = ? AND partition = ?', [streamId, partition], options, (n, row) => {
+        this.cassandraClient.eachRow(GET_BUCKETS, [streamId, partition], options, (n, row) => {
             if (total <= limit) {
                 total += row.records
                 bucketsForQuery.push(row.id)
@@ -103,7 +108,7 @@ class Storage extends EventEmitter {
             }
         })
 
-        return readableStream
+        return resultStream
     }
 
     requestFrom(streamId, streamPartition, fromTimestamp, fromSequenceNo, publisherId, msgChainId) {
@@ -119,13 +124,7 @@ class Storage extends EventEmitter {
     }
 
     _fetchFromTimestamp(streamId, partition, fromTimestamp) {
-        const resultStream = new Transform({
-            objectMode: true,
-            transform: (row, _, done) => {
-                console.log(row)
-                done(null, this._parseRow(row))
-            }
-        })
+        const resultStream = this._createResultStream()
 
         const query = 'SELECT * FROM stream_data_new WHERE '
                     + 'stream_id = ? AND partition = ? AND bucket_id IN ? AND ts >= ?'
@@ -139,17 +138,14 @@ class Storage extends EventEmitter {
             }
 
             const queryParams = [streamId, partition, bucketsForQuery, fromTimestamp]
-            const cassandraStream = this.cassandraClient.stream(query, queryParams, {
-                prepare: true,
-                autoPage: true,
-            })
+            const cassandraStream = this._queryWithStreamingResults(query, queryParams)
 
-            pump(
+            return pump(
                 cassandraStream,
                 resultStream,
                 (err) => {
                     if (err) {
-                        console.error('pipe finished with error', err)
+                        console.error('pump finished with error', err)
                         resultStream.push(null)
                     }
                 }
@@ -273,7 +269,7 @@ class Storage extends EventEmitter {
     _queryWithStreamingResults(query, queryParams) {
         const cassandraStream = this.cassandraClient.stream(query, queryParams, {
             prepare: true,
-            autoPage: true,
+            autoPage: true
         })
 
         // To avoid blocking main thread for too long, on every 1000th message
@@ -286,24 +282,26 @@ class Storage extends EventEmitter {
                 cassandraStream.pause()
                 setImmediate(() => cassandraStream.resume())
             }
-        })
-
-        cassandraStream.on('error', (err) => {
+        }).on('error', (err) => {
             console.error(err)
         })
 
-        return cassandraStream.pipe(new Transform({
-            objectMode: true,
-            transform: (row, _, done) => {
-                done(null, this._parseRow(row))
-            },
-        }))
+        return cassandraStream
     }
 
     _parseRow(row) {
         const streamMessage = StreamMessageFactory.deserialize(row.payload.toString())
         this.emit('read', streamMessage)
         return streamMessage
+    }
+
+    _createResultStream() {
+        return new Transform({
+            objectMode: true,
+            transform: (row, _, done) => {
+                done(null, this._parseRow(row))
+            }
+        })
     }
 }
 
