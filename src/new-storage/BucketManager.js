@@ -45,8 +45,6 @@ class BucketManager {
             stream.timestamps.min = min ? Math.min(min, timestamp) : timestamp
             stream.timestamps.avg = Math.ceil((stream.timestamps.max + stream.timestamps.min) / 2)
 
-            console.log(stream)
-
             this.streams[key] = stream
         } else {
             debug(`stream ${key} not found, create new`)
@@ -54,9 +52,9 @@ class BucketManager {
             this.streams[key] = {
                 streamId,
                 partition,
-                buckets: new Heap(((a, b) => {
+                buckets: new Heap((a, b) => {
                     return b.dateCreate - a.dateCreate
-                })),
+                }),
                 timestamps: {
                     max: timestamp,
                     avg: timestamp,
@@ -278,9 +276,33 @@ class BucketManager {
                     console.error(e)
                 }
             }
+
+            if (!bucket.isAlive()) {
+                this._removeBucket(bucket.getId(), bucket.streamId, bucket.partition)
+            }
         }
 
         setTimeout(() => this._storeBuckets(), this.opts.storeBucketsTimeout)
+    }
+
+    _removeBucket(bucketId, streamId, partition) {
+        delete this.buckets[bucketId]
+
+        const key = toKey(streamId, partition)
+        const stream = this.streams[key]
+        if (stream) {
+            const currentBuckets = stream.buckets.toArray()
+            for (let i = 0; i < currentBuckets.length; i++) {
+                if (currentBuckets[i].getId() === bucketId) {
+                    delete currentBuckets[i]
+                    break
+                }
+            }
+            stream.buckets = Heap.heapify(currentBuckets, (a, b) => {
+                return b.dateCreate - a.dateCreate
+            })
+            this.streams[key] = stream
+        }
     }
 }
 
