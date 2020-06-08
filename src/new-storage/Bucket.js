@@ -1,37 +1,43 @@
 const createDebug = require('debug')
 
+const isDate = (date) => new Date(date) !== 'Invalid Date'
+
 class Bucket {
-    constructor(id, streamId, partition, size, records, dateCreate, maxSize, maxRecords, keepAliveMinutes) {
+    constructor(id, streamId, partition, size, records, dateCreate, maxSize, maxRecords, keepAliveSeconds) {
         if (!id || !id.length) {
-            throw new Error('id must be not empty string')
+            throw new TypeError('id must be not empty string')
         }
 
-        if (!streamId || !id.length) {
-            throw new Error('streamId must be not empty string')
+        if (!streamId || !streamId.length) {
+            throw new TypeError('streamId must be not empty string')
         }
 
         if (!Number.isInteger(partition) || parseInt(partition) < 0) {
-            throw new Error('partition must be >= 0')
+            throw new TypeError('partition must be >= 0')
         }
 
         if (!Number.isInteger(size) || parseInt(size) < 0) {
-            throw new Error('size must be => 0')
+            throw new TypeError('size must be => 0')
         }
 
         if (!Number.isInteger(records) || parseInt(records) < 0) {
-            throw new Error('records must be => 0')
+            throw new TypeError('records must be => 0')
+        }
+
+        if (!dateCreate || !dateCreate.length || new Date(dateCreate) === 'Invalid Date') {
+            throw new TypeError('dateCreate must be not valid string date')
         }
 
         if (!Number.isInteger(maxSize) || parseInt(maxSize) <= 0) {
-            throw new Error('maxSize must be > 0')
+            throw new TypeError('maxSize must be > 0')
         }
 
         if (!Number.isInteger(maxRecords) || parseInt(maxRecords) <= 0) {
-            throw new Error('maxRecords must be > 0')
+            throw new TypeError('maxRecords must be > 0')
         }
 
-        if (!Number.isInteger(keepAliveMinutes) || parseInt(keepAliveMinutes) <= 0) {
-            throw new Error('keepAliveMinutes must be > 0')
+        if (!Number.isInteger(keepAliveSeconds) || parseInt(keepAliveSeconds) <= 0) {
+            throw new Error('keepAliveSeconds must be > 0')
         }
 
         this.id = id
@@ -45,9 +51,10 @@ class Bucket {
 
         this._maxSize = maxSize
         this._maxRecords = maxRecords
-        this._keepAliveMinutes = keepAliveMinutes
+        this._keepAliveSeconds = keepAliveSeconds
 
         this.ttl = new Date()
+        this._updateTTL()
     }
 
     isFull() {
@@ -69,14 +76,14 @@ class Bucket {
     }
 
     _updateTTL() {
-        this.ttl.setMinutes(this.ttl.getMinutes() + this._keepAliveMinutes)
+        this.ttl.setSeconds(this.ttl.getSeconds() + this._keepAliveSeconds)
         this.debug(`new ttl: ${this.ttl}`)
     }
 
     isAlive() {
-        const isAlive = new Date() > this.ttl
-        this.debug(`isAlive: ${isAlive}`)
-        return new Date() > this.ttl
+        const isAlive = this.ttl >= new Date()
+        this.debug(`isAlive: ${isAlive}, ${this.ttl} >= ${new Date()}`)
+        return this.ttl >= new Date()
     }
 }
 
