@@ -12,13 +12,6 @@ const BucketManager = require('./BucketManager')
 
 const MAX_RESEND_LAST = 10000
 
-const createResultStream = () => new Transform({
-    objectMode: true,
-    transform: (row, _, done) => {
-        done(null, this._parseRow(row))
-    }
-})
-
 class Storage extends EventEmitter {
     constructor(cassandraClient, useTtl) {
         super()
@@ -62,7 +55,6 @@ class Storage extends EventEmitter {
                                   + 'ORDER BY ts DESC, sequence_no DESC '
                                   + 'LIMIT ?'
         const GET_BUCKETS = 'SELECT id, records FROM bucket WHERE stream_id = ? AND partition = ?'
-
         const resultStream = this._createResultStream()
 
         let total = 0
