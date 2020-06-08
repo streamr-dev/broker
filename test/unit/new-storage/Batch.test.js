@@ -13,31 +13,32 @@ describe('Batch', () => {
         }).toThrow(new TypeError('bucketId must be not empty string'))
 
         expect(() => {
-            const a = new Batch('streamId')
+            const a = new Batch('bucketId')
         }).toThrow(new TypeError('maxSize must be > 0'))
 
         expect(() => {
-            const a = new Batch('streamId', 1)
+            const a = new Batch('bucketId', 1)
         }).toThrow(new TypeError('maxRecords must be > 0'))
 
         expect(() => {
-            const a = new Batch('streamId', 1, 1)
+            const a = new Batch('bucketId', 1, 1)
         }).toThrow(new TypeError('closeTimeout must be > 0'))
 
         expect(() => {
-            const a = new Batch('streamId', 1, 1, 1)
+            const a = new Batch('bucketId', 1, 1, 1)
         }).toThrow(new TypeError('maxRetries must be > 0'))
 
         expect(() => {
-            const a = new Batch('streamId', 1, 1, 1, 1)
+            const a = new Batch('bucketId', 1, 1, 1, 1)
         }).not.toThrow()
     })
 
     it('empty batch should emit state after closeTimeout with empty values', (done) => {
         const batch = new Batch('bucketId', 1, 1, 10, 1)
+
         expect(batch.state).toEqual(Batch.states.OPENED)
 
-        batch.on('state', (id, state, size, numberOfRecords) => {
+        batch.on('state', (bucketId, id, state, size, numberOfRecords) => {
             expect(id).toEqual(batch.getId())
             expect('bucketId').toEqual(batch.getBucketId())
             expect(state).toEqual(Batch.states.CLOSED)
@@ -48,12 +49,13 @@ describe('Batch', () => {
     })
 
     it('filled batch should emit state after closeTimeout with not empty values', (done) => {
-        const batch = new Batch('streamId', 1, 1, 10, 1)
+        const batch = new Batch('bucketId', 1, 1, 10, 1)
+
         batch.push(streamMessage)
         batch.push(streamMessage)
         batch.push(streamMessage)
 
-        batch.on('state', (id, state, size, numberOfRecords) => {
+        batch.on('state', (bucketId, id, state, size, numberOfRecords) => {
             expect(id).toEqual(batch.getId())
             expect(state).toEqual(Batch.states.CLOSED)
             expect(size).toEqual(9)
@@ -63,7 +65,7 @@ describe('Batch', () => {
     })
 
     it('isFull by size', () => {
-        const batch = new Batch('streamId', 9, 99999, 10, 1)
+        const batch = new Batch('bucketId', 9, 99999, 10, 1)
 
         expect(batch.isFull()).toEqual(false)
         batch.push(streamMessage)
@@ -107,27 +109,27 @@ describe('Batch', () => {
         expect(batch._timeout._idleTimeout).toEqual(-1)
     })
 
-    it('setPending() emits pending state', (done) => {
+    it('setClose() emits close state', (done) => {
         const batch = new Batch('streamId', 3, 3, 10, 1)
 
-        batch.on('state', (id, state, size, numberOfRecords) => {
-            expect(state).toEqual(Batch.states.PENDING)
+        batch.on('state', (bucketId, id, state, size, numberOfRecords) => {
+            expect(state).toEqual(Batch.states.CLOSED)
             done()
         })
 
-        batch.setPending()
+        batch.setClose()
     })
 
     it('batch fires first close state, then after setPending', (done) => {
-        const batch = new Batch('streamId', 3, 3, 10, 1)
-        batch.setPending()
+        const batch = new Batch('bucketId', 3, 3, 10, 1)
 
+        batch.setClose()
         expect(batch.retries).toEqual(0)
-        batch.scheduleRetry()
+        batch.scheduleInsert()
         expect(batch.retries).toEqual(1)
 
         // batch on each retry emits PENDING state
-        batch.on('state', (id, state, size, numberOfRecords) => {
+        batch.on('state', (bucketId, id, state, size, numberOfRecords) => {
             expect(state).toEqual(Batch.states.PENDING)
             expect(batch.retries).toEqual(1)
 

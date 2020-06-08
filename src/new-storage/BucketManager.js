@@ -11,10 +11,10 @@ class BucketManager {
         const defaultOptions = {
             logErrors: true,
             checkFullBucketsTimeout: 1000,
-            storeBucketsTimeout: 3000,
+            storeBucketsTimeout: 1000,
             maxBucketSize: 10000,
             maxBucketRecords: 10,
-            bucketKeepAliveMinutes: 5
+            bucketKeepAliveSeconds: 60
         }
 
         this.opts = {
@@ -177,7 +177,7 @@ class BucketManager {
 
                     const bucket = new Bucket(
                         id.toString(), streamId, partition, size, records, new Date(dateCreate).getTime(),
-                        this.opts.maxBucketSize, this.opts.maxBucketRecords, this.opts.bucketKeepAliveMinutes
+                        this.opts.maxBucketSize, this.opts.maxBucketRecords, this.opts.bucketKeepAliveSeconds
                     )
 
                     buckets.push(bucket)
@@ -210,7 +210,7 @@ class BucketManager {
 
                     const bucket = new Bucket(
                         id.toString(), streamId, partition, size, records, new Date(dateCreate),
-                        this.opts.maxBucketSize, this.opts.maxBucketRecords, this.opts.bucketKeepAliveMinutes
+                        this.opts.maxBucketSize, this.opts.maxBucketRecords, this.opts.bucketKeepAliveSeconds
                     )
 
                     debug(`found bucket: ${bucket.getId()}, size: ${size}, records: ${records}, dateCreate: ${bucket.dateCreate}`)

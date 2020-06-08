@@ -59,24 +59,20 @@ class Batch extends EventEmitter {
     }
 
     setClose() {
+        clearTimeout(this._timeout)
         this.debug('closing batch by timeout or direct call')
         this._setState(STATES.CLOSED)
     }
 
-    setPending() {
+    scheduleInsert() {
         clearTimeout(this._timeout)
-        this._setState(STATES.PENDING)
-    }
-
-    // TODO refactor to scheduleInsert()
-    scheduleRetry() {
         this.debug(`scheduleRetry. retries:${this.retries}`)
 
         if (this.retries < this._maxRetries) {
             this.retries += 1
         }
 
-        clearTimeout(this._timeout)
+        this._setState(STATES.PENDING)
         this._timeout = setTimeout(() => this._emitState(), this._closeTimeout * this.retries)
     }
 
@@ -107,7 +103,7 @@ class Batch extends EventEmitter {
     }
 
     _emitState() {
-        this.emit('state', this.getId(), this.state, this.size, this._getNumberOrMessages())
+        this.emit('state', this._bucketId, this.getId(), this.state, this.size, this._getNumberOrMessages())
     }
 }
 
