@@ -115,13 +115,27 @@ class Storage extends EventEmitter {
         throw new Error('Invalid combination of requestFrom arguments')
     }
 
+    requestRange(streamId, streamPartition, fromTimestamp, fromSequenceNo, toTimestamp, toSequenceNo, publisherId, msgChainId) {
+        if (fromSequenceNo != null && toSequenceNo != null && publisherId != null && msgChainId != null) {
+            return this._fetchBetweenMessageRefsForPublisher(streamId, streamPartition, fromTimestamp,
+                fromSequenceNo, toTimestamp, toSequenceNo, publisherId, msgChainId)
+        }
+        if ((fromSequenceNo == null || fromSequenceNo === 0)
+            && (toSequenceNo == null || toSequenceNo === 0)
+            && publisherId == null && msgChainId == null) {
+            return this._fetchBetweenTimestamps(streamId, streamPartition, fromTimestamp, toTimestamp)
+        }
+
+        throw new Error('Invalid combination of requestFrom arguments')
+    }
+
     _fetchFromTimestamp(streamId, partition, fromTimestamp) {
         const resultStream = this._createResultStream()
 
         const query = 'SELECT * FROM stream_data_new WHERE '
                     + 'stream_id = ? AND partition = ? AND bucket_id IN ? AND ts >= ?'
 
-        this.bucketManager.getBucketsFromTimestamp(streamId, partition, fromTimestamp).then((buckets) => {
+        this.bucketManager.getBucketsByTimestamp(streamId, partition, fromTimestamp).then((buckets) => {
             const bucketsForQuery = []
 
             for (let i = 0; i < buckets.length; i++) {
@@ -149,74 +163,80 @@ class Storage extends EventEmitter {
 
         return resultStream
     }
-    //
-    // _fetchFromMessageRefForPublisher(streamId, streamPartition, fromTimestamp, fromSequenceNo, publisherId, msgChainId) {
-    //     // Cassandra doesn't allow ORs in WHERE clause so we need to do 2 queries.
-    //     // Once a range (id/partition/ts/sequence_no) has been selected in Cassandra, filtering it by publisher_id requires to ALLOW FILTERING.
-    //     const query1 = 'SELECT * FROM stream_data WHERE id = ? AND partition = ? AND ts = ? AND sequence_no >= ? AND publisher_id = ? '
-    //         + 'AND msg_chain_id = ? ORDER BY ts ASC, sequence_no ASC ALLOW FILTERING'
-    //     const query2 = 'SELECT * FROM stream_data WHERE id = ? AND partition = ? AND ts > ? AND publisher_id = ? '
-    //         + 'AND msg_chain_id = ? ORDER BY ts ASC, sequence_no ASC ALLOW FILTERING'
-    //     const queryParams1 = [streamId, streamPartition, fromTimestamp, fromSequenceNo, publisherId, msgChainId]
-    //     const queryParams2 = [streamId, streamPartition, fromTimestamp, publisherId, msgChainId]
-    //     const stream1 = this._queryWithStreamingResults(query1, queryParams1)
-    //     const stream2 = this._queryWithStreamingResults(query2, queryParams2)
-    //     return merge2(stream1, stream2)
-    // }
 
-    requestRange(
-        streamId,
-        streamPartition,
-        fromTimestamp,
-        fromSequenceNo,
-        toTimestamp,
-        toSequenceNo,
-        publisherId,
-        msgChainId
-    ) {
-        if (!Number.isInteger(fromTimestamp)) {
-            throw new Error('fromTimestamp is not an integer')
-        }
-        if (fromSequenceNo != null && !Number.isInteger(fromSequenceNo)) {
-            throw new Error('fromSequenceNo is not an integer')
-        }
-        if (!Number.isInteger(toTimestamp)) {
-            throw new Error('toTimestamp is not an integer')
-        }
-        if (toSequenceNo != null && !Number.isInteger(toSequenceNo)) {
-            throw new Error('toSequenceNo is not an integer')
-        }
+    _fetchBetweenTimestamps(streamId, partition, fromTimestamp, toTimestamp) {
+        const resultStream = this._createResultStream()
 
-        if (fromSequenceNo != null && toSequenceNo != null && publisherId != null && msgChainId != null) {
-            // if (toTimestamp > (Date.now() - RANGE_THRESHOLD)) {
-            //     const periodicQuery = new PeriodicQuery(() => this._fetchBetweenMessageRefsForPublisher(streamId, streamPartition, fromTimestamp,
-            //         fromSequenceNo, toTimestamp, toSequenceNo, publisherId, msgChainId), RETRY_INTERVAL, RETRY_TIMEOUT)
-            //     return periodicQuery.getStreamingResults()
-            // }
-            // return this._fetchBetweenMessageRefsForPublisher(streamId, streamPartition, fromTimestamp,
-            //     fromSequenceNo, toTimestamp, toSequenceNo, publisherId, msgChainId)
-        }
-        if ((fromSequenceNo == null || fromSequenceNo === 0) && (toSequenceNo == null || toSequenceNo === 0)
-            && publisherId == null && msgChainId == null) {
-            return this._fetchBetweenTimestamps(streamId, streamPartition, fromTimestamp, toTimestamp)
-        }
+        const query = 'SELECT * FROM stream_data_new WHERE '
+                    + 'stream_id = ? AND partition = ? AND bucket_id IN ? AND ts >= ? AND ts <= ?'
 
-        throw new Error('Invalid combination of requestFrom arguments')
+        this.bucketManager.getBucketsByTimestamp(streamId, partition, fromTimestamp, toTimestamp).then((buckets) => {
+            const bucketsForQuery = []
+
+            for (let i = 0; i < buckets.length; i++) {
+                const bucket = buckets[i]
+                bucketsForQuery.push(bucket.id)
+            }
+
+            const queryParams = [streamId, partition, bucketsForQuery, fromTimestamp, toTimestamp]
+            const cassandraStream = this._queryWithStreamingResults(query, queryParams)
+
+            return pump(
+                cassandraStream,
+                resultStream,
+                (err) => {
+                    if (err) {
+                        console.error('pump finished with error', err)
+                        resultStream.push(null)
+                    }
+                }
+            )
+        }).catch((e) => {
+            console.error(e)
+            resultStream.push(null)
+        })
+
+        return resultStream
     }
 
-    // _fetchBetweenTimestamps(streamId, streamPartition, from, to) {
-    //     if (!Number.isInteger(from)) {
-    //         throw new Error('from is not an integer')
-    //     }
-    //
-    //     if (!Number.isInteger(to)) {
-    //         throw new Error('to is not an integer')
-    //     }
-    //
-    //     const query = 'SELECT * FROM stream_data WHERE id = ? AND partition = ? AND ts >= ? AND ts <= ? ORDER BY ts ASC, sequence_no ASC'
-    //     const queryParams = [streamId, streamPartition, from, to]
-    //     return this._queryWithStreamingResults(query, queryParams)
-    // }
+    _fetchFromMessageRefForPublisher(streamId, partition, fromTimestamp, fromSequenceNo, publisherId, msgChainId) {
+        const resultStream = this._createResultStream()
+
+        const query = 'SELECT * FROM stream_data_new '
+                    + 'WHERE stream_id = ? AND partition = ? AND bucket_id IN ? AND '
+                    + 'ts >= ? AND sequence_no >= ? AND publisher_id = ? AND '
+                    + 'msg_chain_id = ? '
+                    + 'ORDER BY ts ASC, sequence_no ASC ALLOW FILTERING'
+
+        this.bucketManager.getBucketsByTimestamp(streamId, partition, fromTimestamp).then((buckets) => {
+            const bucketsForQuery = []
+
+            for (let i = 0; i < buckets.length; i++) {
+                const bucket = buckets[i]
+                bucketsForQuery.push(bucket.id)
+            }
+
+            const queryParams = [streamId, partition, bucketsForQuery, fromTimestamp, fromSequenceNo, publisherId, msgChainId]
+            const cassandraStream = this._queryWithStreamingResults(query, queryParams)
+
+            return pump(
+                cassandraStream,
+                resultStream,
+                (err) => {
+                    if (err) {
+                        console.error('pump finished with error', err)
+                        resultStream.push(null)
+                    }
+                }
+            )
+        }).catch((e) => {
+            console.error(e)
+            resultStream.push(null)
+        })
+
+        return resultStream
+    }
+
     //
     // _fetchBetweenMessageRefsForPublisher(
     //     streamId,

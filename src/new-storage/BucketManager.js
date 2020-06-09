@@ -160,14 +160,31 @@ class BucketManager {
         setTimeout(() => this._checkFullBuckets(), this.opts.checkFullBucketsTimeout)
     }
 
-    async getBucketsFromTimestamp(streamId, partition, fromTimestamp) {
-        const GET_LAST_BUCKETS_TIMESTAMP = 'SELECT * FROM bucket WHERE stream_id = ? and partition = ? AND date_create >= ?'
-        const params = [streamId, partition, fromTimestamp]
+    async getBucketsByTimestamp(streamId, partition, fromTimestamp = undefined, toTimestamp = undefined) {
+        const GET_LAST_BUCKETS_RANGE_TIMESTAMP = 'SELECT * FROM bucket WHERE stream_id = ? and partition = ? AND date_create >= ? AND date_create <= ?'
+        const GET_LAST_BUCKETS_FROM_TIMESTAMP = 'SELECT * FROM bucket WHERE stream_id = ? and partition = ? AND date_create >= ?'
+        const GET_LAST_BUCKETS_TO_TIMESTAMP = 'SELECT * FROM bucket WHERE stream_id = ? and partition = ? AND date_create <= ?'
+
+        let query
+        let params
+
+        if (fromTimestamp && toTimestamp) {
+            query = GET_LAST_BUCKETS_RANGE_TIMESTAMP
+            params = [streamId, partition, fromTimestamp, toTimestamp]
+        } else if (fromTimestamp && !toTimestamp) {
+            query = GET_LAST_BUCKETS_FROM_TIMESTAMP
+            params = [streamId, partition, fromTimestamp]
+        } else if (!fromTimestamp && toTimestamp) {
+            query = GET_LAST_BUCKETS_TO_TIMESTAMP
+            params = [streamId, partition, toTimestamp]
+        } else {
+            throw TypeError('Not correct combination of fromTimestamp and toTimestamp')
+        }
 
         const buckets = []
 
         try {
-            const resultSet = await this.cassandraClient.execute(GET_LAST_BUCKETS_TIMESTAMP, params, {
+            const resultSet = await this.cassandraClient.execute(query, params, {
                 prepare: true,
             })
 
