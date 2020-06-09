@@ -143,7 +143,7 @@ class Storage extends EventEmitter {
 
         this.bucketManager.getLastBuckets(streamId, partition, 1, fromTimestamp).then((buckets) => {
             if (!buckets.length) {
-                throw Error('Buckets not found')
+                throw Error(`bucket for ${fromTimestamp} not not found`)
             }
             const startBucketTimestamp = buckets[0].dateCreate
             return this.bucketManager.getBucketsByTimestamp(streamId, partition, startBucketTimestamp)
@@ -182,8 +182,16 @@ class Storage extends EventEmitter {
         const query = 'SELECT * FROM stream_data_new WHERE '
                     + 'stream_id = ? AND partition = ? AND bucket_id IN ? AND ts >= ? AND ts <= ?'
 
-        this.bucketManager.getBucketsByTimestamp(streamId, partition, fromTimestamp, toTimestamp).then((buckets) => {
-            console.log(buckets)
+        Promise.all([
+            this.bucketManager.getLastBuckets(streamId, partition, 1, fromTimestamp),
+            this.bucketManager.getLastBuckets(streamId, partition, 1, toTimestamp),
+        ]).then((results) => {
+            const date1 = results[0][0].dateCreate
+            const date2 = results[1][0].dateCreate
+            return [Math.min(date1, date2), Math.max(date1, date2)]
+        }).then(([startBucketDate, endBucketDate]) => {
+            return this.bucketManager.getBucketsByTimestamp(streamId, partition, startBucketDate, endBucketDate)
+        }).then((buckets) => {
             const bucketsForQuery = []
 
             for (let i = 0; i < buckets.length; i++) {
@@ -204,10 +212,11 @@ class Storage extends EventEmitter {
                     }
                 }
             )
-        }).catch((e) => {
-            console.error(e)
-            resultStream.push(null)
         })
+            .catch((e) => {
+                console.error(e)
+                resultStream.push(null)
+            })
 
         return resultStream
     }
@@ -259,7 +268,16 @@ class Storage extends EventEmitter {
             + 'publisher_id = ? AND msg_chain_id = ? '
             + 'ORDER BY ts ASC, sequence_no ASC ALLOW FILTERING'
 
-        this.bucketManager.getBucketsByTimestamp(streamId, partition, fromTimestamp, toTimestamp).then((buckets) => {
+        Promise.all([
+            this.bucketManager.getLastBuckets(streamId, partition, 1, fromTimestamp),
+            this.bucketManager.getLastBuckets(streamId, partition, 1, toTimestamp),
+        ]).then((results) => {
+            const date1 = results[0][0].dateCreate
+            const date2 = results[1][0].dateCreate
+            return [Math.min(date1, date2), Math.max(date1, date2)]
+        }).then(([startBucketDate, endBucketDate]) => {
+            return this.bucketManager.getBucketsByTimestamp(streamId, partition, startBucketDate, endBucketDate)
+        }).then((buckets) => {
             const bucketsForQuery = []
 
             for (let i = 0; i < buckets.length; i++) {
@@ -334,6 +352,7 @@ class Storage extends EventEmitter {
         return new Transform({
             objectMode: true,
             transform: (row, _, done) => {
+                console.log(this._parseRow(row))
                 done(null, this._parseRow(row))
             }
         })
