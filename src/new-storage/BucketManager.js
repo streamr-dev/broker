@@ -236,7 +236,7 @@ class BucketManager {
                     result.push(bucket)
                 })
             } else {
-                debug(`getLastBuckets: no buckets found for streamId: ${streamId} partition: ${partition} ${timestamp ? `,timestamp: ${timestamp}` : ''}, limit: ${limit}`)
+                debug(`getLastBuckets: no buckets found for streamId: ${streamId} partition: ${partition}${timestamp ? ` ,timestamp: ${timestamp}` : ''}, limit: ${limit}`)
             }
         } catch (e) {
             if (this.opts.logErrors) {

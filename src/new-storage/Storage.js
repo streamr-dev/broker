@@ -141,7 +141,13 @@ class Storage extends EventEmitter {
         const query = 'SELECT * FROM stream_data_new WHERE '
                     + 'stream_id = ? AND partition = ? AND bucket_id IN ? AND ts >= ?'
 
-        this.bucketManager.getBucketsByTimestamp(streamId, partition, fromTimestamp).then((buckets) => {
+        this.bucketManager.getLastBuckets(streamId, partition, 1, fromTimestamp).then((buckets) => {
+            if (!buckets.length) {
+                throw Error('Buckets not found')
+            }
+            const startBucketTimestamp = buckets[0].dateCreate
+            return this.bucketManager.getBucketsByTimestamp(streamId, partition, startBucketTimestamp)
+        }).then((buckets) => {
             const bucketsForQuery = []
 
             for (let i = 0; i < buckets.length; i++) {
