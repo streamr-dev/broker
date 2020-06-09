@@ -1,4 +1,4 @@
-const { Readable, Transform } = require('stream')
+const { Transform } = require('stream')
 const EventEmitter = require('events')
 
 const debug = require('debug')('streamr:storage')
@@ -268,6 +268,7 @@ class Storage extends EventEmitter {
             + 'publisher_id = ? AND msg_chain_id = ? '
             + 'ORDER BY ts ASC, sequence_no ASC ALLOW FILTERING'
 
+        // TODO replace with allSettled
         Promise.all([
             this.bucketManager.getLastBuckets(streamId, partition, 1, fromTimestamp),
             this.bucketManager.getLastBuckets(streamId, partition, 1, toTimestamp),

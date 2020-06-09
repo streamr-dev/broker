@@ -38,14 +38,16 @@ class BucketManager {
             debug(`stream ${key} found`)
             bucketId = this._findBucketId(key, timestamp)
 
-            const stream = this.streams[key]
-            const { max, min } = stream.timestamps
+            if (!bucketId) {
+                const stream = this.streams[key]
+                const { max, min } = stream.timestamps
 
-            stream.timestamps.max = max ? Math.max(max, timestamp) : timestamp
-            stream.timestamps.min = min ? Math.min(min, timestamp) : timestamp
-            stream.timestamps.avg = Math.ceil((stream.timestamps.max + stream.timestamps.min) / 2)
+                stream.timestamps.max = max ? Math.max(max, timestamp) : timestamp
+                stream.timestamps.min = min ? Math.min(min, timestamp) : timestamp
+                stream.timestamps.avg = Math.ceil((stream.timestamps.max + stream.timestamps.min) / 2)
 
-            this.streams[key] = stream
+                this.streams[key] = stream
+            }
         } else {
             debug(`stream ${key} not found, create new`)
 
@@ -79,20 +81,30 @@ class BucketManager {
 
         const stream = this.streams[key]
         if (stream) {
-            const currentBuckets = stream.buckets.toArray()
-            debug('======> checking buckets')
-            for (let i = 0; i < currentBuckets.length; i++) {
-                debug(`bucketId: ${currentBuckets[i].getId()}, ${currentBuckets[i].dateCreate} <= ${new Date(timestamp)} = ${currentBuckets[i].dateCreate <= new Date(timestamp)}`)
-                if (currentBuckets[i].dateCreate <= new Date(timestamp)) {
-                    bucketId = currentBuckets[i].getId()
-                    debug(`bucketId ${bucketId} FOUND for stream: ${key}, timestamp: ${timestamp}`)
-                    break
+            const latestBucket = stream.buckets.peek()
+
+            // if latest bucket is full, wait for new one
+            if (latestBucket && latestBucket.isFull()) {
+                bucketId = undefined
+            } else if (latestBucket && !latestBucket.isFull() && latestBucket.dateCreate <= new Date(timestamp)) {
+                bucketId = latestBucket.getId()
+            } else {
+                // check buckets in the past
+                const currentBuckets = stream.buckets.toArray()
+                currentBuckets.shift()
+
+                for (let i = 0; i < currentBuckets.length; i++) {
+                    if (currentBuckets[i].dateCreate <= new Date(timestamp)) {
+                        bucketId = currentBuckets[i].getId()
+                        debug(`bucketId ${bucketId} FOUND for stream: ${key}, timestamp: ${timestamp}`)
+                        break
+                    }
                 }
             }
         }
 
         if (!bucketId) {
-            debug(`bucketId NOT FOUND for stream: ${key}, timestamp: ${timestamp} `)
+            debug(`bucketId NOT FOUND or is FULL for stream: ${key}, timestamp: ${timestamp} `)
         }
 
         return bucketId
@@ -272,11 +284,12 @@ class BucketManager {
         clearInterval(this._storeBucketsInterval)
     }
 
-    async _storeBuckets() {
+    _storeBuckets() {
         const UPDATE_BUCKET = 'UPDATE bucket SET size = ?, records = ? WHERE stream_id = ? AND partition = ? AND date_create = ?'
 
-        // eslint-disable-next-line no-restricted-syntax
-        for (const bucket of Object.values(this.buckets)) {
+        const notStoredBuckets = Object.values(this.buckets).filter((bucket) => !bucket.isStored())
+
+        notStoredBuckets.forEach(async (bucket) => {
             const {
                 size, records, streamId, partition, dateCreate
             } = bucket
@@ -294,10 +307,12 @@ class BucketManager {
                 }
             }
 
+            bucket.setStored()
+
             if (!bucket.isAlive()) {
                 this._removeBucket(bucket.getId(), bucket.streamId, bucket.partition)
             }
-        }
+        })
 
         setTimeout(() => this._storeBuckets(), this.opts.storeBucketsTimeout)
     }

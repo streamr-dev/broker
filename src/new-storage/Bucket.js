@@ -53,7 +53,16 @@ class Bucket {
         this._keepAliveSeconds = keepAliveSeconds
 
         this.ttl = new Date()
+        this._stored = true
         this._updateTTL()
+    }
+
+    isStored() {
+        return this._stored
+    }
+
+    setStored() {
+        this._stored = true
     }
 
     isFull() {
@@ -71,6 +80,8 @@ class Bucket {
         this.records += records
 
         this.debug(`incremented bucket => size: ${this.size}, records: ${this.records}`)
+
+        this._stored = false
         this._updateTTL()
     }
 
