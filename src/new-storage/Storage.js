@@ -103,27 +103,33 @@ class Storage extends EventEmitter {
         return resultStream
     }
 
-    requestFrom(streamId, streamPartition, fromTimestamp, fromSequenceNo, publisherId, msgChainId) {
+    requestFrom(streamId, partition, fromTimestamp, fromSequenceNo, publisherId, msgChainId) {
+        debug(`requestFrom, streamId: "${streamId}", partition: "${partition}", fromTimestamp: "${fromTimestamp}", fromSequenceNo: `
+            + `"${fromSequenceNo}", publisherId: "${publisherId}", msgChainId: "${msgChainId}"`)
+
         if (fromSequenceNo != null && publisherId != null && msgChainId != null) {
-            return this._fetchFromMessageRefForPublisher(streamId, streamPartition, fromTimestamp,
+            return this._fetchFromMessageRefForPublisher(streamId, partition, fromTimestamp,
                 fromSequenceNo, publisherId, msgChainId)
         }
         if ((fromSequenceNo == null || fromSequenceNo === 0) && publisherId == null && msgChainId == null) {
-            return this._fetchFromTimestamp(streamId, streamPartition, fromTimestamp)
+            return this._fetchFromTimestamp(streamId, partition, fromTimestamp)
         }
 
         throw new Error('Invalid combination of requestFrom arguments')
     }
 
-    requestRange(streamId, streamPartition, fromTimestamp, fromSequenceNo, toTimestamp, toSequenceNo, publisherId, msgChainId) {
+    requestRange(streamId, partition, fromTimestamp, fromSequenceNo, toTimestamp, toSequenceNo, publisherId, msgChainId) {
+        debug(`requestRange, streamId: "${streamId}", partition: "${partition}", fromTimestamp: "${fromTimestamp}", fromSequenceNo: "${fromSequenceNo}"`
+            + `, toTimestamp: "${toTimestamp}", toSequenceNo: "${toSequenceNo}", publisherId: "${publisherId}", msgChainId: "${msgChainId}"`)
+
         if (fromSequenceNo != null && toSequenceNo != null && publisherId != null && msgChainId != null) {
-            return this._fetchBetweenMessageRefsForPublisher(streamId, streamPartition, fromTimestamp,
+            return this._fetchBetweenMessageRefsForPublisher(streamId, partition, fromTimestamp,
                 fromSequenceNo, toTimestamp, toSequenceNo, publisherId, msgChainId)
         }
         if ((fromSequenceNo == null || fromSequenceNo === 0)
             && (toSequenceNo == null || toSequenceNo === 0)
             && publisherId == null && msgChainId == null) {
-            return this._fetchBetweenTimestamps(streamId, streamPartition, fromTimestamp, toTimestamp)
+            return this._fetchBetweenTimestamps(streamId, partition, fromTimestamp, toTimestamp)
         }
 
         throw new Error('Invalid combination of requestFrom arguments')
@@ -237,7 +243,6 @@ class Storage extends EventEmitter {
 
         return resultStream
     }
-
 
     _fetchBetweenMessageRefsForPublisher(streamId, partition, fromTimestamp, fromSequenceNo, toTimestamp, toSequenceNo, publisherId, msgChainId) {
         const resultStream = this._createResultStream()
