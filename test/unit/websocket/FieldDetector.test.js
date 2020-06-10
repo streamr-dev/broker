@@ -176,6 +176,4 @@ describe('FieldDetector#detectAndSetFields', () => {
 
         expect(streamFetcher.setFields).toHaveBeenCalledTimes(3)
     })
-
-
 })
