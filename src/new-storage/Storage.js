@@ -21,8 +21,8 @@ class Storage extends EventEmitter {
         this.bucketManager = new BucketManager(cassandraClient, true)
 
         this.pendingMessages = new NodeCache({
-            stdTTL: 3,
-            checkperiod: 3
+            stdTTL: 1,
+            checkperiod: 1
         })
 
         this.pendingMessages.on('expired', (messageId, streamMessage) => {

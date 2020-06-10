@@ -67,7 +67,7 @@ class Bucket {
 
     isFull() {
         const isFull = this.size >= this._maxSize || this.records >= this._maxRecords
-        this.debug(`isFull: ${isFull} => ${this.size} >= ${this._maxSize} || ${this.records} >= ${this._maxRecords}`)
+        // this.debug(`isFull: ${isFull} => ${this.size} >= ${this._maxSize} || ${this.records} >= ${this._maxRecords}`)
         return isFull
     }
 

@@ -117,16 +117,6 @@ class BucketManager {
             const stream = this.streams[streamIds[i]]
             const minTimestamp = stream.timestamps.min
 
-            console.log(stream)
-
-            if (!minTimestamp) {
-                console.log('=====>skiiping')
-                // eslint-disable-next-line no-continue
-                continue
-            }
-
-            console.log('=====>checkkiii')
-
             // check latest known
             const currentBuckets = stream.buckets.toArray()
             let isFullOrNotFound = currentBuckets.length === 0
@@ -268,9 +258,6 @@ class BucketManager {
             await this.cassandraClient.execute(INSERT_NEW_BUCKET, params, {
                 prepare: true,
             })
-            if (Number.isNaN(timestamp)) {
-                console.log('isNaN timestamp')
-            }
             debug(`inserted new bucket for streamId: ${streamId}, partition: ${partition}, timestamp: ${timestamp}`)
         } catch (e) {
             if (this.opts.logErrors) {
