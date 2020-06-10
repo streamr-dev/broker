@@ -170,17 +170,17 @@ class BucketManager {
         let query
         let params
 
-        if (fromTimestamp && toTimestamp) {
+        if (fromTimestamp !== undefined && toTimestamp !== undefined) {
             query = GET_LAST_BUCKETS_RANGE_TIMESTAMP
             params = [streamId, partition, fromTimestamp, toTimestamp]
-        } else if (fromTimestamp && !toTimestamp) {
+        } else if (fromTimestamp !== undefined && toTimestamp === undefined) {
             query = GET_LAST_BUCKETS_FROM_TIMESTAMP
             params = [streamId, partition, fromTimestamp]
-        } else if (!fromTimestamp && toTimestamp) {
+        } else if (fromTimestamp === undefined && toTimestamp !== undefined) {
             query = GET_LAST_BUCKETS_TO_TIMESTAMP
             params = [streamId, partition, toTimestamp]
         } else {
-            throw TypeError('Not correct combination of fromTimestamp and toTimestamp')
+            throw TypeError(`Not correct combination of fromTimestamp (${fromTimestamp}) and toTimestamp (${toTimestamp})`)
         }
 
         const buckets = []
@@ -216,10 +216,10 @@ class BucketManager {
         const GET_LAST_BUCKETS_TIMESTAMP = 'SELECT * FROM bucket WHERE stream_id = ? and partition = ? AND date_create <= ? LIMIT ?'
 
         const result = []
-        const params = timestamp ? [streamId, partition, timestamp, limit] : [streamId, partition, limit]
+        const params = timestamp !== undefined ? [streamId, partition, timestamp, limit] : [streamId, partition, limit]
 
         try {
-            const resultSet = await this.cassandraClient.execute(timestamp ? GET_LAST_BUCKETS_TIMESTAMP : GET_LAST_BUCKETS, params, {
+            const resultSet = await this.cassandraClient.execute(timestamp !== undefined ? GET_LAST_BUCKETS_TIMESTAMP : GET_LAST_BUCKETS, params, {
                 prepare: true,
             })
 
@@ -238,7 +238,7 @@ class BucketManager {
                     result.push(bucket)
                 })
             } else {
-                debug(`getLastBuckets: no buckets found for streamId: ${streamId} partition: ${partition}${timestamp ? ` ,timestamp: ${timestamp}` : ''}, limit: ${limit}`)
+                debug(`getLastBuckets: no buckets found for streamId: ${streamId} partition: ${partition}${timestamp !== undefined ? ` ,timestamp: ${timestamp}` : ''}, limit: ${limit}`)
             }
         } catch (e) {
             if (this.opts.logErrors) {

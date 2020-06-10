@@ -280,17 +280,12 @@ class Storage extends EventEmitter {
     _fetchBetweenMessageRefsForPublisher(streamId, partition, fromTimestamp, fromSequenceNo, toTimestamp, toSequenceNo, publisherId, msgChainId) {
         const resultStream = this._createResultStream()
 
-        // const query = 'SELECT * FROM stream_data_new '
-        //     + 'WHERE stream_id = ? AND partition = ? AND bucket_id IN ? AND '
-        //     + 'ts >= ? AND ts <= ? AND sequence_no >= ? AND sequence_no <= ? AND '
-        //     + 'publisher_id = ? AND msg_chain_id = ? '
-        //     + 'ALLOW FILTERING'
-        const query1 = 'SELECT * FROM stream_data WHERE id = ? AND partition = ? AND bucket_id IN ? AND ts = ? AND sequence_no >= ? AND publisher_id = ? '
-            + 'AND msg_chain_id = ? ORDER BY ts ASC, sequence_no ASC ALLOW FILTERING'
-        const query2 = 'SELECT * FROM stream_data WHERE id = ? AND partition = ? AND bucket_id IN ? AND ts > ? AND ts < ? AND publisher_id = ? '
-            + 'AND msg_chain_id = ? ORDER BY ts ASC, sequence_no ASC ALLOW FILTERING'
-        const query3 = 'SELECT * FROM stream_data WHERE id = ? AND partition = ? AND bucket_id IN ? AND ts = ? AND sequence_no <= ? AND publisher_id = ? '
-            + 'AND msg_chain_id = ? ORDER BY ts ASC, sequence_no ASC ALLOW FILTERING'
+        const query1 = 'SELECT * FROM stream_data_new WHERE stream_id = ? AND partition = ? AND bucket_id IN ? AND ts = ? AND sequence_no >= ? AND publisher_id = ? '
+            + 'AND msg_chain_id = ? ALLOW FILTERING'
+        const query2 = 'SELECT * FROM stream_data_new WHERE stream_id = ? AND partition = ? AND bucket_id IN ? AND ts > ? AND ts < ? AND publisher_id = ? '
+            + 'AND msg_chain_id = ? ALLOW FILTERING'
+        const query3 = 'SELECT * FROM stream_data_new WHERE stream_id = ? AND partition = ? AND bucket_id IN ? AND ts = ? AND sequence_no <= ? AND publisher_id = ? '
+            + 'AND msg_chain_id = ? ALLOW FILTERING'
 
         // TODO replace with allSettled
         Promise.all([
@@ -316,11 +311,6 @@ class Storage extends EventEmitter {
             const stream1 = this._queryWithStreamingResults(query1, queryParams1)
             const stream2 = this._queryWithStreamingResults(query2, queryParams2)
             const stream3 = this._queryWithStreamingResults(query3, queryParams3)
-
-            console.log('queryyyy')
-
-            // const queryParams = [streamId, partition, bucketsForQuery, fromTimestamp, toTimestamp, fromSequenceNo, toSequenceNo, publisherId, msgChainId]
-            // const cassandraStream = this._queryWithStreamingResults(query, queryParams)
 
             return pump(
                 merge2(stream1, stream2, stream3),
@@ -387,7 +377,6 @@ class Storage extends EventEmitter {
         return new Transform({
             objectMode: true,
             transform: (row, _, done) => {
-                console.log(this._parseRow(row))
                 done(null, this._parseRow(row))
             }
         })
