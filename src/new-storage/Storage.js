@@ -65,9 +65,11 @@ class Storage extends EventEmitter {
 
         const makeLastQuery = () => {
             const params = [streamId, partition, bucketsForQuery, limit]
-            debug(`requestLast: ${GET_LAST_N_MESSAGES}, params: ${params}`)
+            debug(`requestLast query: ${GET_LAST_N_MESSAGES}, params: ${params}`)
 
-            if (bucketsForQuery.length) {
+            if (!bucketsForQuery.length) {
+                resultStream.push(null)
+            } else {
                 this.cassandraClient.execute(GET_LAST_N_MESSAGES, params, {
                     prepare: true,
                     fetchSize: 0 // disable paging
@@ -75,13 +77,12 @@ class Storage extends EventEmitter {
                     resultSet.rows.reverse().forEach((r) => {
                         resultStream.write(r)
                     })
+                    resultStream.push(null)
                 }).catch((e) => {
                     console.warn(e)
                     resultStream.push(null)
                 })
             }
-
-            resultStream.push(null)
         }
 
         // eachRow is used to get needed amount of buckets dynamically

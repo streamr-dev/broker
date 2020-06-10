@@ -13,7 +13,7 @@ class BucketManager {
             checkFullBucketsTimeout: 1000,
             storeBucketsTimeout: 1000,
             maxBucketSize: 10000,
-            maxBucketRecords: 10,
+            maxBucketRecords: 1000,
             bucketKeepAliveSeconds: 60
         }
 
@@ -45,8 +45,8 @@ class BucketManager {
                 const stream = this.streams[key]
                 const { max, min } = stream.timestamps
 
-                stream.timestamps.max = max ? Math.max(max, timestamp) : timestamp
-                stream.timestamps.min = min ? Math.min(min, timestamp) : timestamp
+                stream.timestamps.max = max !== undefined ? Math.max(max, timestamp) : timestamp
+                stream.timestamps.min = min !== undefined ? Math.min(min, timestamp) : timestamp
                 stream.timestamps.avg = Math.ceil((stream.timestamps.max + stream.timestamps.min) / 2)
 
                 this.streams[key] = stream
@@ -86,10 +86,7 @@ class BucketManager {
         if (stream) {
             const latestBucket = stream.buckets.peek()
 
-            // if latest bucket is full, wait for new one
-            if (latestBucket && latestBucket.isFull()) {
-                bucketId = undefined
-            } else if (latestBucket && !latestBucket.isFull() && latestBucket.dateCreate <= new Date(timestamp)) {
+            if (latestBucket && !latestBucket.isFull() && latestBucket.dateCreate <= new Date(timestamp)) {
                 bucketId = latestBucket.getId()
             } else {
                 // check buckets in the past
@@ -280,6 +277,8 @@ class BucketManager {
         const notStoredBuckets = Object.values(this.buckets).filter((bucket) => !bucket.isStored())
 
         notStoredBuckets.forEach(async (bucket) => {
+            bucket.setStored()
+
             const {
                 size, records, streamId, partition, dateCreate
             } = bucket
@@ -296,8 +295,6 @@ class BucketManager {
                     console.error(e)
                 }
             }
-
-            bucket.setStored()
 
             if (!bucket.isAlive()) {
                 this._removeBucket(bucket.getId(), bucket.streamId, bucket.partition)

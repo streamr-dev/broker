@@ -77,9 +77,9 @@ describe('Storage', () => {
         streamIdx += 1
     })
 
-    // afterEach(async () => {
-    //     await storage.close()
-    // })
+    afterEach(async () => {
+        await storage.close()
+    })
 
     test('requestFrom and requestLast not throwing exception if timestamp is zero', async () => {
         const b = storage.requestLast(streamId, 0, 1)
@@ -130,7 +130,7 @@ describe('Storage', () => {
         const msg2 = buildEncryptedMsg(streamId, 10, 3000, 3)
         const msg3 = buildEncryptedMsg(streamId, 10, 4000, 0)
 
-        // storage.store(buildEncryptedMsg(streamId, 10, 0, 0))
+        storage.store(buildEncryptedMsg(streamId, 10, 0, 0))
         storage.store(buildEncryptedMsg(streamId, 10, 1000, 0))
         storage.store(buildMsg(streamId, 10, 2000, 0))
         storage.store(buildMsg(streamId, 10, 3000, 0))
@@ -141,13 +141,13 @@ describe('Storage', () => {
         storage.store(buildEncryptedMsg(streamId, 666, 8000, 0))
         storage.store(buildMsg(`${streamId}-wrong`, 10, 8000, 0))
 
-        await wait(10000)
+        await wait(5000)
 
         const streamingResults = storage.requestLast(streamId, 10, 3)
         const results = await toArray(streamingResults)
 
         expect(results).toEqual([msg1, msg2, msg3])
-    }, 15000)
+    }, 10000)
 })
 
 //     test('fetch messages starting from a timestamp', async () => {
