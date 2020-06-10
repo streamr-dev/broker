@@ -4,6 +4,7 @@ const EventEmitter = require('events')
 const debug = require('debug')('streamr:storage')
 const NodeCache = require('node-cache')
 const cassandra = require('cassandra-driver')
+const merge2 = require('merge2')
 const pump = require('pump')
 const { StreamMessageFactory } = require('streamr-client-protocol').MessageLayer
 
@@ -230,13 +231,19 @@ class Storage extends EventEmitter {
     _fetchFromMessageRefForPublisher(streamId, partition, fromTimestamp, fromSequenceNo, publisherId, msgChainId) {
         const resultStream = this._createResultStream()
 
-        const query = 'SELECT * FROM stream_data_new '
-                    + 'WHERE stream_id = ? AND partition = ? AND bucket_id IN ? AND '
-                    + 'ts >= ? AND sequence_no >= ? AND publisher_id = ? AND '
-                    + 'msg_chain_id = ? '
-                    + 'ORDER BY ts ASC, sequence_no ASC ALLOW FILTERING'
+        const query1 = 'SELECT * FROM stream_data_new WHERE stream_id = ? AND partition = ? AND bucket_id IN ? AND ts = ? AND sequence_no >= ? AND publisher_id = ? '
+            + 'AND msg_chain_id = ? ALLOW FILTERING'
+        const query2 = 'SELECT * FROM stream_data_new WHERE stream_id = ? AND partition = ? AND bucket_id IN ? AND ts > ? AND publisher_id = ? '
+            + 'AND msg_chain_id = ? ALLOW FILTERING'
 
-        this.bucketManager.getBucketsByTimestamp(streamId, partition, fromTimestamp).then((buckets) => {
+        this.bucketManager.getLastBuckets(streamId, partition, 1, fromTimestamp).then((buckets) => {
+            return buckets.length ? buckets[0].dateCreate : undefined
+        }).then((startBucketTimestamp) => {
+            return startBucketTimestamp ? this.bucketManager.getBucketsByTimestamp(streamId, partition, startBucketTimestamp) : []
+        }).then((buckets) => {
+            if (!buckets.length) {
+                return resultStream.push(null)
+            }
             const bucketsForQuery = []
 
             for (let i = 0; i < buckets.length; i++) {
@@ -244,11 +251,15 @@ class Storage extends EventEmitter {
                 bucketsForQuery.push(bucket.id)
             }
 
-            const queryParams = [streamId, partition, bucketsForQuery, fromTimestamp, fromSequenceNo, publisherId, msgChainId]
-            const cassandraStream = this._queryWithStreamingResults(query, queryParams)
+            // const queryParams = [streamId, partition, bucketsForQuery, fromTimestamp, fromSequenceNo, publisherId, msgChainId]
+            // const cassandraStream = this._queryWithStreamingResults(query, queryParams)
+            const queryParams1 = [streamId, partition, bucketsForQuery, fromTimestamp, fromSequenceNo, publisherId, msgChainId]
+            const queryParams2 = [streamId, partition, bucketsForQuery, fromTimestamp, publisherId, msgChainId]
+            const stream1 = this._queryWithStreamingResults(query1, queryParams1)
+            const stream2 = this._queryWithStreamingResults(query2, queryParams2)
 
             return pump(
-                cassandraStream,
+                merge2(stream1, stream2),
                 resultStream,
                 (err) => {
                     if (err) {
@@ -257,10 +268,11 @@ class Storage extends EventEmitter {
                     }
                 }
             )
-        }).catch((e) => {
-            console.warn(e)
-            resultStream.push(null)
         })
+            .catch((e) => {
+                console.warn(e)
+                resultStream.push(null)
+            })
 
         return resultStream
     }
@@ -268,11 +280,17 @@ class Storage extends EventEmitter {
     _fetchBetweenMessageRefsForPublisher(streamId, partition, fromTimestamp, fromSequenceNo, toTimestamp, toSequenceNo, publisherId, msgChainId) {
         const resultStream = this._createResultStream()
 
-        const query = 'SELECT * FROM stream_data_new '
-            + 'WHERE stream_id = ? AND partition = ? AND bucket_id IN ? AND '
-            + 'ts >= ? AND ts <= ? AND sequence_no >= ? AND sequence_no <= ? AND '
-            + 'publisher_id = ? AND msg_chain_id = ? '
-            + 'ORDER BY ts ASC, sequence_no ASC ALLOW FILTERING'
+        // const query = 'SELECT * FROM stream_data_new '
+        //     + 'WHERE stream_id = ? AND partition = ? AND bucket_id IN ? AND '
+        //     + 'ts >= ? AND ts <= ? AND sequence_no >= ? AND sequence_no <= ? AND '
+        //     + 'publisher_id = ? AND msg_chain_id = ? '
+        //     + 'ALLOW FILTERING'
+        const query1 = 'SELECT * FROM stream_data WHERE id = ? AND partition = ? AND bucket_id IN ? AND ts = ? AND sequence_no >= ? AND publisher_id = ? '
+            + 'AND msg_chain_id = ? ORDER BY ts ASC, sequence_no ASC ALLOW FILTERING'
+        const query2 = 'SELECT * FROM stream_data WHERE id = ? AND partition = ? AND bucket_id IN ? AND ts > ? AND ts < ? AND publisher_id = ? '
+            + 'AND msg_chain_id = ? ORDER BY ts ASC, sequence_no ASC ALLOW FILTERING'
+        const query3 = 'SELECT * FROM stream_data WHERE id = ? AND partition = ? AND bucket_id IN ? AND ts = ? AND sequence_no <= ? AND publisher_id = ? '
+            + 'AND msg_chain_id = ? ORDER BY ts ASC, sequence_no ASC ALLOW FILTERING'
 
         // TODO replace with allSettled
         Promise.all([
@@ -292,11 +310,20 @@ class Storage extends EventEmitter {
                 bucketsForQuery.push(bucket.id)
             }
 
-            const queryParams = [streamId, partition, bucketsForQuery, fromTimestamp, toTimestamp, fromSequenceNo, toSequenceNo, publisherId, msgChainId]
-            const cassandraStream = this._queryWithStreamingResults(query, queryParams)
+            const queryParams1 = [streamId, partition, bucketsForQuery, fromTimestamp, fromSequenceNo, publisherId, msgChainId]
+            const queryParams2 = [streamId, partition, bucketsForQuery, fromTimestamp, toTimestamp, publisherId, msgChainId]
+            const queryParams3 = [streamId, partition, bucketsForQuery, toTimestamp, toSequenceNo, publisherId, msgChainId]
+            const stream1 = this._queryWithStreamingResults(query1, queryParams1)
+            const stream2 = this._queryWithStreamingResults(query2, queryParams2)
+            const stream3 = this._queryWithStreamingResults(query3, queryParams3)
+
+            console.log('queryyyy')
+
+            // const queryParams = [streamId, partition, bucketsForQuery, fromTimestamp, toTimestamp, fromSequenceNo, toSequenceNo, publisherId, msgChainId]
+            // const cassandraStream = this._queryWithStreamingResults(query, queryParams)
 
             return pump(
-                cassandraStream,
+                merge2(stream1, stream2, stream3),
                 resultStream,
                 (err) => {
                     if (err) {
