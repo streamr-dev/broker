@@ -58,7 +58,7 @@ class BatchManager extends EventEmitter {
         debug('batch is full, closing')
         this.pendingBatches[batch.getId()] = batch
         this.pendingBatches[batch.getId()].scheduleInsert()
-        this.batches[bucketId] = undefined
+        delete this.batches[bucketId]
     }
 
     _batchChangedState(bucketId, id, state, size, numberOfRecords) {
@@ -71,6 +71,11 @@ class BatchManager extends EventEmitter {
                 this._moveFullBatch(batch, bucketId)
             }
         }
+    }
+
+    stop() {
+        Object.values(this.batches).forEach((batch) => batch.clear())
+        Object.values(this.pendingBatches).forEach((batch) => batch.clear())
     }
 
     async _insert(batchId) {

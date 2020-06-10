@@ -67,18 +67,21 @@ class Storage extends EventEmitter {
             const params = [streamId, partition, bucketsForQuery, limit]
             debug(`requestLast: ${GET_LAST_N_MESSAGES}, params: ${params}`)
 
-            this.cassandraClient.execute(GET_LAST_N_MESSAGES, params, {
-                prepare: true,
-                fetchSize: 0 // disable paging
-            }).then((resultSet) => {
-                resultSet.rows.reverse().forEach((r) => {
-                    resultStream.write(r)
+            if (bucketsForQuery.length) {
+                this.cassandraClient.execute(GET_LAST_N_MESSAGES, params, {
+                    prepare: true,
+                    fetchSize: 0 // disable paging
+                }).then((resultSet) => {
+                    resultSet.rows.reverse().forEach((r) => {
+                        resultStream.write(r)
+                    })
+                }).catch((e) => {
+                    console.warn(e)
+                    resultStream.push(null)
                 })
-                resultStream.push(null)
-            }).catch((e) => {
-                console.error(e)
-                resultStream.push(null)
-            })
+            }
+
+            resultStream.push(null)
         }
 
         // eachRow is used to get needed amount of buckets dynamically
@@ -142,12 +145,13 @@ class Storage extends EventEmitter {
                     + 'stream_id = ? AND partition = ? AND bucket_id IN ? AND ts >= ?'
 
         this.bucketManager.getLastBuckets(streamId, partition, 1, fromTimestamp).then((buckets) => {
-            if (!buckets.length) {
-                throw Error(`bucket for ${fromTimestamp} not not found`)
-            }
-            const startBucketTimestamp = buckets[0].dateCreate
-            return this.bucketManager.getBucketsByTimestamp(streamId, partition, startBucketTimestamp)
+            return buckets.length ? buckets[0].dateCreate : undefined
+        }).then((startBucketTimestamp) => {
+            return startBucketTimestamp ? this.bucketManager.getBucketsByTimestamp(streamId, partition, startBucketTimestamp) : []
         }).then((buckets) => {
+            if (!buckets.length) {
+                return resultStream.push(null)
+            }
             const bucketsForQuery = []
 
             for (let i = 0; i < buckets.length; i++) {
@@ -168,10 +172,11 @@ class Storage extends EventEmitter {
                     }
                 }
             )
-        }).catch((e) => {
-            console.error(e)
-            resultStream.push(null)
         })
+            .catch((e) => {
+                console.warn(e)
+                resultStream.push(null)
+            })
 
         return resultStream
     }
@@ -214,7 +219,7 @@ class Storage extends EventEmitter {
             )
         })
             .catch((e) => {
-                console.error(e)
+                console.warn(e)
                 resultStream.push(null)
             })
 
@@ -252,7 +257,7 @@ class Storage extends EventEmitter {
                 }
             )
         }).catch((e) => {
-            console.error(e)
+            console.warn(e)
             resultStream.push(null)
         })
 
@@ -299,10 +304,11 @@ class Storage extends EventEmitter {
                     }
                 }
             )
-        }).catch((e) => {
-            console.error(e)
-            resultStream.push(null)
         })
+            .catch((e) => {
+                console.warn(e)
+                resultStream.push(null)
+            })
 
         return resultStream
     }
@@ -315,8 +321,8 @@ class Storage extends EventEmitter {
     }
 
     close() {
-        // TODO close properly buckets and batches
-        this.storeStrategy.close()
+        this.batchManager.stop()
+        this.bucketManager.stop()
         return this.cassandraClient.shutdown()
     }
 

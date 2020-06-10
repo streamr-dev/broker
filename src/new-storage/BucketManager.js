@@ -26,6 +26,9 @@ class BucketManager {
 
         this.cassandraClient = cassandraClient
 
+        this._checkFullBucketsTimeout = undefined
+        this._storeBucketsTimeout = undefined
+
         this._checkFullBuckets()
         this._storeBuckets()
     }
@@ -159,7 +162,7 @@ class BucketManager {
             this.streams[streamIds[i]] = stream
         }
 
-        setTimeout(() => this._checkFullBuckets(), this.opts.checkFullBucketsTimeout)
+        this._checkFullBucketsTimeout = setTimeout(() => this._checkFullBuckets(), this.opts.checkFullBucketsTimeout)
     }
 
     async getBucketsByTimestamp(streamId, partition, fromTimestamp = undefined, toTimestamp = undefined) {
@@ -267,8 +270,8 @@ class BucketManager {
     }
 
     stop() {
-        clearInterval(this._checkFullBucketsInterval)
-        clearInterval(this._storeBucketsInterval)
+        clearInterval(this._checkFullBucketsTimeout)
+        clearInterval(this._storeBucketsTimeout)
     }
 
     _storeBuckets() {
@@ -301,7 +304,7 @@ class BucketManager {
             }
         })
 
-        setTimeout(() => this._storeBuckets(), this.opts.storeBucketsTimeout)
+        this._storeBucketsTimeout = setTimeout(() => this._storeBuckets(), this.opts.storeBucketsTimeout)
     }
 
     _removeBucket(bucketId, streamId, partition) {
