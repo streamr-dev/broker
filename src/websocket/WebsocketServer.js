@@ -2,7 +2,7 @@ const { EventEmitter } = require('events')
 
 const { v4: uuidv4 } = require('uuid')
 const debug = require('debug')('streamr:WebsocketServer')
-const { ControlLayer } = require('streamr-network').Protocol
+const { ControlLayer, Utils } = require('streamr-network').Protocol
 const ab2str = require('arraybuffer-to-string')
 const uWS = require('uWebSockets.js')
 
@@ -319,7 +319,7 @@ module.exports = class WebsocketServer extends EventEmitter {
         }
 
         try {
-            await this.streamFetcher.checkPermission(request.streamId, request.apiKey, request.sessionToken, 'stream_subscribe')
+            await this._validateSubscribeOrResendRequest(request)
             if (connection.isDead()) {
                 return
             }
@@ -425,9 +425,20 @@ module.exports = class WebsocketServer extends EventEmitter {
         }
     }
 
+    async _validateSubscribeOrResendRequest(request) {
+        if (Utils.StreamMessageValidator.isKeyExchangeStream(request.streamId)) {
+            if (request.streamPartition !== 0) {
+                throw new Error(`Key exchange streams only have partition 0. Tried to subscribe to ${request.streamId}:${request.streamPartition}`)
+            }
+        } else {
+            await this.streamFetcher.checkPermission(request.streamId, request.apiKey, request.sessionToken, 'stream_subscribe')
+        }
+    }
+
     async handleSubscribeRequest(connection, request) {
         try {
-            await this.streamFetcher.checkPermission(request.streamId, request.apiKey, request.sessionToken, 'stream_subscribe')
+            await this._validateSubscribeOrResendRequest(request)
+
             if (connection.isDead()) {
                 return
             }
@@ -457,11 +468,28 @@ module.exports = class WebsocketServer extends EventEmitter {
                 'handleSubscribeRequest: socket "%s" failed to subscribe to stream %s:%d because of "%o"',
                 connection.id, request.streamId, request.streamPartition, err
             )
+
+            let errorMessage
+            let errorCode
+            if (err instanceof HttpError && err.code === 401) {
+                errorMessage = `Authentication failed while trying to subscribe to stream ${request.streamId}`
+                errorCode = 'AUTHENTICATION_FAILED'
+            } else if (err instanceof HttpError && err.code === 403) {
+                errorMessage = `You are not allowed to subscribe to stream ${request.streamId}`
+                errorCode = 'PERMISSION_DENIED'
+            } else if (err instanceof HttpError && err.code === 404) {
+                errorMessage = `Stream ${request.streamId} not found.`
+                errorCode = 'NOT_FOUND'
+            } else {
+                errorMessage = `Subscribe request failed: ${err}`
+                errorCode = 'REQUEST_FAILED'
+            }
+
             connection.send(new ControlLayer.ErrorResponse({
                 version: request.version,
                 requestId: request.requestId,
-                errorMessage: `Not authorized to subscribe to stream ${request.streamId} and partition ${request.streamPartition}`,
-                errorCode: 'PERMISSION_DENIED',
+                errorMessage,
+                errorCode,
             }))
         }
     }
