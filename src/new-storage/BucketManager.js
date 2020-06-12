@@ -12,7 +12,7 @@ class BucketManager {
             logErrors: true,
             checkFullBucketsTimeout: 1000,
             storeBucketsTimeout: 1000,
-            maxBucketSize: 10000,
+            maxBucketSize: 1000 * 550,
             maxBucketRecords: 1000,
             bucketKeepAliveSeconds: 60
         }
@@ -86,10 +86,11 @@ class BucketManager {
         if (stream) {
             const latestBucket = stream.buckets.peek()
 
-            if (latestBucket && !latestBucket.isFull() && latestBucket.dateCreate <= new Date(timestamp)) {
+            if (latestBucket && !latestBucket.isAlmostFull() && latestBucket.dateCreate <= new Date(timestamp)) {
                 bucketId = latestBucket.getId()
-            } else {
-                // check buckets in the past
+            }
+
+            if (latestBucket && latestBucket.dateCreate > new Date(timestamp)) {
                 const currentBuckets = stream.buckets.toArray()
                 currentBuckets.shift()
 
@@ -124,12 +125,12 @@ class BucketManager {
             if (currentBuckets.length) {
                 const latestBucket = currentBuckets[0]
 
-                if (latestBucket.isFull()) {
+                // console.log(`=====> isAlmostFull: ${latestBucket.isAlmostFull()}, ${minTimestamp}`)
+
+                if (latestBucket.isAlmostFull()) {
                     latestBucketId = latestBucket.getId()
                     debug(`latest bucket ${latestBucketId} isFull: ${latestBucket.isFull()}`)
                     isFullOrNotFound = true
-                } else {
-                    stream.timestamps.min = undefined
                 }
             }
 
@@ -140,22 +141,21 @@ class BucketManager {
                 const foundBucket = foundBuckets.length ? foundBuckets[0] : undefined
 
                 // add if found new not empty bucket
-                if (foundBucket && !foundBucket.isFull() && latestBucketId !== foundBucket.getId() && !(foundBucket.getId() in this.buckets)) {
+                if (foundBucket && latestBucketId !== foundBucket.getId() && !(foundBucket.getId() in this.buckets)) {
                     stream.buckets.push(foundBucket)
                     this.buckets[foundBucket.getId()] = foundBucket
-
-                    stream.timestamps.min = undefined
                     isFullOrNotFound = false
                 }
             }
 
             // not found in state or in database, add new
-            if (isFullOrNotFound) {
+            if (isFullOrNotFound && minTimestamp !== undefined) {
                 debug(`bucket for timestamp: ${minTimestamp} not found, insert new basket`)
                 // eslint-disable-next-line no-await-in-loop
                 await this._insertNewBucket(stream.streamId, stream.partition, minTimestamp)
             }
 
+            stream.timestamps.min = undefined
             this.streams[streamIds[i]] = stream
         }
 

@@ -71,6 +71,13 @@ class Bucket {
         return isFull
     }
 
+    isAlmostFull(percentDeduction = 30) {
+        const maxPercentSize = (this._maxSize * (100 - percentDeduction)) / 100
+        const maxRecords = (this._maxRecords * (100 - percentDeduction)) / 100
+        this.debug(`isAlmostFull: ${this.size >= maxPercentSize || this.records >= maxRecords} => ${this.size} >= ${maxPercentSize} || ${this.records} >= ${maxRecords}`)
+        return this.size >= maxPercentSize || this.records >= maxRecords
+    }
+
     getId() {
         return this.id
     }

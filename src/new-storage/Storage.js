@@ -39,8 +39,10 @@ class Storage extends EventEmitter {
 
         if (bucketId) {
             debug(`found bucketId: ${bucketId}`)
-            this.batchManager.store(bucketId, streamMessage)
-            this.bucketManager.incrementBucket(bucketId, Buffer.from(streamMessage.serialize()).length, 1)
+            setImmediate(() => {
+                this.batchManager.store(bucketId, streamMessage)
+                this.bucketManager.incrementBucket(bucketId, Buffer.from(streamMessage.serialize()).length, 1)
+            })
         } else {
             const messageId = streamMessage.messageId.serialize()
             debug(`bucket not found, put ${messageId} to pendingMessages`)
@@ -147,7 +149,7 @@ class Storage extends EventEmitter {
                     + 'stream_id = ? AND partition = ? AND bucket_id IN ? AND ts >= ?'
 
         this.bucketManager.getLastBuckets(streamId, partition, 1, fromTimestamp).then((buckets) => {
-            return buckets.length ? buckets[0].dateCreate : undefined
+            return buckets.length ? buckets[0].dateCreate : fromTimestamp
         }).then((startBucketTimestamp) => {
             return startBucketTimestamp ? this.bucketManager.getBucketsByTimestamp(streamId, partition, startBucketTimestamp) : []
         }).then((buckets) => {
