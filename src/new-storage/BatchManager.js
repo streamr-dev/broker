@@ -30,7 +30,9 @@ class BatchManager extends EventEmitter {
             ...opts
         }
 
+        // bucketId => batch
         this.batches = {}
+        // batchId => batch
         this.pendingBatches = {}
 
         this.cassandraClient = cassandraClient
@@ -41,35 +43,35 @@ class BatchManager extends EventEmitter {
         const batch = this.batches[bucketId]
 
         if (batch && batch.isFull()) {
-            batch.setClose()
-            this._moveFullBatch(batch, bucketId)
+            batch.setClose(false)
+            this._moveFullBatch(bucketId, batch)
         }
 
         if (this.batches[bucketId] === undefined) {
             debug('creating new batch')
             const newBatch = new Batch(bucketId, this.opts.batchMaxSize, this.opts.batchMaxRecords, this.opts.batchCloseTimeout, this.opts.batchMaxRetries)
-            newBatch.on('state', (batchBucketId, id, state, size, numberOfRecords) => this._batchChangedState(bucketId, id, state, size, numberOfRecords))
+            newBatch.on('state', (batchBucketId, id, state, size, numberOfRecords) => this._batchChangedState(batchBucketId, id, state, size, numberOfRecords))
             this.batches[bucketId] = newBatch
         }
 
         this.batches[bucketId].push(streamMessage)
     }
 
-    _moveFullBatch(batch, bucketId) {
-        debug('batch is full, closing')
+    _moveFullBatch(bucketId, batch) {
+        debug('moving batch to pendingBatches')
         this.pendingBatches[batch.getId()] = batch
         this.pendingBatches[batch.getId()].scheduleInsert()
         delete this.batches[bucketId]
     }
 
-    _batchChangedState(bucketId, id, state, size, numberOfRecords) {
-        debug(`_batchChangedState, id: ${id}, state: ${state}, size: ${size}, records: ${numberOfRecords}`)
+    _batchChangedState(bucketId, batchId, state, size, numberOfRecords) {
+        debug(`_batchChangedState, bucketId: ${bucketId}, id: ${batchId}, state: ${state}, size: ${size}, records: ${numberOfRecords}`)
         if (state === Batch.states.PENDING) {
-            this._insert(id)
+            this._insert(batchId)
         } else if (state === Batch.states.CLOSED) {
             const batch = this.batches[bucketId]
             if (batch) {
-                this._moveFullBatch(batch, bucketId)
+                this._moveFullBatch(bucketId, batch)
             }
         }
     }
@@ -103,15 +105,15 @@ class BatchManager extends EventEmitter {
                 prepare: true
             })
 
+            debug(`inserted batch id:${batch.getId()}`)
             batch.clear()
             delete this.pendingBatches[batch.getId()]
-            debug(`inserted ${batch.getId()}`)
         } catch (e) {
-            const key = `${batch.streamMessages[0].getStreamId()}::${batch.streamMessages[0].getStreamPartition()}`
+            debug(`failed to insert batch, error ${e}`)
             if (this.opts.logErrors) {
-                console.error(`Failed to insert (${key}): ${e.stack ? e.stack : e}`)
+                console.error(`Failed to insert batchId: (${batchId})`)
+                console.error(e)
             }
-            debug(`failed to insert ${batch.getId()}, error ${e}`)
             batch.scheduleInsert()
         }
     }

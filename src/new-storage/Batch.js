@@ -47,7 +47,12 @@ class Batch extends EventEmitter {
         this._maxRetries = maxRetries
         this._closeTimeout = closeTimeout
 
-        this._timeout = setTimeout(() => this.setClose(), closeTimeout)
+        this._timeout = setTimeout(() => {
+            this.debug('closing timeout')
+            this.setClose()
+        }, this._closeTimeout)
+
+        this.debug('init new batch')
     }
 
     getId() {
@@ -58,10 +63,10 @@ class Batch extends EventEmitter {
         return this._bucketId
     }
 
-    setClose() {
+    setClose(emitState = true) {
         clearTimeout(this._timeout)
-        this.debug('closing batch by timeout or direct call')
-        this._setState(STATES.CLOSED)
+        this.debug('closing batch')
+        this._setState(STATES.CLOSED, emitState)
     }
 
     scheduleInsert() {
@@ -72,11 +77,13 @@ class Batch extends EventEmitter {
             this.retries += 1
         }
 
-        this._setState(STATES.PENDING)
+        this._setState(STATES.PENDING, false)
+
         this._timeout = setTimeout(() => this._emitState(), this._closeTimeout * this.retries)
     }
 
     clear() {
+        this.debug('cleared')
         clearTimeout(this._timeout)
         this.streamMessages = []
     }
@@ -96,14 +103,16 @@ class Batch extends EventEmitter {
         return this.streamMessages.length
     }
 
-    _setState(state) {
+    _setState(state, emitState = true) {
         this.debug(`change state, current: ${this.state}, new state: ${state}`)
         this.state = state
-        this._emitState()
+        if (emitState) {
+            this._emitState()
+        }
     }
 
     _emitState() {
-        this.emit('state', this._bucketId, this.getId(), this.state, this.size, this._getNumberOrMessages())
+        this.emit('state', this.getBucketId(), this.getId(), this.state, this.size, this._getNumberOrMessages())
     }
 }
 

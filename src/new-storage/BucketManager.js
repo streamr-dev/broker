@@ -128,8 +128,6 @@ class BucketManager {
             const { streamId, partition } = stream
             const minTimestamp = stream.timestamps.min
 
-            console.log(minTimestamp)
-
             if (minTimestamp === undefined) {
                 // eslint-disable-next-line no-continue
                 continue
@@ -139,9 +137,6 @@ class BucketManager {
 
             // check in memory
             const latestBucket = this._getLatestInMemoryBucket(toKey(streamId, partition))
-            console.log(latestBucket)
-            console.log(`latestBucket.getId() = ${latestBucket ? latestBucket.getId() : undefined}, minTimestamp: ${minTimestamp}`)
-
             if (latestBucket) {
                 insertNewBucket = latestBucket.isAlmostFull()
             }
@@ -163,7 +158,6 @@ class BucketManager {
 
             if (insertNewBucket) {
                 debug(`bucket for timestamp: ${minTimestamp} not found, create new bucket`)
-                console.log(`bucket for timestamp: ${minTimestamp} not found, create new bucket`)
 
                 const newBucket = new Bucket(
                     TimeUuid.fromDate(new Date(minTimestamp)).toString(), streamId, partition, 0, 0, new Date(minTimestamp),
