@@ -11,14 +11,15 @@ class BucketManager {
         const defaultOptions = {
             logErrors: true,
             checkFullBucketsTimeout: 1000,
-            storeBucketsTimeout: 1000,
-            maxBucketSize: 1000 * 550,
-            maxBucketRecords: 1000,
+            storeBucketsTimeout: 500,
+            maxBucketSize: 1024 * 1024 * 100,
+            maxBucketRecords: 500 * 1000,
             bucketKeepAliveSeconds: 60
         }
 
         this.opts = {
-            ...defaultOptions, ...opts
+            ...defaultOptions,
+            ...opts
         }
 
         this.streams = {}
@@ -78,13 +79,21 @@ class BucketManager {
         }
     }
 
+    _getLatestInMemoryBucket(key) {
+        const stream = this.streams[key]
+        if (stream) {
+            return stream.buckets.peek()
+        }
+        return undefined
+    }
+
     _findBucketId(key, timestamp) {
         let bucketId
         debug(`checking stream: ${key}, timestamp: ${timestamp} in BucketManager state`)
 
         const stream = this.streams[key]
         if (stream) {
-            const latestBucket = stream.buckets.peek()
+            const latestBucket = this._getLatestInMemoryBucket(key)
 
             if (latestBucket && !latestBucket.isAlmostFull() && latestBucket.dateCreate <= new Date(timestamp)) {
                 bucketId = latestBucket.getId()
@@ -116,46 +125,56 @@ class BucketManager {
 
         for (let i = 0; i < streamIds.length; i++) {
             const stream = this.streams[streamIds[i]]
+            const { streamId, partition } = stream
             const minTimestamp = stream.timestamps.min
 
-            // check latest known
-            const currentBuckets = stream.buckets.toArray()
-            let isFullOrNotFound = currentBuckets.length === 0
-            let latestBucketId
-            if (currentBuckets.length) {
-                const latestBucket = currentBuckets[0]
+            console.log(minTimestamp)
 
-                // console.log(`=====> isAlmostFull: ${latestBucket.isAlmostFull()}, ${minTimestamp}`)
-
-                if (latestBucket.isAlmostFull()) {
-                    latestBucketId = latestBucket.getId()
-                    debug(`latest bucket ${latestBucketId} isFull: ${latestBucket.isFull()}`)
-                    isFullOrNotFound = true
-                }
+            if (minTimestamp === undefined) {
+                // eslint-disable-next-line no-continue
+                continue
             }
 
-            // try to get latest from database
-            if (isFullOrNotFound) {
+            let insertNewBucket = false
+
+            // check in memory
+            const latestBucket = this._getLatestInMemoryBucket(toKey(streamId, partition))
+            console.log(latestBucket)
+            console.log(`latestBucket.getId() = ${latestBucket ? latestBucket.getId() : undefined}, minTimestamp: ${minTimestamp}`)
+
+            if (latestBucket) {
+                insertNewBucket = latestBucket.isAlmostFull()
+            }
+
+            // check in database
+            if (!latestBucket || (latestBucket && latestBucket.isAlmostFull())) {
                 // eslint-disable-next-line no-await-in-loop
                 const foundBuckets = await this.getLastBuckets(stream.streamId, stream.partition, 1)
                 const foundBucket = foundBuckets.length ? foundBuckets[0] : undefined
 
-                // add if found new not empty bucket
-                if (foundBucket && latestBucketId !== foundBucket.getId() && !(foundBucket.getId() in this.buckets)) {
+                if (foundBucket && !(foundBucket.getId() in this.buckets)) {
                     stream.buckets.push(foundBucket)
                     this.buckets[foundBucket.getId()] = foundBucket
-                    isFullOrNotFound = false
+                    stream.timestamps.min = undefined
+                } else {
+                    insertNewBucket = true
                 }
             }
 
-            // not found in state or in database, add new
-            if (isFullOrNotFound && minTimestamp !== undefined) {
-                debug(`bucket for timestamp: ${minTimestamp} not found, insert new basket`)
-                // eslint-disable-next-line no-await-in-loop
-                await this._insertNewBucket(stream.streamId, stream.partition, minTimestamp)
+            if (insertNewBucket) {
+                debug(`bucket for timestamp: ${minTimestamp} not found, create new bucket`)
+                console.log(`bucket for timestamp: ${minTimestamp} not found, create new bucket`)
+
+                const newBucket = new Bucket(
+                    TimeUuid.fromDate(new Date(minTimestamp)).toString(), streamId, partition, 0, 0, new Date(minTimestamp),
+                    this.opts.maxBucketSize, this.opts.maxBucketRecords, this.opts.bucketKeepAliveSeconds
+                )
+
+                stream.buckets.push(newBucket)
+                this.buckets[newBucket.getId()] = newBucket
+                stream.timestamps.min = undefined
             }
 
-            stream.timestamps.min = undefined
             this.streams[streamIds[i]] = stream
         }
 
@@ -249,30 +268,13 @@ class BucketManager {
         return result
     }
 
-    async _insertNewBucket(streamId, partition, timestamp = new Date()) {
-        const INSERT_NEW_BUCKET = 'INSERT INTO bucket (stream_id, partition, date_create, records, size, id) '
-                                    + 'VALUES (?, ?, ?, 0, 0, ?)'
-        const params = [streamId, partition, timestamp, TimeUuid.fromDate(new Date(timestamp))]
-
-        try {
-            await this.cassandraClient.execute(INSERT_NEW_BUCKET, params, {
-                prepare: true,
-            })
-            debug(`inserted new bucket for streamId: ${streamId}, partition: ${partition}, timestamp: ${timestamp}`)
-        } catch (e) {
-            if (this.opts.logErrors) {
-                console.error(e)
-            }
-        }
-    }
-
     stop() {
         clearInterval(this._checkFullBucketsTimeout)
         clearInterval(this._storeBucketsTimeout)
     }
 
     _storeBuckets() {
-        const UPDATE_BUCKET = 'UPDATE bucket SET size = ?, records = ? WHERE stream_id = ? AND partition = ? AND date_create = ?'
+        const UPDATE_BUCKET = 'UPDATE bucket SET size = ?, records = ?, id = ? WHERE stream_id = ? AND partition = ? AND date_create = ?'
 
         const notStoredBuckets = Object.values(this.buckets).filter((bucket) => !bucket.isStored())
 
@@ -280,9 +282,9 @@ class BucketManager {
             bucket.setStored()
 
             const {
-                size, records, streamId, partition, dateCreate
+                id, size, records, streamId, partition, dateCreate
             } = bucket
-            const params = [size, records, streamId, partition, dateCreate]
+            const params = [size, records, id, streamId, partition, dateCreate]
 
             try {
                 // eslint-disable-next-line no-await-in-loop

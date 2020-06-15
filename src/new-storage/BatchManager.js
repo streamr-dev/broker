@@ -26,7 +26,8 @@ class BatchManager extends EventEmitter {
         }
 
         this.opts = {
-            ...defaultOptions, ...opts
+            ...defaultOptions,
+            ...opts
         }
 
         this.batches = {}
