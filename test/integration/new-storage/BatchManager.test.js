@@ -2,9 +2,10 @@ const cassandra = require('cassandra-driver')
 const { TimeUuid } = require('cassandra-driver').types
 const toArray = require('stream-to-array')
 const { StreamMessage, StreamMessageV31 } = require('streamr-client-protocol').MessageLayer
-const { wait } = require('streamr-test-utils')
+const { waitForCondition, wait } = require('streamr-test-utils')
 
 const BatchManager = require('../../../src/new-storage/BatchManager')
+const Batch = require('../../../src/new-storage/Batch')
 
 const contactPoints = ['127.0.0.1']
 const localDataCenter = 'datacenter1'
@@ -84,5 +85,38 @@ describe('BatchManager', () => {
 
         expect(Object.values(batchManager.batches)[0].streamMessages).toHaveLength(1)
         expect(Object.values(batchManager.pendingBatches)[0].streamMessages).toHaveLength(10)
+    })
+
+    test('pendingBatches are inserted', async () => {
+        const batch = new Batch(bucketId, 10, 10, 1000, 10)
+        const msg = buildMsg(streamId, 0, 1000, 0, 'publisher1')
+        batch.push(msg)
+        batchManager.pendingBatches[batch.getId()] = batch
+
+        expect(Object.values(batchManager.pendingBatches)).toHaveLength(1)
+        expect(Object.values(batchManager.pendingBatches)[0].streamMessages).toHaveLength(1)
+
+        // eslint-disable-next-line no-underscore-dangle
+        await batchManager._insert(batch.getId())
+
+        const result = await cassandraClient.execute('SELECT * FROM stream_data_new WHERE stream_id = ? ALLOW FILTERING', [
+            streamId
+        ])
+
+        expect(result.rows.length).toEqual(1)
+    })
+
+    test('when batch changes state, _batchChangedState is triggered', async () => {
+        const msg = buildMsg(streamId, 0, 1000, 0, 'publisher1')
+        batchManager.store(bucketId, msg)
+        const batchChangedStateSpy = jest.spyOn(batchManager, '_batchChangedState')
+
+        const batch = batchManager.batches[bucketId]
+        batch.setClose(true)
+        expect(batchChangedStateSpy).toHaveBeenCalledWith(bucketId, batch.getId(), Batch.states.CLOSED, 82, 1)
+        batchChangedStateSpy.mockClear()
+
+        await waitForCondition(() => batchChangedStateSpy.mock.calls.length === 1)
+        expect(batchChangedStateSpy).toHaveBeenCalledWith(bucketId, batch.getId(), Batch.states.PENDING, 82, 1)
     })
 })
