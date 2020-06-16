@@ -136,15 +136,31 @@ class BucketManager {
             let insertNewBucket = false
 
             // check in memory
-            const latestBucket = this._getLatestInMemoryBucket(toKey(streamId, partition))
+            const key = toKey(streamId, partition)
+            const latestBucket = this._getLatestInMemoryBucket(key)
             if (latestBucket) {
                 insertNewBucket = latestBucket.isAlmostFull()
             }
 
-            // check in database
+            // check in database just latest
             if (!latestBucket || (latestBucket && latestBucket.isAlmostFull())) {
                 // eslint-disable-next-line no-await-in-loop
                 const foundBuckets = await this.getLastBuckets(stream.streamId, stream.partition, 1)
+                const foundBucket = foundBuckets.length ? foundBuckets[0] : undefined
+
+                if (foundBucket && !(foundBucket.getId() in this.buckets)) {
+                    stream.buckets.push(foundBucket)
+                    this.buckets[foundBucket.getId()] = foundBucket
+                    stream.timestamps.min = undefined
+                } else {
+                    insertNewBucket = true
+                }
+            }
+
+            // check by timestamp
+            if (!insertNewBucket && !this._findBucketId(key, minTimestamp)) {
+                // eslint-disable-next-line no-await-in-loop
+                const foundBuckets = await this.getLastBuckets(stream.streamId, stream.partition, 1, minTimestamp)
                 const foundBucket = foundBuckets.length ? foundBuckets[0] : undefined
 
                 if (foundBucket && !(foundBucket.getId() in this.buckets)) {

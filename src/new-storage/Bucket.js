@@ -53,7 +53,7 @@ class Bucket {
         this._keepAliveSeconds = keepAliveSeconds
 
         this.ttl = new Date()
-        this._stored = true
+        this._stored = false
         this._updateTTL()
     }
 

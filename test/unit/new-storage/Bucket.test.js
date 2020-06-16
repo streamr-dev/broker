@@ -74,7 +74,7 @@ describe('Bucket', () => {
 
     it('isStored', () => {
         const bucket = new Bucket('id', 'streamId', 0, 0, 0, new Date(), 3, 9, 1)
-        expect(bucket.isStored()).toBeTruthy()
+        expect(bucket.isStored()).toBeFalsy()
         bucket.incrementBucket(1, 1)
         expect(bucket.isStored()).toBeFalsy()
     })
