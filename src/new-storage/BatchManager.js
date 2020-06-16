@@ -19,8 +19,8 @@ class BatchManager extends EventEmitter {
         const defaultOptions = {
             useTtl: false,
             logErrors: false,
-            batchMaxSize: 10000,
-            batchMaxRecords: 10,
+            batchMaxSize: 8000 * 300,
+            batchMaxRecords: 8000,
             batchCloseTimeout: 1000,
             batchMaxRetries: 64
         }

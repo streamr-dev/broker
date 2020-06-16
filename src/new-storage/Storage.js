@@ -164,7 +164,7 @@ class Storage extends EventEmitter {
         this.bucketManager.getLastBuckets(streamId, partition, 1, fromTimestamp).then((buckets) => {
             return buckets.length ? buckets[0].dateCreate : fromTimestamp
         }).then((startBucketTimestamp) => {
-            return startBucketTimestamp ? this.bucketManager.getBucketsByTimestamp(streamId, partition, startBucketTimestamp) : []
+            return this.bucketManager.getBucketsByTimestamp(streamId, partition, startBucketTimestamp)
         }).then((buckets) => {
             if (!buckets.length) {
                 return resultStream.push(null)
@@ -252,9 +252,9 @@ class Storage extends EventEmitter {
             + 'AND msg_chain_id = ? ALLOW FILTERING'
 
         this.bucketManager.getLastBuckets(streamId, partition, 1, fromTimestamp).then((buckets) => {
-            return buckets.length ? buckets[0].dateCreate : undefined
+            return buckets.length ? buckets[0].dateCreate : fromTimestamp
         }).then((startBucketTimestamp) => {
-            return startBucketTimestamp ? this.bucketManager.getBucketsByTimestamp(streamId, partition, startBucketTimestamp) : []
+            return this.bucketManager.getBucketsByTimestamp(streamId, partition, startBucketTimestamp)
         }).then((buckets) => {
             if (!buckets.length) {
                 return resultStream.push(null)
