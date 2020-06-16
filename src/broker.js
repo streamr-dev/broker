@@ -46,7 +46,9 @@ module.exports = async (config) => {
             keyspace: config.cassandra_new.keyspace,
             username: config.cassandra_new.username,
             password: config.cassandra_new.password,
-            useTtl: !config.network.isStorageNode
+            bucketManagerOpts: {
+                useTtl: !config.network.isStorageNode
+            }
         }))
     } else {
         console.info('Cassandra ### NEW SCHEMA ### is disabled')

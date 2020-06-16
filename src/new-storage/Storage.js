@@ -14,16 +14,30 @@ const BucketManager = require('./BucketManager')
 const MAX_RESEND_LAST = 10000
 
 class Storage extends EventEmitter {
-    constructor(cassandraClient, useTtl) {
+    constructor(cassandraClient, opts) {
         super()
 
+        const defaultOptions = {
+            stdTTL: 1,
+            checkperiod: 1,
+            bucketManagerOpts: {},
+            batchManagerOpts: {
+                useTtl: false
+            }
+        }
+
+        this.opts = {
+            ...defaultOptions,
+            ...opts
+        }
+
         this.cassandraClient = cassandraClient
-        this.batchManager = new BatchManager(cassandraClient, useTtl, true)
-        this.bucketManager = new BucketManager(cassandraClient, true)
+        this.bucketManager = new BucketManager(cassandraClient, this.opts.bucketManagerOpts)
+        this.batchManager = new BatchManager(cassandraClient, this.opts.batchManagerOpts)
 
         this.pendingMessages = new NodeCache({
-            stdTTL: 1,
-            checkperiod: 1
+            stdTTL: this.opts.stdTTL,
+            checkperiod: this.opts.checkperiod
         })
 
         this.pendingMessages.on('expired', (messageId, streamMessage) => {
@@ -392,7 +406,8 @@ const startCassandraStorage = async ({
     keyspace,
     username,
     password,
-    useTtl = true
+    bucketManagerOpts,
+    batchManagerOpts
 }) => {
     const authProvider = new cassandra.auth.PlainTextAuthProvider(username || '', password || '')
     const requestLogger = new cassandra.tracker.RequestLogger({
@@ -416,7 +431,11 @@ const startCassandraStorage = async ({
         /* eslint-disable no-await-in-loop */
         try {
             await cassandraClient.connect().catch((err) => { throw err })
-            return new Storage(cassandraClient, useTtl)
+            const opts = {
+                bucketManagerOpts: bucketManagerOpts || {},
+                batchManagerOpts: batchManagerOpts || {}
+            }
+            return new Storage(cassandraClient, opts)
         } catch (err) {
             console.log('Cassandra not responding yet...')
             retryCount -= 1

@@ -258,7 +258,7 @@ describe('Storage', () => {
             storage.store(msg)
         }
 
-        await wait(5000)
+        await wait(10000)
 
         const streamingResults = storage.requestLast(streamId, 0, 10000)
         const results = await toArray(streamingResults)
@@ -273,7 +273,7 @@ describe('Storage', () => {
             storage.store(msg)
         }
 
-        await wait(5000)
+        await wait(10000)
 
         const streamingResults = storage.requestFrom(streamId, 0, 1000)
         const results = await toArray(streamingResults)
