@@ -258,14 +258,14 @@ describe('Storage', () => {
             storage.store(msg)
         }
 
-        await wait(10000)
+        await wait(20000)
 
         const streamingResults = storage.requestLast(streamId, 0, 10000)
         const results = await toArray(streamingResults)
 
         expect(results.length).toEqual(10000)
         expect(storage.pendingMessages.keys().length).toEqual(0)
-    }, 20000)
+    }, 30000)
 
     test('requestFrom fast big stream', async () => {
         for (let i = 0; i < 10000; i++) {
@@ -273,12 +273,12 @@ describe('Storage', () => {
             storage.store(msg)
         }
 
-        await wait(10000)
+        await wait(20000)
 
         const streamingResults = storage.requestFrom(streamId, 0, 1000)
         const results = await toArray(streamingResults)
 
         expect(results.length).toEqual(10000)
         expect(storage.pendingMessages.keys().length).toEqual(0)
-    }, 20000)
+    }, 30000)
 })
