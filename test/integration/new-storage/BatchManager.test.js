@@ -1,8 +1,7 @@
 const cassandra = require('cassandra-driver')
 const { TimeUuid } = require('cassandra-driver').types
-const toArray = require('stream-to-array')
-const { StreamMessage, StreamMessageV31 } = require('streamr-client-protocol').MessageLayer
-const { waitForCondition, wait } = require('streamr-test-utils')
+const { StreamMessage } = require('streamr-client-protocol').MessageLayer
+const { waitForCondition } = require('streamr-test-utils')
 
 const BatchManager = require('../../../src/new-storage/BatchManager')
 const Batch = require('../../../src/new-storage/Batch')
@@ -118,5 +117,25 @@ describe('BatchManager', () => {
 
         await waitForCondition(() => batchChangedStateSpy.mock.calls.length === 1)
         expect(batchChangedStateSpy).toHaveBeenCalledWith(bucketId, batch.getId(), Batch.states.PENDING, 82, 1)
+    })
+
+    test('when failed to insert, increase retry and try again after timeout', async () => {
+        const msg = buildMsg(streamId, 0, 1000, 0, 'publisher1')
+        batchManager.store(bucketId, msg)
+
+        const batch = Object.values(batchManager.batches)[0]
+        expect(batch.retries).toEqual(0)
+
+        const mockBatch = jest.fn().mockImplementation(() => {
+            throw Error('Throw not inserted')
+        })
+        batchManager.cassandraClient.batch = mockBatch
+
+        await waitForCondition(() => batch.retries === 1)
+
+        expect(mockBatch).toBeCalledTimes(1)
+        expect(batch.retries).toEqual(1)
+
+        jest.restoreAllMocks()
     })
 })

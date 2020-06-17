@@ -73,13 +73,13 @@ class Batch extends EventEmitter {
         clearTimeout(this._timeout)
         this.debug(`scheduleRetry. retries:${this.retries}`)
 
-        if (this.retries < this._maxRetries) {
-            this.retries += 1
-        }
-
         this._setState(STATES.PENDING, false)
-
-        this._timeout = setTimeout(() => this._emitState(), this._closeTimeout * this.retries)
+        this._timeout = setTimeout(() => {
+            if (this.retries < this._maxRetries) {
+                this.retries += 1
+            }
+            this._emitState()
+        }, this._closeTimeout * this.retries)
     }
 
     clear() {
@@ -94,9 +94,7 @@ class Batch extends EventEmitter {
     }
 
     isFull() {
-        const isFull = this.size >= this._maxSize || this._getNumberOrMessages() >= this._maxRecords
-        this.debug(`isFull: ${isFull}`)
-        return isFull
+        return this.size >= this._maxSize || this._getNumberOrMessages() >= this._maxRecords
     }
 
     _getNumberOrMessages() {

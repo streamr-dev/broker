@@ -126,7 +126,6 @@ describe('Batch', () => {
         batch.setClose()
         expect(batch.retries).toEqual(0)
         batch.scheduleInsert()
-        expect(batch.retries).toEqual(1)
 
         // batch on each retry emits PENDING state
         batch.on('state', (bucketId, id, state, size, numberOfRecords) => {
