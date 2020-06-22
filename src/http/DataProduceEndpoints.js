@@ -4,6 +4,8 @@ const { StreamMessage } = require('streamr-client-protocol').MessageLayer
 const { InvalidJsonError } = require('streamr-client-protocol').Errors
 
 const partition = require('../partition')
+const { isTimestampTooFarInTheFuture } = require('../helpers/utils')
+const FailedToPublishError = require('../errors/FailedToPublishError')
 
 const authenticationMiddleware = require('./RequestAuthenticatorMiddleware')
 
@@ -72,6 +74,14 @@ module.exports = (streamFetcher, publisher, thresholdForFutureMessageSeconds = 3
 
             try {
                 timestamp = req.query.ts ? parseTimestamp(req.query.ts) : Date.now()
+
+                if (isTimestampTooFarInTheFuture(timestamp, thresholdForFutureMessageSeconds)) {
+                    res.status(400).send({
+                        error: `Future timestamps are not allowed, max allowed +${thresholdForFutureMessageSeconds} seconds`
+                    })
+                    return
+                }
+
                 sequenceNumber = req.query.seq ? parsePositiveInteger(req.query.seq) : 0
                 if (req.query.prev_ts) {
                     const previousSequenceNumber = req.query.prev_seq ? parsePositiveInteger(req.query.prev_seq) : 0
@@ -80,7 +90,7 @@ module.exports = (streamFetcher, publisher, thresholdForFutureMessageSeconds = 3
                 signatureType = req.query.signatureType ? parsePositiveInteger(req.query.signatureType) : 0
             } catch (err) {
                 res.status(400).send({
-                    error: err.message,
+                    error: err.message
                 })
                 return
             }
