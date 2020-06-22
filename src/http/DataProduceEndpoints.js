@@ -35,7 +35,7 @@ function parseTimestamp(millisOrString) {
 /**
  * Endpoint for POSTing data to streams
  */
-module.exports = (streamFetcher, publisher, partitionFn = partition) => {
+module.exports = (streamFetcher, publisher, thresholdForFutureMessageSeconds = 300, partitionFn = partition) => {
     if (!streamFetcher) {
         throw new Error('No StreamFetcher given! Must use: new StreamrDataApi(streamrUrl)')
     }

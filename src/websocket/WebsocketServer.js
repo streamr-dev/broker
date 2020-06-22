@@ -25,11 +25,13 @@ module.exports = class WebsocketServer extends EventEmitter {
         volumeLogger = new VolumeLogger(0),
         subscriptionManager,
         pingInterval = 60 * 1000,
+        thresholdForFutureMessageSeconds = 300,
         partitionFn = partition,
     ) {
         super()
         this.wss = wss
         this._listenSocket = null
+        this._thresholdForFutureMessageSeconds = thresholdForFutureMessageSeconds
         this.networkNode = networkNode
         this.streamFetcher = streamFetcher
         this.publisher = publisher
