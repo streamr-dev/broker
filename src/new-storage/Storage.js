@@ -19,7 +19,7 @@ class Storage extends EventEmitter {
 
         const defaultOptions = {
             stdTTL: 1,
-            checkperiod: 1,
+            checkperiod: 0.5,
             bucketManagerOpts: {},
             batchManagerOpts: {
                 useTtl: false

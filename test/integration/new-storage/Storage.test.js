@@ -71,7 +71,14 @@ describe('Storage', () => {
         storage = await startCassandraStorage({
             contactPoints,
             localDataCenter,
-            keyspace
+            keyspace,
+            batchManagerOpts: {
+                batchCloseTimeout: 100
+            },
+            bucketManagerOpts: {
+                checkFullBucketsTimeout: 100,
+                storeBucketsTimeout: 100
+            }
         })
         streamId = `stream-id-${Date.now()}-${streamIdx}`
         streamIdx += 1
@@ -99,7 +106,7 @@ describe('Storage', () => {
         const msg = buildMsg(streamId, 10, 1545144750494, 0, 'publisher', '1', data)
         storage.store(msg)
 
-        await wait(5000)
+        await wait(3000)
 
         const result = await cassandraClient.execute('SELECT * FROM stream_data_new WHERE stream_id = ? AND partition = 10 ALLOW FILTERING', [
             streamId
@@ -123,7 +130,7 @@ describe('Storage', () => {
             msg_chain_id: '1',
             payload: Buffer.from(msg.serialize()),
         })
-    }, 10000)
+    })
 
     test('fetch last messages', async () => {
         const msg1 = buildMsg(streamId, 10, 3000, 2, 'publisher2')
@@ -141,13 +148,13 @@ describe('Storage', () => {
         storage.store(buildEncryptedMsg(streamId, 666, 8000, 0))
         storage.store(buildMsg(`${streamId}-wrong`, 10, 8000, 0))
 
-        await wait(5000)
+        await wait(3000)
 
         const streamingResults = storage.requestLast(streamId, 10, 3)
         const results = await toArray(streamingResults)
 
         expect(results).toEqual([msg1, msg2, msg3])
-    }, 10000)
+    })
 
     test('fetch messages starting from a timestamp', async () => {
         const msg1 = buildMsg(streamId, 10, 3000, 0)
@@ -167,13 +174,13 @@ describe('Storage', () => {
         storage.store(buildMsg(streamId, 666, 8000, 0))
         storage.store(buildMsg(`${streamId}-wrong`, 10, 8000, 0))
 
-        await wait(5000)
+        await wait(3000)
 
         const streamingResults = storage.requestFrom(streamId, 10, 3000)
         const results = await toArray(streamingResults)
 
         expect(results).toEqual([msg1, msg2, msg3, msg4, msg5])
-    }, 10000)
+    })
 
     test('fetch messages starting from a timestamp, sequenceNo for a given publisher, msgChainId', async () => {
         const msg1 = buildEncryptedMsg(streamId, 10, 3000, 1, 'publisher1')
@@ -192,13 +199,13 @@ describe('Storage', () => {
         storage.store(msg3)
         storage.store(buildMsg(`${streamId}-wrong`, 10, 8000, 0, 'publisher1', '1'))
 
-        await wait(5000)
+        await wait(3000)
 
         const streamingResults = storage.requestFrom(streamId, 10, 3000, 1, 'publisher1', '1')
         const results = await toArray(streamingResults)
 
         expect(results).toEqual([msg1, msg2, msg3])
-    }, 10000)
+    })
 
     test('fetch messages in a timestamp range', async () => {
         const msg1 = buildMsg(streamId, 10, 2000, 0)
@@ -218,13 +225,13 @@ describe('Storage', () => {
         storage.store(buildMsg(streamId, 10, 4000, 0))
         storage.store(buildMsg(`${streamId}-wrong`, 10, 3000, 0))
 
-        await wait(5000)
+        await wait(3000)
 
         const streamingResults = storage.requestRange(streamId, 10, 1500, undefined, 3500, undefined)
         const results = await toArray(streamingResults)
 
         expect(results).toEqual([msg1, msg2, msg3, msg4, msg5])
-    }, 10000)
+    })
 
     test('fetch messages in a timestamp,seqeuenceNo range for a particular publisher, msgChainId', async () => {
         const msg1 = buildEncryptedMsg(streamId, 10, 2000, 0, 'publisher1')
@@ -244,13 +251,13 @@ describe('Storage', () => {
         storage.store(buildEncryptedMsg(streamId, 10, 8000, 0, 'publisher1'))
         storage.store(buildMsg(`${streamId}-wrong`, 10, 8000, 0, 'publisher1'))
 
-        await wait(5000)
+        await wait(3000)
 
         const streamingResults = storage.requestRange(streamId, 10, 1500, 3, 3000, 2, 'publisher1', '1')
         const results = await toArray(streamingResults)
 
         expect(results).toEqual([msg1, msg2, msg3, msg4])
-    }, 10000)
+    })
 
     test('requestLast fast big stream', async () => {
         for (let i = 0; i < 10000; i++) {
@@ -258,14 +265,14 @@ describe('Storage', () => {
             storage.store(msg)
         }
 
-        await wait(20000)
+        await wait(5000)
 
         const streamingResults = storage.requestLast(streamId, 0, 10000)
         const results = await toArray(streamingResults)
 
         expect(results.length).toEqual(10000)
         expect(storage.pendingMessages.keys().length).toEqual(0)
-    }, 30000)
+    }, 10000)
 
     test('requestFrom fast big stream', async () => {
         for (let i = 0; i < 10000; i++) {
@@ -273,12 +280,12 @@ describe('Storage', () => {
             storage.store(msg)
         }
 
-        await wait(20000)
+        await wait(5000)
 
         const streamingResults = storage.requestFrom(streamId, 0, 1000)
         const results = await toArray(streamingResults)
 
         expect(results.length).toEqual(10000)
         expect(storage.pendingMessages.keys().length).toEqual(0)
-    }, 30000)
+    }, 10000)
 })
