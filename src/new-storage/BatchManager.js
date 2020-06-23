@@ -116,7 +116,9 @@ class BatchManager extends EventEmitter {
             }
 
             if (batch.reachedMaxRetries()) {
-                console.error(`Batch ${batchId} reached max retries, dropping batch`)
+                if (this.opts.logErrors) {
+                    console.error(`Batch ${batchId} reached max retries, dropping batch`)
+                }
                 batch.clear()
                 delete this.pendingBatches[batch.getId()]
                 return

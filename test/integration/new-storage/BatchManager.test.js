@@ -46,7 +46,7 @@ describe('BatchManager', () => {
 
         await cassandraClient.connect()
         batchManager = new BatchManager(cassandraClient, {
-            logErrors: true,
+            logErrors: false,
             batchMaxSize: 10000,
             batchMaxRecords: 10,
             batchCloseTimeout: 1000,
@@ -137,5 +137,32 @@ describe('BatchManager', () => {
         expect(batch.retries).toEqual(1)
 
         jest.restoreAllMocks()
+    })
+
+    test('drops batch after batch reached maximum retires', async () => {
+        batchManager.opts.batchMaxRetries = 2
+
+        const msg = buildMsg(streamId, 0, 1000, 0, 'publisher1')
+        batchManager.store(bucketId, msg)
+
+        const batch = Object.values(batchManager.batches)[0]
+
+        const mockBatch = jest.fn().mockImplementation(() => {
+            throw Error('Throw not inserted')
+        })
+        batchManager.cassandraClient.batch = mockBatch
+
+        expect(Object.values(batchManager.pendingBatches)).toHaveLength(0)
+        expect(batch.reachedMaxRetries()).toBeFalsy()
+
+        await waitForCondition(() => batch.retries === 1)
+
+        expect(Object.values(batchManager.pendingBatches)).toHaveLength(1)
+        expect(batch.reachedMaxRetries()).toBeFalsy()
+
+        await waitForCondition(() => batch.retries === 2)
+
+        expect(Object.values(batchManager.pendingBatches)).toHaveLength(0)
+        expect(batch.reachedMaxRetries()).toBeTruthy()
     })
 })
