@@ -1,9 +1,10 @@
-// const http = require('http')
 const url = require('url')
 
+const WebSocket = require('ws')
 const fetch = require('node-fetch')
 const { startTracker } = require('streamr-network')
 const { StreamMessage } = require('streamr-client-protocol').MessageLayer
+const { ControlLayer } = require('streamr-client-protocol')
 
 const { startBroker, createClient, createMqttClient } = require('../utils')
 
@@ -22,6 +23,7 @@ describe('broker drops future messages', () => {
     let streamId
     let client
     let mqttClient
+    let token
 
     beforeEach(async () => {
         tracker = await startTracker('127.0.0.1', trackerPort, 'tracker')
@@ -33,6 +35,7 @@ describe('broker drops future messages', () => {
             name: 'broker-drops-future-messages' + Date.now()
         })
         streamId = freshStream.id
+        token = await client.session.getSessionToken()
     })
 
     afterEach(async () => {
@@ -89,5 +92,34 @@ describe('broker drops future messages', () => {
                 expect(json.error).toEqual('Future timestamps are not allowed, max allowed +300 seconds')
                 done()
             })
+    })
+
+    test('pushing message with too future timestamp to Websocket adapter returns error & does not crash broker', (done) => {
+        const streamMessage = StreamMessage.create(
+            [streamId, 0, Date.now() + (thresholdForFutureMessageSeconds + 5) * 1000, 0, 'publisherId', '1'],
+            null,
+            StreamMessage.CONTENT_TYPES.MESSAGE,
+            StreamMessage.ENCRYPTION_TYPES.NONE,
+            '{}',
+            StreamMessage.SIGNATURE_TYPES.NONE,
+            null,
+        )
+        const publishRequest = ControlLayer.PublishRequest.create(streamMessage, token)
+
+        const ws = new WebSocket(`ws://127.0.0.1:${wsPort}/api/v1/ws?messageLayerVersion=31&controlLayerVersion=0`, {
+            rejectUnauthorized: false // needed to accept self-signed certificate
+        })
+
+        ws.on('open', () => {
+            ws.send(publishRequest.serialize())
+        })
+
+        ws.on('message', (msg) => {
+            expect(msg).toContain('future timestamps are not allowed')
+            ws.close()
+            done()
+        })
+
+        ws.on('error', (err) => done(err))
     })
 })
