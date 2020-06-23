@@ -55,6 +55,10 @@ class Batch extends EventEmitter {
         this.debug('init new batch')
     }
 
+    reachedMaxRetries() {
+        return this.retries === this._maxRetries
+    }
+
     getId() {
         return this._id
     }

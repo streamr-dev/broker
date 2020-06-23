@@ -22,7 +22,7 @@ class BatchManager extends EventEmitter {
             batchMaxSize: 8000 * 300,
             batchMaxRecords: 8000,
             batchCloseTimeout: 1000,
-            batchMaxRetries: 64
+            batchMaxRetries: 1000 // in total max ~16 minutes timeout
         }
 
         this.opts = {
@@ -113,6 +113,13 @@ class BatchManager extends EventEmitter {
             if (this.opts.logErrors) {
                 console.error(`Failed to insert batchId: (${batchId})`)
                 console.error(e)
+            }
+
+            if (batch.reachedMaxRetries()) {
+                console.error(`Batch ${batchId} reached max retries, dropping batch`)
+                batch.clear()
+                delete this.pendingBatches[batch.getId()]
+                return
             }
             batch.scheduleInsert()
         }

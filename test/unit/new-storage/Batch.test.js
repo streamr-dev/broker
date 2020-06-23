@@ -135,5 +135,17 @@ describe('Batch', () => {
             done()
         })
     })
+
+    it('reachedMaxRetries', (done) => {
+        const batch = new Batch('bucketId', 3, 3, 10, 1)
+        expect(batch.reachedMaxRetries()).toBeFalsy()
+
+        batch.scheduleInsert()
+
+        batch.on('state', (bucketId, id, state, size, numberOfRecords) => {
+            expect(batch.reachedMaxRetries()).toBeTruthy()
+            done()
+        })
+    })
 })
 
