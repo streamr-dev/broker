@@ -5,7 +5,6 @@ const { InvalidJsonError } = require('streamr-client-protocol').Errors
 
 const partition = require('../partition')
 const { isTimestampTooFarInTheFuture } = require('../helpers/utils')
-const FailedToPublishError = require('../errors/FailedToPublishError')
 
 const authenticationMiddleware = require('./RequestAuthenticatorMiddleware')
 
