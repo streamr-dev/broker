@@ -91,7 +91,7 @@ class BatchManager extends EventEmitter {
                     params: [
                         streamMessage.getStreamId(),
                         streamMessage.getStreamPartition(),
-                        // batch.getBucketId(),
+                        // TODO to be added in next PR batch.getBucketId(),
                         streamMessage.getTimestamp(),
                         streamMessage.getSequenceNumber(),
                         streamMessage.getPublisherId(),
