@@ -1,7 +1,7 @@
 const cassandra = require('cassandra-driver')
 const { TimeUuid } = require('cassandra-driver').types
 const { StreamMessage } = require('streamr-client-protocol').MessageLayer
-const { waitForCondition } = require('streamr-test-utils')
+const { wait, waitForCondition } = require('streamr-test-utils')
 
 const BatchManager = require('../../../src/new-storage/BatchManager')
 const Batch = require('../../../src/new-storage/Batch')
