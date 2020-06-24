@@ -115,7 +115,6 @@ describe('broker drops future messages', () => {
         })
 
         ws.on('message', (msg) => {
-            console.log(msg)
             expect(msg).toContain('future timestamps are not allowed')
             ws.close()
             done()
