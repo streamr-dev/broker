@@ -1,4 +1,4 @@
-const { Readable, Transform } = require('stream')
+const { Transform } = require('stream')
 const EventEmitter = require('events')
 
 const pump = require('pump')
