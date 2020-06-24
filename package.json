@@ -35,7 +35,7 @@
     "commander": "^5.1.0",
     "cors": "^2.7.1",
     "debug": "^4.1.1",
-    "ethers": "^4.0.47",
+    "ethers": "^5.0.2",
     "express": "^4.17.1",
     "lru-cache": "^5.1.1",
     "memoizee": "^0.4.4",
