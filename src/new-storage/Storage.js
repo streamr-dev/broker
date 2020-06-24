@@ -2,97 +2,63 @@ const { Readable, Transform } = require('stream')
 const EventEmitter = require('events')
 
 const merge2 = require('merge2')
+const debug = require('debug')('streamr:storage')
 const cassandra = require('cassandra-driver')
 const { StreamMessageFactory } = require('streamr-client-protocol').MessageLayer
 
-const MicroBatchingStrategy = require('./MicroBatchingStrategy')
+const BatchManager = require('./BatchManager')
 const PeriodicQuery = require('./PeriodicQuery')
-
-const INSERT_STATEMENT = 'INSERT INTO stream_data '
-    + '(id, partition, ts, sequence_no, publisher_id, msg_chain_id, payload) '
-    + 'VALUES (?, ?, ?, ?, ?, ?, ?)'
-
-const INSERT_STATEMENT_WITH_TTL = 'INSERT INTO stream_data '
-    + '(id, partition, ts, sequence_no, publisher_id, msg_chain_id, payload) '
-    + 'VALUES (?, ?, ?, ?, ?, ?, ?) USING TTL 259200' // 3 days
-
-const batchingStore = (cassandraClient, insertStatement) => new MicroBatchingStrategy({
-    insertFn: (streamMessages) => {
-        const queries = streamMessages.map((streamMessage) => {
-            return {
-                query: insertStatement,
-                params: [
-                    streamMessage.getStreamId(),
-                    streamMessage.getStreamPartition(),
-                    streamMessage.getTimestamp(),
-                    streamMessage.getSequenceNumber(),
-                    streamMessage.getPublisherId(),
-                    streamMessage.getMsgChainId(),
-                    Buffer.from(streamMessage.serialize()),
-                ]
-            }
-        })
-        return cassandraClient.batch(queries, {
-            prepare: true
-        })
-    }
-})
-
-const individualStore = (cassandraClient, insertStatement) => ({
-    store: (streamMessage) => {
-        return cassandraClient.execute(insertStatement, [
-            streamMessage.getStreamId(),
-            streamMessage.getStreamPartition(),
-            streamMessage.getTimestamp(),
-            streamMessage.getSequenceNumber(),
-            streamMessage.getPublisherId(),
-            streamMessage.getMsgChainId(),
-            Buffer.from(streamMessage.serialize()),
-        ], {
-            prepare: true,
-        })
-    },
-    close: () => {},
-    metrics: () => {}
-})
 
 const RANGE_THRESHOLD = 30 * 1000
 const RETRY_INTERVAL = 2000
 const RETRY_TIMEOUT = 15 * 1000
+const MAX_RESEND_LAST = 10000
 
 class Storage extends EventEmitter {
-    constructor(cassandraClient, useTtl, isBatching = true) {
+    constructor(cassandraClient, opts) {
         super()
-        this.cassandraClient = cassandraClient
 
-        const insertStatement = useTtl ? INSERT_STATEMENT_WITH_TTL : INSERT_STATEMENT
-        if (isBatching) {
-            this.storeStrategy = batchingStore(cassandraClient, insertStatement)
-        } else {
-            this.storeStrategy = individualStore(cassandraClient, insertStatement)
+        const defaultOptions = {
+            batchManagerOpts: {
+                useTtl: false
+            }
         }
+
+        this.opts = {
+            ...defaultOptions,
+            ...opts
+        }
+
+        this.cassandraClient = cassandraClient
+        this.batchManager = new BatchManager(cassandraClient, this.opts.batchManagerOpts)
     }
 
     store(streamMessage) {
-        const p = this.storeStrategy.store(streamMessage)
-        p.then(() => this.emit('write', streamMessage), () => {})
-        return p
+        // TODO in next PR will be added BucketManager
+        const bucketId = `${streamMessage.getStreamId()}::${streamMessage.getStreamPartition()}`
+
+        if (bucketId) {
+            debug(`found bucketId: ${bucketId}`)
+            setImmediate(() => this.batchManager.store(bucketId, streamMessage))
+        } else {
+            const messageId = streamMessage.messageId.serialize()
+            debug(`bucket not found, put ${messageId} to pendingMessages`)
+        }
     }
 
-    requestLast(streamId, streamPartition, n) {
-        // TODO replace with protocol validations.js
-        if (!Number.isInteger(streamPartition) || parseInt(streamPartition) < 0) {
-            throw new Error('streamPartition must be >= 0')
+    requestLast(streamId, partition, limit) {
+        if (limit > MAX_RESEND_LAST) {
+            // eslint-disable-next-line no-param-reassign
+            limit = MAX_RESEND_LAST
         }
 
-        if (!Number.isInteger(n) || parseInt(n) <= 0) {
-            throw new Error('LIMIT must be strictly positive')
-        }
+        debug(`requestLast, streamId: "${streamId}", partition: "${partition}", limit: "${limit}"`)
+
         const query = 'SELECT * FROM stream_data '
             + 'WHERE id = ? AND partition = ? '
             + 'ORDER BY ts DESC, sequence_no DESC '
             + 'LIMIT ?'
-        const queryParams = [streamId, streamPartition, n]
+        const queryParams = [streamId, partition, limit]
 
         // Wrap as stream for consistency with other fetch functions
         const readableStream = new Readable({
@@ -102,6 +68,7 @@ class Storage extends EventEmitter {
 
         this.cassandraClient.execute(query, queryParams, {
             prepare: true,
+            fetchSize: 0 // disable paging to get more that 5000
         })
             .then((resultSet) => {
                 resultSet.rows.reverse().forEach((r) => {
@@ -117,25 +84,20 @@ class Storage extends EventEmitter {
         return readableStream
     }
 
-    requestFrom(streamId, streamPartition, fromTimestamp, fromSequenceNo, publisherId, msgChainId) {
-        // TODO replace with protocol validations.js
-        if (!Number.isInteger(streamPartition) || parseInt(streamPartition) < 0) {
-            throw new Error('streamPartition must be >= 0')
-        }
+    requestFrom(streamId, partition, fromTimestamp, fromSequenceNo, publisherId, msgChainId) {
+        debug(`requestFrom, streamId: "${streamId}", partition: "${partition}", fromTimestamp: "${fromTimestamp}", fromSequenceNo: `
+            + `"${fromSequenceNo}", publisherId: "${publisherId}", msgChainId: "${msgChainId}"`)
 
-        if (!Number.isInteger(fromTimestamp) || parseInt(fromTimestamp) < 0) {
-            throw new Error('fromTimestamp must be zero or positive')
-        }
         if (fromSequenceNo != null && (!Number.isInteger(fromSequenceNo) || parseInt(fromSequenceNo) < 0)) {
             throw new Error('fromSequenceNo must be positive')
         }
 
         if (fromSequenceNo != null && publisherId != null && msgChainId != null) {
-            return this._fetchFromMessageRefForPublisher(streamId, streamPartition, fromTimestamp,
+            return this._fetchFromMessageRefForPublisher(streamId, partition, fromTimestamp,
                 fromSequenceNo, publisherId, msgChainId)
         }
         if ((fromSequenceNo == null || fromSequenceNo === 0) && publisherId == null && msgChainId == null) {
-            return this._fetchFromTimestamp(streamId, streamPartition, fromTimestamp)
+            return this._fetchFromTimestamp(streamId, partition, fromTimestamp)
         }
 
         throw new Error('Invalid combination of requestFrom arguments')
@@ -170,41 +132,22 @@ class Storage extends EventEmitter {
         return merge2(stream1, stream2)
     }
 
-    requestRange(
-        streamId,
-        streamPartition,
-        fromTimestamp,
-        fromSequenceNo,
-        toTimestamp,
-        toSequenceNo,
-        publisherId,
-        msgChainId
-    ) {
-        if (!Number.isInteger(fromTimestamp)) {
-            throw new Error('fromTimestamp is not an integer')
-        }
-        if (fromSequenceNo != null && !Number.isInteger(fromSequenceNo)) {
-            throw new Error('fromSequenceNo is not an integer')
-        }
-        if (!Number.isInteger(toTimestamp)) {
-            throw new Error('toTimestamp is not an integer')
-        }
-        if (toSequenceNo != null && !Number.isInteger(toSequenceNo)) {
-            throw new Error('toSequenceNo is not an integer')
-        }
+    requestRange(streamId, partition, fromTimestamp, fromSequenceNo, toTimestamp, toSequenceNo, publisherId, msgChainId) {
+        debug(`requestRange, streamId: "${streamId}", partition: "${partition}", fromTimestamp: "${fromTimestamp}", fromSequenceNo: "${fromSequenceNo}"`
+            + `, toTimestamp: "${toTimestamp}", toSequenceNo: "${toSequenceNo}", publisherId: "${publisherId}", msgChainId: "${msgChainId}"`)
 
         if (fromSequenceNo != null && toSequenceNo != null && publisherId != null && msgChainId != null) {
             if (toTimestamp > (Date.now() - RANGE_THRESHOLD)) {
-                const periodicQuery = new PeriodicQuery(() => this._fetchBetweenMessageRefsForPublisher(streamId, streamPartition, fromTimestamp,
+                const periodicQuery = new PeriodicQuery(() => this._fetchBetweenMessageRefsForPublisher(streamId, partition, fromTimestamp,
                     fromSequenceNo, toTimestamp, toSequenceNo, publisherId, msgChainId), RETRY_INTERVAL, RETRY_TIMEOUT)
                 return periodicQuery.getStreamingResults()
             }
-            return this._fetchBetweenMessageRefsForPublisher(streamId, streamPartition, fromTimestamp,
+            return this._fetchBetweenMessageRefsForPublisher(streamId, partition, fromTimestamp,
                 fromSequenceNo, toTimestamp, toSequenceNo, publisherId, msgChainId)
         }
         if ((fromSequenceNo == null || fromSequenceNo === 0) && (toSequenceNo == null || toSequenceNo === 0)
             && publisherId == null && msgChainId == null) {
-            return this._fetchBetweenTimestamps(streamId, streamPartition, fromTimestamp, toTimestamp)
+            return this._fetchBetweenTimestamps(streamId, partition, fromTimestamp, toTimestamp)
         }
 
         throw new Error('Invalid combination of requestFrom arguments')
@@ -253,12 +196,12 @@ class Storage extends EventEmitter {
 
     metrics() {
         return {
-            storeStrategy: this.storeStrategy.metrics()
+            storeStrategy: undefined // this.storeStrategy.metrics()
         }
     }
 
     close() {
-        this.storeStrategy.close()
+        this.batchManager.stop()
         return this.cassandraClient.shutdown()
     }
 
@@ -309,8 +252,7 @@ const startCassandraStorage = async ({
     keyspace,
     username,
     password,
-    useTtl = true,
-    isBatching = true
+    batchManagerOpts
 }) => {
     const authProvider = new cassandra.auth.PlainTextAuthProvider(username || '', password || '')
     const requestLogger = new cassandra.tracker.RequestLogger({
@@ -334,7 +276,11 @@ const startCassandraStorage = async ({
         /* eslint-disable no-await-in-loop */
         try {
             await cassandraClient.connect().catch((err) => { throw err })
-            return new Storage(cassandraClient, useTtl, isBatching)
+
+            const opts = {
+                batchManagerOpts: batchManagerOpts || {}
+            }
+            return new Storage(cassandraClient, opts)
         } catch (err) {
             console.log('Cassandra not responding yet...')
             retryCount -= 1
