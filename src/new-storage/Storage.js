@@ -225,7 +225,7 @@ class Storage extends EventEmitter {
 
     metrics() {
         return {
-            storeStrategy: undefined // this.storeStrategy.metrics()
+            batchManager: this.batchManager.metrics()
         }
     }
 

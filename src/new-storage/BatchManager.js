@@ -126,6 +126,36 @@ class BatchManager extends EventEmitter {
             batch.scheduleInsert()
         }
     }
+
+    metrics() {
+        const totalBatches = Object.values(this.batches).length + Object.values(this.pendingBatches).length
+        const meanBatchRetries = totalBatches === 0 ? 0
+            : Object.values(this.pendingBatches).reduce((acc, batch) => acc + batch.retries, 0) / totalBatches
+
+        let batchesWithFiveOrMoreRetries = 0
+        let batchesWithTenOrMoreRetries = 0
+        let batchesWithHundredOrMoreRetries = 0
+
+        Object.values(this.pendingBatches).forEach((batch) => {
+            if (batch.retries >= 5) {
+                batchesWithFiveOrMoreRetries += 1
+                if (batch.retries >= 10) {
+                    batchesWithTenOrMoreRetries += 1
+                    if (batch.retries >= 100) {
+                        batchesWithHundredOrMoreRetries += 1
+                    }
+                }
+            }
+        })
+
+        return {
+            totalBatches,
+            meanBatchRetries,
+            batchesWithFiveOrMoreRetries,
+            batchesWithTenOrMoreRetries,
+            batchesWithHundredOrMoreRetries
+        }
+    }
 }
 
 module.exports = BatchManager
