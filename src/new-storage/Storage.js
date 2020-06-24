@@ -54,7 +54,7 @@ class Storage extends EventEmitter {
 
         debug(`requestLast, streamId: "${streamId}", partition: "${partition}", limit: "${limit}"`)
 
-        const query = 'SELECT * FROM stream_data '
+        const query = 'SELECT payload FROM stream_data '
             + 'WHERE id = ? AND partition = ? '
             + 'ORDER BY ts DESC, sequence_no DESC '
             + 'LIMIT ?'
@@ -68,7 +68,7 @@ class Storage extends EventEmitter {
 
         this.cassandraClient.execute(query, queryParams, {
             prepare: true,
-            fetchSize: 0 // disable paging to get more that 5000
+            fetchSize: 0 // disable paging to get more that 5000 (https://github.com/datastax/nodejs-driver#paging)
         })
             .then((resultSet) => {
                 resultSet.rows.reverse().forEach((r) => {
@@ -113,7 +113,7 @@ class Storage extends EventEmitter {
             throw new Error('fromTimestamp must be zero or positive')
         }
 
-        const query = 'SELECT * FROM stream_data WHERE id = ? AND partition = ? AND ts >= ? ORDER BY ts ASC, sequence_no ASC'
+        const query = 'SELECT payload FROM stream_data WHERE id = ? AND partition = ? AND ts >= ? ORDER BY ts ASC, sequence_no ASC'
         const queryParams = [streamId, streamPartition, fromTimestamp]
         return this._queryWithStreamingResults(query, queryParams)
     }
@@ -121,9 +121,9 @@ class Storage extends EventEmitter {
     _fetchFromMessageRefForPublisher(streamId, streamPartition, fromTimestamp, fromSequenceNo, publisherId, msgChainId) {
         // Cassandra doesn't allow ORs in WHERE clause so we need to do 2 queries.
         // Once a range (id/partition/ts/sequence_no) has been selected in Cassandra, filtering it by publisher_id requires to ALLOW FILTERING.
-        const query1 = 'SELECT * FROM stream_data WHERE id = ? AND partition = ? AND ts = ? AND sequence_no >= ? AND publisher_id = ? '
+        const query1 = 'SELECT payload FROM stream_data WHERE id = ? AND partition = ? AND ts = ? AND sequence_no >= ? AND publisher_id = ? '
             + 'AND msg_chain_id = ? ORDER BY ts ASC, sequence_no ASC ALLOW FILTERING'
-        const query2 = 'SELECT * FROM stream_data WHERE id = ? AND partition = ? AND ts > ? AND publisher_id = ? '
+        const query2 = 'SELECT payload FROM stream_data WHERE id = ? AND partition = ? AND ts > ? AND publisher_id = ? '
             + 'AND msg_chain_id = ? ORDER BY ts ASC, sequence_no ASC ALLOW FILTERING'
         const queryParams1 = [streamId, streamPartition, fromTimestamp, fromSequenceNo, publisherId, msgChainId]
         const queryParams2 = [streamId, streamPartition, fromTimestamp, publisherId, msgChainId]
@@ -162,7 +162,7 @@ class Storage extends EventEmitter {
             throw new Error('to is not an integer')
         }
 
-        const query = 'SELECT * FROM stream_data WHERE id = ? AND partition = ? AND ts >= ? AND ts <= ? ORDER BY ts ASC, sequence_no ASC'
+        const query = 'SELECT payload FROM stream_data WHERE id = ? AND partition = ? AND ts >= ? AND ts <= ? ORDER BY ts ASC, sequence_no ASC'
         const queryParams = [streamId, streamPartition, from, to]
         return this._queryWithStreamingResults(query, queryParams)
     }
@@ -179,11 +179,11 @@ class Storage extends EventEmitter {
     ) {
         // Cassandra doesn't allow ORs in WHERE clause so we need to do 3 queries.
         // Once a range (id/partition/ts/sequence_no) has been selected in Cassandra, filtering it by publisher_id requires to ALLOW FILTERING.
-        const query1 = 'SELECT * FROM stream_data WHERE id = ? AND partition = ? AND ts = ? AND sequence_no >= ? AND publisher_id = ? '
+        const query1 = 'SELECT payload FROM stream_data WHERE id = ? AND partition = ? AND ts = ? AND sequence_no >= ? AND publisher_id = ? '
             + 'AND msg_chain_id = ? ORDER BY ts ASC, sequence_no ASC ALLOW FILTERING'
-        const query2 = 'SELECT * FROM stream_data WHERE id = ? AND partition = ? AND ts > ? AND ts < ? AND publisher_id = ? '
+        const query2 = 'SELECT payload FROM stream_data WHERE id = ? AND partition = ? AND ts > ? AND ts < ? AND publisher_id = ? '
             + 'AND msg_chain_id = ? ORDER BY ts ASC, sequence_no ASC ALLOW FILTERING'
-        const query3 = 'SELECT * FROM stream_data WHERE id = ? AND partition = ? AND ts = ? AND sequence_no <= ? AND publisher_id = ? '
+        const query3 = 'SELECT payload FROM stream_data WHERE id = ? AND partition = ? AND ts = ? AND sequence_no <= ? AND publisher_id = ? '
             + 'AND msg_chain_id = ? ORDER BY ts ASC, sequence_no ASC ALLOW FILTERING'
         const queryParams1 = [streamId, streamPartition, fromTimestamp, fromSequenceNo, publisherId, msgChainId]
         const queryParams2 = [streamId, streamPartition, fromTimestamp, toTimestamp, publisherId, msgChainId]
@@ -208,7 +208,7 @@ class Storage extends EventEmitter {
     _queryWithStreamingResults(query, queryParams) {
         const cassandraStream = this.cassandraClient.stream(query, queryParams, {
             prepare: true,
-            autoPage: true,
+            autoPage: true
         })
 
         // To avoid blocking main thread for too long, on every 1000th message
