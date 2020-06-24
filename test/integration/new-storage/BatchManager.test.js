@@ -98,9 +98,7 @@ describe('BatchManager', () => {
         // eslint-disable-next-line no-underscore-dangle
         await batchManager._insert(batch.getId())
 
-        await wait(1000)
-
-        const result = await cassandraClient.execute('SELECT * FROM stream_data_new WHERE stream_id = ? ALLOW FILTERING', [
+        const result = await cassandraClient.execute('SELECT * FROM stream_data WHERE id = ? ALLOW FILTERING', [
             streamId
         ])
 
