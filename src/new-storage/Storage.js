@@ -1,6 +1,7 @@
 const { Readable, Transform } = require('stream')
 const EventEmitter = require('events')
 
+const pump = require('pump')
 const merge2 = require('merge2')
 const debug = require('debug')('streamr:storage')
 const cassandra = require('cassandra-driver')
@@ -54,17 +55,13 @@ class Storage extends EventEmitter {
 
         debug(`requestLast, streamId: "${streamId}", partition: "${partition}", limit: "${limit}"`)
 
+        const resultStream = this._createResultStream()
+
         const query = 'SELECT payload FROM stream_data '
             + 'WHERE id = ? AND partition = ? '
             + 'ORDER BY ts DESC, sequence_no DESC '
             + 'LIMIT ?'
         const queryParams = [streamId, partition, limit]
-
-        // Wrap as stream for consistency with other fetch functions
-        const readableStream = new Readable({
-            objectMode: true,
-            read() {},
-        })
 
         this.cassandraClient.execute(query, queryParams, {
             prepare: true,
@@ -72,16 +69,16 @@ class Storage extends EventEmitter {
         })
             .then((resultSet) => {
                 resultSet.rows.reverse().forEach((r) => {
-                    readableStream.push(this._parseRow(r))
+                    resultStream.push(this._parseRow(r))
                 })
-                readableStream.push(null)
+                resultStream.push(null)
             })
             .catch((err) => {
                 console.error(err)
-                readableStream.push(null)
+                resultStream.push(null)
             })
 
-        return readableStream
+        return resultStream
     }
 
     requestFrom(streamId, partition, fromTimestamp, fromSequenceNo, publisherId, msgChainId) {
@@ -104,21 +101,29 @@ class Storage extends EventEmitter {
     }
 
     _fetchFromTimestamp(streamId, streamPartition, fromTimestamp) {
-        // TODO replace with protocol validations.js
-        if (!Number.isInteger(streamPartition) || parseInt(streamPartition) < 0) {
-            throw new Error('streamPartition must be >= 0')
-        }
-
-        if (!Number.isInteger(fromTimestamp) || Number.isInteger(fromTimestamp) < 0) {
-            throw new Error('fromTimestamp must be zero or positive')
-        }
+        const resultStream = this._createResultStream()
 
         const query = 'SELECT payload FROM stream_data WHERE id = ? AND partition = ? AND ts >= ? ORDER BY ts ASC, sequence_no ASC'
         const queryParams = [streamId, streamPartition, fromTimestamp]
-        return this._queryWithStreamingResults(query, queryParams)
+        const cassandraStream = this._queryWithStreamingResults(query, queryParams)
+
+        pump(
+            cassandraStream,
+            resultStream,
+            (err) => {
+                if (err) {
+                    console.error('pump finished with error', err)
+                    resultStream.push(null)
+                }
+            }
+        )
+
+        return resultStream
     }
 
     _fetchFromMessageRefForPublisher(streamId, streamPartition, fromTimestamp, fromSequenceNo, publisherId, msgChainId) {
+        const resultStream = this._createResultStream()
+
         // Cassandra doesn't allow ORs in WHERE clause so we need to do 2 queries.
         // Once a range (id/partition/ts/sequence_no) has been selected in Cassandra, filtering it by publisher_id requires to ALLOW FILTERING.
         const query1 = 'SELECT payload FROM stream_data WHERE id = ? AND partition = ? AND ts = ? AND sequence_no >= ? AND publisher_id = ? '
@@ -129,7 +134,19 @@ class Storage extends EventEmitter {
         const queryParams2 = [streamId, streamPartition, fromTimestamp, publisherId, msgChainId]
         const stream1 = this._queryWithStreamingResults(query1, queryParams1)
         const stream2 = this._queryWithStreamingResults(query2, queryParams2)
-        return merge2(stream1, stream2)
+
+        pump(
+            merge2(stream1, stream2),
+            resultStream,
+            (err) => {
+                if (err) {
+                    console.error('pump finished with error', err)
+                    resultStream.push(null)
+                }
+            }
+        )
+
+        return resultStream
     }
 
     requestRange(streamId, partition, fromTimestamp, fromSequenceNo, toTimestamp, toSequenceNo, publisherId, msgChainId) {
@@ -154,29 +171,29 @@ class Storage extends EventEmitter {
     }
 
     _fetchBetweenTimestamps(streamId, streamPartition, from, to) {
-        if (!Number.isInteger(from)) {
-            throw new Error('from is not an integer')
-        }
-
-        if (!Number.isInteger(to)) {
-            throw new Error('to is not an integer')
-        }
+        const resultStream = this._createResultStream()
 
         const query = 'SELECT payload FROM stream_data WHERE id = ? AND partition = ? AND ts >= ? AND ts <= ? ORDER BY ts ASC, sequence_no ASC'
         const queryParams = [streamId, streamPartition, from, to]
-        return this._queryWithStreamingResults(query, queryParams)
+        const cassandraStream = this._queryWithStreamingResults(query, queryParams)
+
+        pump(
+            cassandraStream,
+            resultStream,
+            (err) => {
+                if (err) {
+                    console.error('pump finished with error', err)
+                    resultStream.push(null)
+                }
+            }
+        )
+
+        return resultStream
     }
 
-    _fetchBetweenMessageRefsForPublisher(
-        streamId,
-        streamPartition,
-        fromTimestamp,
-        fromSequenceNo,
-        toTimestamp,
-        toSequenceNo,
-        publisherId,
-        msgChainId
-    ) {
+    _fetchBetweenMessageRefsForPublisher(streamId, partition, fromTimestamp, fromSequenceNo, toTimestamp, toSequenceNo, publisherId, msgChainId) {
+        const resultStream = this._createResultStream()
+
         // Cassandra doesn't allow ORs in WHERE clause so we need to do 3 queries.
         // Once a range (id/partition/ts/sequence_no) has been selected in Cassandra, filtering it by publisher_id requires to ALLOW FILTERING.
         const query1 = 'SELECT payload FROM stream_data WHERE id = ? AND partition = ? AND ts = ? AND sequence_no >= ? AND publisher_id = ? '
@@ -185,13 +202,25 @@ class Storage extends EventEmitter {
             + 'AND msg_chain_id = ? ORDER BY ts ASC, sequence_no ASC ALLOW FILTERING'
         const query3 = 'SELECT payload FROM stream_data WHERE id = ? AND partition = ? AND ts = ? AND sequence_no <= ? AND publisher_id = ? '
             + 'AND msg_chain_id = ? ORDER BY ts ASC, sequence_no ASC ALLOW FILTERING'
-        const queryParams1 = [streamId, streamPartition, fromTimestamp, fromSequenceNo, publisherId, msgChainId]
-        const queryParams2 = [streamId, streamPartition, fromTimestamp, toTimestamp, publisherId, msgChainId]
-        const queryParams3 = [streamId, streamPartition, toTimestamp, toSequenceNo, publisherId, msgChainId]
+        const queryParams1 = [streamId, partition, fromTimestamp, fromSequenceNo, publisherId, msgChainId]
+        const queryParams2 = [streamId, partition, fromTimestamp, toTimestamp, publisherId, msgChainId]
+        const queryParams3 = [streamId, partition, toTimestamp, toSequenceNo, publisherId, msgChainId]
         const stream1 = this._queryWithStreamingResults(query1, queryParams1)
         const stream2 = this._queryWithStreamingResults(query2, queryParams2)
         const stream3 = this._queryWithStreamingResults(query3, queryParams3)
-        return merge2(stream1, stream2, stream3)
+
+        pump(
+            merge2(stream1, stream2, stream3),
+            resultStream,
+            (err) => {
+                if (err) {
+                    console.error('pump finished with error', err)
+                    resultStream.push(null)
+                }
+            }
+        )
+
+        return resultStream
     }
 
     metrics() {
@@ -221,24 +250,26 @@ class Storage extends EventEmitter {
                 cassandraStream.pause()
                 setImmediate(() => cassandraStream.resume())
             }
-        })
-
-        cassandraStream.on('error', (err) => {
+        }).on('error', (err) => {
             console.error(err)
         })
 
-        return cassandraStream.pipe(new Transform({
-            objectMode: true,
-            transform: (row, _, done) => {
-                done(null, this._parseRow(row))
-            },
-        }))
+        return cassandraStream
     }
 
     _parseRow(row) {
         const streamMessage = StreamMessageFactory.deserialize(row.payload.toString())
         this.emit('read', streamMessage)
         return streamMessage
+    }
+
+    _createResultStream() {
+        return new Transform({
+            objectMode: true,
+            transform: (row, _, done) => {
+                done(null, this._parseRow(row))
+            }
+        })
     }
 }
 
