@@ -3,8 +3,8 @@ const bodyParser = require('body-parser')
 const { StreamMessage } = require('streamr-client-protocol').MessageLayer
 const { InvalidJsonError } = require('streamr-client-protocol').Errors
 
+const FailedToPublishError = require('../errors/FailedToPublishError')
 const partition = require('../partition')
-const { isTimestampTooFarInTheFuture } = require('../helpers/utils')
 
 const authenticationMiddleware = require('./RequestAuthenticatorMiddleware')
 
@@ -36,7 +36,7 @@ function parseTimestamp(millisOrString) {
 /**
  * Endpoint for POSTing data to streams
  */
-module.exports = (streamFetcher, publisher, thresholdForFutureMessageSeconds = 300, partitionFn = partition) => {
+module.exports = (streamFetcher, publisher, partitionFn = partition) => {
     if (!streamFetcher) {
         throw new Error('No StreamFetcher given! Must use: new StreamrDataApi(streamrUrl)')
     }
@@ -73,14 +73,6 @@ module.exports = (streamFetcher, publisher, thresholdForFutureMessageSeconds = 3
 
             try {
                 timestamp = req.query.ts ? parseTimestamp(req.query.ts) : Date.now()
-
-                if (isTimestampTooFarInTheFuture(timestamp, thresholdForFutureMessageSeconds)) {
-                    res.status(400).send({
-                        error: `Future timestamps are not allowed, max allowed +${thresholdForFutureMessageSeconds} seconds`
-                    })
-                    return
-                }
-
                 sequenceNumber = req.query.seq ? parsePositiveInteger(req.query.seq) : 0
                 if (req.query.prev_ts) {
                     const previousSequenceNumber = req.query.prev_seq ? parsePositiveInteger(req.query.prev_seq) : 0
@@ -114,10 +106,9 @@ module.exports = (streamFetcher, publisher, thresholdForFutureMessageSeconds = 3
                         req.query.signature || null,
                     ),
                 )
-                res.status(200)
-                    .send(/* empty success response */)
+                res.status(200).send(/* empty success response */)
             } catch (err) {
-                if (err instanceof InvalidJsonError) {
+                if (err instanceof InvalidJsonError || err instanceof FailedToPublishError) {
                     res.status(400).send({
                         error: err.message,
                     })

@@ -89,7 +89,7 @@ describe('broker drops future messages', () => {
                 return res.json()
             })
             .then((json) => {
-                expect(json.error).toEqual('Future timestamps are not allowed, max allowed +300 seconds')
+                expect(json.error).toContain('future timestamps are not allowed')
                 done()
             })
     })
@@ -115,6 +115,7 @@ describe('broker drops future messages', () => {
         })
 
         ws.on('message', (msg) => {
+            console.log(msg)
             expect(msg).toContain('future timestamps are not allowed')
             ws.close()
             done()

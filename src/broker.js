@@ -112,16 +112,13 @@ module.exports = async (config) => {
         streamId
     )
     const streamFetcher = new StreamFetcher(config.streamrUrl)
-    const publisher = new Publisher(networkNode, volumeLogger)
+    const publisher = new Publisher(networkNode, config.thresholdForFutureMessageSeconds, volumeLogger)
     const subscriptionManager = new SubscriptionManager(networkNode)
 
-    const { thresholdForFutureMessageSeconds } = config
     // Start up adapters one-by-one, storing their close functions for further use
     const closeAdapterFns = config.adapters.map(({ name, ...adapterConfig }, index) => {
         try {
-            return adapterRegistry.startAdapter(name, {
-                ...adapterConfig, thresholdForFutureMessageSeconds
-            }, {
+            return adapterRegistry.startAdapter(name, adapterConfig, {
                 networkNode,
                 publisher,
                 streamFetcher,
