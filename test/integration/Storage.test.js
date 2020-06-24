@@ -3,7 +3,7 @@ const toArray = require('stream-to-array')
 const { StreamMessage, StreamMessageV31 } = require('streamr-client-protocol').MessageLayer
 const { wait } = require('streamr-test-utils')
 
-const { startCassandraStorage } = require('../../src/Storage')
+const { startCassandraStorage } = require('../../src/storage/Storage')
 
 const contactPoints = ['127.0.0.1']
 const localDataCenter = 'datacenter1'
