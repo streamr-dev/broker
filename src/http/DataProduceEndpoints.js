@@ -108,9 +108,9 @@ module.exports = (streamFetcher, publisher, partitionFn = partition) => {
                 await publisher.validateAndPublish(streamMessage)
                 res.status(200).send(/* empty success response */)
             } catch (err) {
-                if (err instanceof InvalidJsonError ||
-                    err instanceof ValidationError ||
-                    err instanceof FailedToPublishError) {
+                if (err instanceof InvalidJsonError
+                    || err instanceof ValidationError
+                    || err instanceof FailedToPublishError) {
                     res.status(400).send({
                         error: err.message,
                     })

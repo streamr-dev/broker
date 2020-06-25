@@ -48,5 +48,4 @@ module.exports = class FieldDetector {
             throw e
         }
     }
-
 }
