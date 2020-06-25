@@ -1,10 +1,13 @@
 const VolumeLogger = require('./VolumeLogger')
+const FailedToPublishError = require('./errors/FailedToPublishError')
+const { isTimestampTooFarInTheFuture } = require('./helpers/utils')
 
 module.exports = class Publisher {
-    constructor(networkNode, streamMessageValidator, volumeLogger = new VolumeLogger(0)) {
+    constructor(networkNode, streamMessageValidator, thresholdForFutureMessageSeconds, volumeLogger = new VolumeLogger(0)) {
         this.networkNode = networkNode
         this.streamMessageValidator = streamMessageValidator
         this.volumeLogger = volumeLogger
+        this._thresholdForFutureMessageSeconds = thresholdForFutureMessageSeconds
 
         if (!networkNode) {
             throw new Error('No networkNode defined!')
@@ -18,6 +21,10 @@ module.exports = class Publisher {
     }
 
     async validateAndPublish(streamMessage) {
+        if (isTimestampTooFarInTheFuture(streamMessage.getTimestamp(), this._thresholdForFutureMessageSeconds)) {
+            throw new FailedToPublishError(streamMessage.getStreamId(), `future timestamps are not allowed, max allowed +${this._thresholdForFutureMessageSeconds} seconds`)
+        }
+
         // Only publish valid messages
         await this.streamMessageValidator.validate(streamMessage)
         this.volumeLogger.logInput(streamMessage.getContent().length)

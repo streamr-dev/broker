@@ -271,7 +271,7 @@ module.exports = class WebsocketServer extends EventEmitter {
                 errorMessage = `Stream ${streamMessage.getStreamId()} not found.`
                 errorCode = 'NOT_FOUND'
             } else {
-                errorMessage = `Publish request failed: ${err}`
+                errorMessage = `Publish request failed: ${err.message || err}`
                 errorCode = 'REQUEST_FAILED'
             }
 

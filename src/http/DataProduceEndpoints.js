@@ -5,6 +5,7 @@ const { Protocol } = require('streamr-network')
 const { StreamMessage, MessageID, MessageRef } = Protocol.MessageLayer
 const { InvalidJsonError, ValidationError } = Protocol.Errors
 
+const FailedToPublishError = require('../errors/FailedToPublishError')
 const partition = require('../partition')
 
 const authenticationMiddleware = require('./RequestAuthenticatorMiddleware')
@@ -82,7 +83,7 @@ module.exports = (streamFetcher, publisher, partitionFn = partition) => {
                 signatureType = req.query.signatureType ? parsePositiveInteger(req.query.signatureType) : 0
             } catch (err) {
                 res.status(400).send({
-                    error: err.message,
+                    error: err.message
                 })
                 return
             }
@@ -105,10 +106,11 @@ module.exports = (streamFetcher, publisher, partitionFn = partition) => {
                 })
 
                 await publisher.validateAndPublish(streamMessage)
-                res.status(200)
-                    .send(/* empty success response */)
+                res.status(200).send(/* empty success response */)
             } catch (err) {
-                if (err instanceof InvalidJsonError || err instanceof ValidationError) {
+                if (err instanceof InvalidJsonError ||
+                    err instanceof ValidationError ||
+                    err instanceof FailedToPublishError) {
                     res.status(400).send({
                         error: err.message,
                     })

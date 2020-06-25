@@ -123,8 +123,8 @@ module.exports = async (config) => {
         isSubscriber: (address, sId) => unauthenticatedClient.isStreamSubscriber(sId, address),
     })
     const streamFetcher = new StreamFetcher(config.streamrUrl)
+    const publisher = new Publisher(networkNode, streamMessageValidator, config.thresholdForFutureMessageSeconds, volumeLogger)
     const subscriptionManager = new SubscriptionManager(networkNode)
-    const publisher = new Publisher(networkNode, streamMessageValidator, volumeLogger)
 
     // Start up adapters one-by-one, storing their close functions for further use
     const closeAdapterFns = config.adapters.map(({ name, ...adapterConfig }, index) => {
