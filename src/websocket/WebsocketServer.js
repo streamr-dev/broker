@@ -252,9 +252,12 @@ module.exports = class WebsocketServer extends EventEmitter {
             await this.publisher.validateAndPublish(streamMessage)
 
             // TODO later: should be moved to client, as this is an authenticated call
-            this.fieldDetector.detectAndSetFields(streamMessage, request.apiKey, request.sessionToken).catch((err) => {
-                console.error(`detectAndSetFields request failed: ${err}`)
-            })
+            if (!Utils.StreamMessageValidator.isKeyExchangeStream(request.streamMessage.getStreamId())) {
+                this.fieldDetector.detectAndSetFields(streamMessage, request.apiKey, request.sessionToken)
+                    .catch((err) => {
+                        console.error(`detectAndSetFields request failed: ${err}`)
+                    })
+            }
         } catch (err) {
             let errorMessage
             let errorCode
