@@ -3,10 +3,10 @@ const url = require('url')
 const WebSocket = require('ws')
 const fetch = require('node-fetch')
 const { startTracker } = require('streamr-network')
-const { StreamMessage } = require('streamr-client-protocol').MessageLayer
+const { StreamMessage, MessageIDStrict } = require('streamr-network').Protocol.MessageLayer
 const { ControlLayer } = require('streamr-client-protocol')
 
-const { startBroker, createClient, createMqttClient } = require('../utils')
+const { startBroker, createClient } = require('../utils')
 
 const trackerPort = 19420
 const networkPort = 19421
@@ -17,19 +17,32 @@ const mqttPort = 19424
 // default thresholdForFutureMessageSeconds is 300 seconds = 5 minutes
 const thresholdForFutureMessageSeconds = 5 * 60
 
+function buildMsg(
+    streamId,
+    streamPartition,
+    timestamp,
+    sequenceNumber,
+    publisherId = 'publisher',
+    msgChainId = '1',
+    content = {}
+) {
+    return new StreamMessage({
+        messageId: new MessageIDStrict(streamId, streamPartition, timestamp, sequenceNumber, publisherId, msgChainId),
+        content: JSON.stringify(content)
+    })
+}
+
 describe('broker drops future messages', () => {
     let tracker
     let broker
     let streamId
     let client
-    let mqttClient
     let token
 
     beforeEach(async () => {
         tracker = await startTracker('127.0.0.1', trackerPort, 'tracker')
         broker = await startBroker('broker', networkPort, trackerPort, httpPort, wsPort, mqttPort, false)
 
-        mqttClient = createMqttClient(mqttPort)
         client = createClient(wsPort, 'tester1-api-key')
         const freshStream = await client.createStream({
             name: 'broker-drops-future-messages' + Date.now()
@@ -43,18 +56,12 @@ describe('broker drops future messages', () => {
         await tracker.stop()
 
         await client.ensureDisconnected()
-        await mqttClient.end(true)
     })
 
     test('pushing message with too future timestamp to HTTP adapter returns 400 error & does not crash broker', (done) => {
-        const streamMessage = StreamMessage.create(
-            [streamId, 0, Date.now() + (thresholdForFutureMessageSeconds + 5) * 1000, 0, 'publisherId', '1'],
-            null,
-            StreamMessage.CONTENT_TYPES.MESSAGE,
-            StreamMessage.ENCRYPTION_TYPES.NONE,
-            '{}',
-            StreamMessage.SIGNATURE_TYPES.NONE,
-            null,
+        const streamMessage = buildMsg(
+            streamId, 0, Date.now() + (thresholdForFutureMessageSeconds + 5) * 1000,
+            0, 'publisher', '1', {}
         )
 
         const query = {
@@ -115,6 +122,7 @@ describe('broker drops future messages', () => {
         })
 
         ws.on('message', (msg) => {
+            console.log(msg)
             expect(msg).toContain('future timestamps are not allowed')
             ws.close()
             done()

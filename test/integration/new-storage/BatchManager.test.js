@@ -1,6 +1,6 @@
 const cassandra = require('cassandra-driver')
 const { TimeUuid } = require('cassandra-driver').types
-const { StreamMessage } = require('streamr-client-protocol').MessageLayer
+const { StreamMessage, MessageIDStrict } = require('streamr-network').Protocol.MessageLayer
 const { waitForCondition } = require('streamr-test-utils')
 
 const BatchManager = require('../../../src/new-storage/BatchManager')
@@ -18,15 +18,10 @@ function buildMsg(
     msgChainId = '1',
     content = {}
 ) {
-    return StreamMessage.create(
-        [streamId, streamPartition, timestamp, sequenceNumber, publisherId, msgChainId],
-        null,
-        StreamMessage.CONTENT_TYPES.MESSAGE,
-        StreamMessage.ENCRYPTION_TYPES.NONE,
-        content,
-        StreamMessage.SIGNATURE_TYPES.NONE,
-        null,
-    )
+    return new StreamMessage({
+        messageId: new MessageIDStrict(streamId, streamPartition, timestamp, sequenceNumber, publisherId, msgChainId),
+        content: JSON.stringify(content)
+    })
 }
 
 describe('BatchManager', () => {
