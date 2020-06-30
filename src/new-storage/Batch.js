@@ -4,9 +4,11 @@ const createDebug = require('debug')
 const { v4: uuidv4 } = require('uuid')
 
 const STATES = Object.freeze({
-    OPENED: 'batch:opened',
-    CLOSED: 'batch:closed',
-    PENDING: 'batch:pending'
+    // OPENED => CLOSED => PENDING => INSERTED
+    OPENED: 'opened', // opened for adding new messages
+    LOCKED: 'locked', // locked for adding new messages, because isFull or timeout
+    PENDING: 'pending', // awaiting to be inserted,
+    INSERTED: 'inserted'
 })
 
 class Batch extends EventEmitter {
@@ -48,8 +50,8 @@ class Batch extends EventEmitter {
         this._closeTimeout = closeTimeout
 
         this._timeout = setTimeout(() => {
-            this.debug('closing timeout')
-            this.setClose()
+            this.debug('lock timeout')
+            this.lock()
         }, this._closeTimeout)
 
         this.debug('init new batch')
@@ -67,22 +69,20 @@ class Batch extends EventEmitter {
         return this._bucketId
     }
 
-    setClose(emitState = true) {
+    lock() {
         clearTimeout(this._timeout)
-        this.debug('closing batch')
-        this._setState(STATES.CLOSED, emitState)
+        this._setState(STATES.LOCKED)
     }
 
     scheduleInsert() {
         clearTimeout(this._timeout)
         this.debug(`scheduleRetry. retries:${this.retries}`)
 
-        this._setState(STATES.PENDING, false)
         this._timeout = setTimeout(() => {
             if (this.retries < this._maxRetries) {
                 this.retries += 1
             }
-            this._emitState()
+            this._setState(STATES.PENDING)
         }, this._closeTimeout * this.retries)
     }
 
@@ -90,6 +90,7 @@ class Batch extends EventEmitter {
         this.debug('cleared')
         clearTimeout(this._timeout)
         this.streamMessages = []
+        this._setState(STATES.INSERTED)
     }
 
     push(streamMessage) {
@@ -105,16 +106,10 @@ class Batch extends EventEmitter {
         return this.streamMessages.length
     }
 
-    _setState(state, emitState = true) {
-        this.debug(`change state, current: ${this.state}, new state: ${state}`)
+    _setState(state) {
         this.state = state
-        if (emitState) {
-            this._emitState()
-        }
-    }
-
-    _emitState() {
-        this.emit('state', this.getBucketId(), this.getId(), this.state, this.size, this._getNumberOrMessages())
+        this.debug(`emit state: ${this.state}`)
+        this.emit(this.state, this.getBucketId(), this.getId(), this.state, this.size, this._getNumberOrMessages())
     }
 }
 

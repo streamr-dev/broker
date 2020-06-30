@@ -38,10 +38,10 @@ describe('Batch', () => {
 
         expect(batch.state).toEqual(Batch.states.OPENED)
 
-        batch.on('state', (bucketId, id, state, size, numberOfRecords) => {
+        batch.on('locked', (bucketId, id, state, size, numberOfRecords) => {
             expect(id).toEqual(batch.getId())
             expect('bucketId').toEqual(batch.getBucketId())
-            expect(state).toEqual(Batch.states.CLOSED)
+            expect(state).toEqual(Batch.states.LOCKED)
             expect(size).toEqual(0)
             expect(numberOfRecords).toEqual(0)
             done()
@@ -55,9 +55,9 @@ describe('Batch', () => {
         batch.push(streamMessage)
         batch.push(streamMessage)
 
-        batch.on('state', (bucketId, id, state, size, numberOfRecords) => {
+        batch.on('locked', (bucketId, id, state, size, numberOfRecords) => {
             expect(id).toEqual(batch.getId())
-            expect(state).toEqual(Batch.states.CLOSED)
+            expect(state).toEqual(Batch.states.LOCKED)
             expect(size).toEqual(9)
             expect(numberOfRecords).toEqual(3)
             done()
@@ -112,26 +112,22 @@ describe('Batch', () => {
     it('setClose() emits close state', (done) => {
         const batch = new Batch('streamId', 3, 3, 10, 1)
 
-        batch.on('state', (bucketId, id, state, size, numberOfRecords) => {
-            expect(state).toEqual(Batch.states.CLOSED)
+        batch.on('locked', () => {
             done()
         })
 
-        batch.setClose()
+        batch.lock()
     })
 
     it('batch fires first close state, then after setPending', (done) => {
         const batch = new Batch('bucketId', 3, 3, 10, 1)
 
-        batch.setClose()
+        batch.lock()
         expect(batch.retries).toEqual(0)
         batch.scheduleInsert()
 
-        // batch on each retry emits PENDING state
-        batch.on('state', (bucketId, id, state, size, numberOfRecords) => {
-            expect(state).toEqual(Batch.states.PENDING)
+        batch.on('pending', () => {
             expect(batch.retries).toEqual(1)
-
             done()
         })
     })
@@ -142,7 +138,7 @@ describe('Batch', () => {
 
         batch.scheduleInsert()
 
-        batch.on('state', (bucketId, id, state, size, numberOfRecords) => {
+        batch.on('pending', () => {
             expect(batch.reachedMaxRetries()).toBeTruthy()
             done()
         })

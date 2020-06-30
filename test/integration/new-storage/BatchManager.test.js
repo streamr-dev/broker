@@ -4,7 +4,6 @@ const { StreamMessage } = require('streamr-client-protocol').MessageLayer
 const { waitForCondition } = require('streamr-test-utils')
 
 const BatchManager = require('../../../src/new-storage/BatchManager')
-const Batch = require('../../../src/new-storage/Batch')
 
 const contactPoints = ['127.0.0.1']
 const localDataCenter = 'datacenter1'
@@ -63,7 +62,7 @@ describe('BatchManager', () => {
         await cassandraClient.shutdown()
     })
 
-    test('move full batch to pendingBatches', async () => {
+    test('move full batch to pendingBatches', () => {
         expect(Object.values(batchManager.batches)).toHaveLength(0)
         expect(Object.values(batchManager.pendingBatches)).toHaveLength(0)
 
@@ -86,44 +85,49 @@ describe('BatchManager', () => {
         expect(Object.values(batchManager.pendingBatches)[0].streamMessages).toHaveLength(10)
     })
 
-    test('pendingBatches are inserted', async () => {
-        const batch = new Batch(bucketId, 10, 10, 1000, 10)
-        const msg = buildMsg(streamId, 0, 1000, 0, 'publisher1')
-        batch.push(msg)
-        batchManager.pendingBatches[batch.getId()] = batch
-
-        expect(Object.values(batchManager.pendingBatches)).toHaveLength(1)
-        expect(Object.values(batchManager.pendingBatches)[0].streamMessages).toHaveLength(1)
-
-        // eslint-disable-next-line no-underscore-dangle
-        await batchManager._insert(batch.getId())
-
-        const result = await cassandraClient.execute('SELECT * FROM stream_data WHERE id = ? ALLOW FILTERING', [
-            streamId
-        ])
-
-        expect(result.rows.length).toEqual(1)
-    })
-
-    test('when batch changes state, _batchChangedState is triggered', async () => {
+    test('pendingBatches are inserted', async (done) => {
         const msg = buildMsg(streamId, 0, 1000, 0, 'publisher1')
         batchManager.store(bucketId, msg)
-        const batchChangedStateSpy = jest.spyOn(batchManager, '_batchChangedState')
 
         const batch = batchManager.batches[bucketId]
-        batch.setClose(true)
-        expect(batchChangedStateSpy).toHaveBeenCalledWith(bucketId, batch.getId(), Batch.states.CLOSED, 82, 1)
-        batchChangedStateSpy.mockClear()
 
-        await waitForCondition(() => batchChangedStateSpy.mock.calls.length === 1)
-        expect(batchChangedStateSpy).toHaveBeenCalledWith(bucketId, batch.getId(), Batch.states.PENDING, 82, 1)
+        batch.on('locked', () => {
+            expect(Object.values(batchManager.pendingBatches)).toHaveLength(1)
+            expect(Object.values(batchManager.pendingBatches)[0].streamMessages).toHaveLength(1)
+        })
+
+        batch.on('inserted', async () => {
+            const result = await cassandraClient.execute('SELECT * FROM stream_data WHERE id = ? ALLOW FILTERING', [
+                streamId
+            ])
+
+            expect(result.rows.length).toEqual(1)
+            done()
+        })
+
+        batch.lock()
+    })
+
+    test('batch emits states: locked => pending => inserted', (done) => {
+        const msg = buildMsg(streamId, 0, 1000, 0, 'publisher1')
+        batchManager.store(bucketId, msg)
+
+        const batch = batchManager.batches[bucketId]
+
+        batch.on('locked', () => {
+            batch.scheduleInsert()
+        })
+
+        batch.on('pending', async () => {
+            batch.on('inserted', () => done())
+        })
     })
 
     test('when failed to insert, increase retry and try again after timeout', async () => {
         const msg = buildMsg(streamId, 0, 1000, 0, 'publisher1')
         batchManager.store(bucketId, msg)
 
-        const batch = Object.values(batchManager.batches)[0]
+        const batch = batchManager.batches[bucketId]
         expect(batch.retries).toEqual(0)
 
         const mockBatch = jest.fn().mockImplementation(() => {
@@ -145,7 +149,7 @@ describe('BatchManager', () => {
         const msg = buildMsg(streamId, 0, 1000, 0, 'publisher1')
         batchManager.store(bucketId, msg)
 
-        const batch = Object.values(batchManager.batches)[0]
+        const batch = batchManager.batches[bucketId]
 
         const mockBatch = jest.fn().mockImplementation(() => {
             throw Error('Throw not inserted')

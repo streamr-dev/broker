@@ -43,14 +43,18 @@ class BatchManager extends EventEmitter {
         const batch = this.batches[bucketId]
 
         if (batch && batch.isFull()) {
-            batch.setClose(false)
+            batch.lock()
             this._moveFullBatch(bucketId, batch)
         }
 
         if (this.batches[bucketId] === undefined) {
             debug('creating new batch')
+
             const newBatch = new Batch(bucketId, this.opts.batchMaxSize, this.opts.batchMaxRecords, this.opts.batchCloseTimeout, this.opts.batchMaxRetries)
-            newBatch.on('state', (batchBucketId, id, state, size, numberOfRecords) => this._batchChangedState(batchBucketId, id, state, size, numberOfRecords))
+
+            newBatch.on('locked', () => this._moveFullBatch(bucketId, newBatch))
+            newBatch.on('pending', () => this._insert(newBatch.getId()))
+
             this.batches[bucketId] = newBatch
         }
 
@@ -59,21 +63,11 @@ class BatchManager extends EventEmitter {
 
     _moveFullBatch(bucketId, batch) {
         debug('moving batch to pendingBatches')
+
         this.pendingBatches[batch.getId()] = batch
         this.pendingBatches[batch.getId()].scheduleInsert()
-        delete this.batches[bucketId]
-    }
 
-    _batchChangedState(bucketId, batchId, state, size, numberOfRecords) {
-        debug(`_batchChangedState, bucketId: ${bucketId}, id: ${batchId}, state: ${state}, size: ${size}, records: ${numberOfRecords}`)
-        if (state === Batch.states.PENDING) {
-            this._insert(batchId)
-        } else if (state === Batch.states.CLOSED) {
-            const batch = this.batches[bucketId]
-            if (batch) {
-                this._moveFullBatch(bucketId, batch)
-            }
-        }
+        delete this.batches[bucketId]
     }
 
     stop() {
