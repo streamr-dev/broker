@@ -43,7 +43,9 @@ describe('broker drops future messages', () => {
         tracker = await startTracker('127.0.0.1', trackerPort, 'tracker')
         broker = await startBroker('broker', networkPort, trackerPort, httpPort, wsPort, mqttPort, false)
 
-        client = createClient(wsPort, 'tester1-api-key')
+        console.log(1)
+        client = createClient(wsPort)
+        console.log(2)
         const freshStream = await client.createStream({
             name: 'broker-drops-future-messages' + Date.now()
         })
@@ -60,7 +62,7 @@ describe('broker drops future messages', () => {
 
     test('pushing message with too future timestamp to HTTP adapter returns 400 error & does not crash broker', (done) => {
         const streamMessage = buildMsg(
-            streamId, 0, Date.now() + (thresholdForFutureMessageSeconds + 5) * 1000,
+            streamId, 10, Date.now() + (thresholdForFutureMessageSeconds + 5) * 1000,
             0, 'publisher', '1', {}
         )
 
@@ -102,18 +104,18 @@ describe('broker drops future messages', () => {
     })
 
     test('pushing message with too future timestamp to Websocket adapter returns error & does not crash broker', (done) => {
-        const streamMessage = StreamMessage.create(
-            [streamId, 0, Date.now() + (thresholdForFutureMessageSeconds + 5) * 1000, 0, 'publisherId', '1'],
-            null,
-            StreamMessage.CONTENT_TYPES.MESSAGE,
-            StreamMessage.ENCRYPTION_TYPES.NONE,
-            '{}',
-            StreamMessage.SIGNATURE_TYPES.NONE,
-            null,
+        const streamMessage = buildMsg(
+            streamId, 10, Date.now() + (thresholdForFutureMessageSeconds + 5) * 1000,
+            0, 'publisher', '1', {}
         )
-        const publishRequest = ControlLayer.PublishRequest.create(streamMessage, token)
 
-        const ws = new WebSocket(`ws://127.0.0.1:${wsPort}/api/v1/ws?messageLayerVersion=31&controlLayerVersion=0`, {
+        const publishRequest = new ControlLayer.PublishRequest({
+            streamMessage,
+            requestId: '',
+            sessionToken: token,
+        })
+
+        const ws = new WebSocket(`ws://127.0.0.1:${wsPort}/api/v1/ws?messageLayerVersion=31&controlLayerVersion=2`, {
             rejectUnauthorized: false // needed to accept self-signed certificate
         })
 
@@ -122,7 +124,6 @@ describe('broker drops future messages', () => {
         })
 
         ws.on('message', (msg) => {
-            console.log(msg)
             expect(msg).toContain('future timestamps are not allowed')
             ws.close()
             done()
