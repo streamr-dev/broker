@@ -18,7 +18,7 @@ describe('getTrackers', () => {
         try {
             await getTrackers('address', config, jsonRpcProvider)
         } catch (e) {
-            expect(e.toString()).toMatch('Error: network does not support ENS (operation="ENS", network="unknown", code=UNSUPPORTED_OPERATION, version=providers/5.0.2)')
+            expect(e.toString()).toMatch('Error: network does not support ENS')
             done()
         }
     })
@@ -45,7 +45,7 @@ describe('getTrackers', () => {
         try {
             await getTrackers(address, config, 'jsonRpcProvider')
         } catch (e) {
-            expect(e.toString()).toMatch('Error: could not detect network (event="noNetwork", code=NETWORK_ERROR, version=providers/5.0.2)')
+            expect(e.toString()).toContain('Error: could not detect network')
             done()
         }
     })
