@@ -27,7 +27,7 @@ describe('getTrackers', () => {
         try {
             await getTrackers('0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF', config, jsonRpcProvider)
         } catch (e) {
-            expect(e.toString()).toContain('Error: call revert exception (method="getNodes()", errorSignature=null, errorArgs=[null], reason=null, code=CALL_EXCEPTION, version=abi/5.0.1)')
+            expect(e.toString()).toContain('Error: call revert exception')
             done()
         }
     })
