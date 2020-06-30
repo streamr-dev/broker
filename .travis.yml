@@ -2,7 +2,7 @@ os: linux
 dist: xenial
 language: node_js
 node_js:
-- 14.3.0
+- 14
 branches:
   only:
   - master
