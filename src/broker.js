@@ -38,14 +38,14 @@ module.exports = async (config) => {
         console.info('Cassandra disabled')
     }
 
-    if (config.cassandra_new) {
-        console.info(`Starting Cassandra ### NEW SCHEMA ### with hosts ${config.cassandra_new.hosts} and keyspace ${config.cassandra_new.keyspace}`)
+    if (config.cassandraNew) {
+        console.info(`Starting Cassandra ### NEW SCHEMA ### with hosts ${config.cassandraNew.hosts} and keyspace ${config.cassandraNew.keyspace}`)
         storages.push(await startCassandraStorageNew({
-            contactPoints: [...config.cassandra_new.hosts],
+            contactPoints: [...config.cassandraNew.hosts],
             localDataCenter: 'datacenter1',
-            keyspace: config.cassandra_new.keyspace,
-            username: config.cassandra_new.username,
-            password: config.cassandra_new.password,
+            keyspace: config.cassandraNew.keyspace,
+            username: config.cassandraNew.username,
+            password: config.cassandraNew.password,
             bucketManagerOpts: {
                 useTtl: !config.network.isStorageNode
             }
