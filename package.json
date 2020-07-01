@@ -15,9 +15,9 @@
     "test": "test"
   },
   "scripts": {
-    "test": "eslint . && jest --detectOpenHandles",
-    "test-unit": "jest --detectOpenHandles test/unit",
-    "test-integration": "jest --forceExit --detectOpenHandles test/integration",
+    "test": "eslint . && jest",
+    "test-unit": "jest test/unit",
+    "test-integration": "jest --forceExit test/integration",
     "eslint": "eslint ."
   },
   "author": "Streamr <contact@streamr.com>",
