@@ -44,7 +44,6 @@ class BatchManager extends EventEmitter {
 
         if (batch && batch.isFull()) {
             batch.lock()
-            this._moveFullBatch(bucketId, batch)
         }
 
         if (this.batches[bucketId] === undefined) {

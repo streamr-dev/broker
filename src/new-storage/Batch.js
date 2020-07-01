@@ -4,7 +4,7 @@ const createDebug = require('debug')
 const { v4: uuidv4 } = require('uuid')
 
 const STATES = Object.freeze({
-    // OPENED => CLOSED => PENDING => INSERTED
+    // OPENED => LOCKED => PENDING => INSERTED
     OPENED: 'opened', // opened for adding new messages
     LOCKED: 'locked', // locked for adding new messages, because isFull or timeout
     PENDING: 'pending', // awaiting to be inserted,
