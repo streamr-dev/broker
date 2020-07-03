@@ -255,11 +255,21 @@ class BucketManager {
         const GET_LAST_BUCKETS = 'SELECT * FROM bucket WHERE stream_id = ? and partition = ? LIMIT ?'
         const GET_LAST_BUCKETS_TIMESTAMP = 'SELECT * FROM bucket WHERE stream_id = ? and partition = ? AND date_create <= ? LIMIT ?'
 
-        const result = []
-        const params = timestamp !== undefined ? [streamId, partition, timestamp, limit] : [streamId, partition, limit]
+        let query
+        let params
+
+        if (timestamp) {
+            query = GET_LAST_BUCKETS_TIMESTAMP
+            params = [streamId, partition, timestamp, limit]
+        } else {
+            query = GET_LAST_BUCKETS
+            params = [streamId, partition, limit]
+        }
+
+        const buckets = []
 
         try {
-            const resultSet = await this.cassandraClient.execute(timestamp !== undefined ? GET_LAST_BUCKETS_TIMESTAMP : GET_LAST_BUCKETS, params, {
+            const resultSet = await this.cassandraClient.execute(query, params, {
                 prepare: true,
             })
 
@@ -275,7 +285,7 @@ class BucketManager {
                     debug(`found bucket: ${bucket.getId()}, size: ${size}, records: ${records}, dateCreate: ${bucket.dateCreate}`)
                     debug(`for streamId: ${streamId}, partition: ${partition} ${timestamp ? `,timestamp: ${timestamp}` : ''}, limit: ${limit}`)
 
-                    result.push(bucket)
+                    buckets.push(bucket)
                 })
             } else {
                 debug(`getLastBuckets: no buckets found for streamId: ${streamId} partition: ${partition}${timestamp !== undefined ? ` ,timestamp: ${timestamp}` : ''}, limit: ${limit}`)
@@ -286,7 +296,7 @@ class BucketManager {
             }
         }
 
-        return result
+        return buckets
     }
 
     stop() {
