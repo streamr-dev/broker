@@ -7,7 +7,7 @@ const Bucket = require('./Bucket')
 const toKey = (streamId, partition) => `${streamId}-${partition}`
 
 class BucketManager {
-    constructor(cassandraClient, opts) {
+    constructor(cassandraClient, opts = {}) {
         const defaultOptions = {
             logErrors: true,
             checkFullBucketsTimeout: 1000,

@@ -2,13 +2,14 @@ const { Transform } = require('stream')
 const EventEmitter = require('events')
 
 const pump = require('pump')
+const { v1: uuidv1 } = require('uuid')
 const merge2 = require('merge2')
 const debug = require('debug')('streamr:storage')
 const cassandra = require('cassandra-driver')
 const { StreamMessage } = require('streamr-network').Protocol.MessageLayer
 
 const BatchManager = require('./BatchManager')
-const PeriodicQuery = require('./PeriodicQuery')
+const BucketManager = require('./BucketManager')
 
 const RANGE_THRESHOLD = 30 * 1000
 const RETRY_INTERVAL = 2000
@@ -20,9 +21,8 @@ class Storage extends EventEmitter {
         super()
 
         const defaultOptions = {
-            batchManagerOpts: {
-                useTtl: false
-            }
+            useTtl: false,
+            retriesIntervalMilliseconds: 500
         }
 
         this.opts = {
@@ -31,22 +31,31 @@ class Storage extends EventEmitter {
         }
 
         this.cassandraClient = cassandraClient
-        this.batchManager = new BatchManager(cassandraClient, this.opts.batchManagerOpts)
+        this.bucketManager = new BucketManager(cassandraClient)
+        this.batchManager = new BatchManager(cassandraClient, {
+            useTtl: this.opts.useTtl
+        })
+        this.pendingMessages = new Map()
     }
 
     store(streamMessage) {
-        // TODO in next PR will be added BucketManager
-        const bucketId = `${streamMessage.getStreamId()}::${streamMessage.getStreamPartition()}`
+        const bucketId = this.bucketManager.getBucketId(streamMessage.getStreamId(), streamMessage.getStreamPartition(), streamMessage.getTimestamp())
 
         if (bucketId) {
             debug(`found bucketId: ${bucketId}`)
-            setImmediate(() => {
-                this.emit('write', streamMessage)
-                this.batchManager.store(bucketId, streamMessage)
-            })
+
+            this.bucketManager.incrementBucket(bucketId, Buffer.from(streamMessage.serialize()).length, 1)
+            setImmediate(() => this.batchManager.store(bucketId, streamMessage))
         } else {
             const messageId = streamMessage.messageId.serialize()
             debug(`bucket not found, put ${messageId} to pendingMessages`)
+
+            const uuid = uuidv1()
+            const timeout = setTimeout(() => {
+                this.pendingMessages.delete(uuid)
+                setImmediate(() => this.store(streamMessage))
+            }, this.opts.bucketManagerOpts.retriesIntervalMilliseconds)
+            this.pendingMessages.set(uuid, timeout)
         }
     }
 
@@ -157,11 +166,6 @@ class Storage extends EventEmitter {
             + `, toTimestamp: "${toTimestamp}", toSequenceNo: "${toSequenceNo}", publisherId: "${publisherId}", msgChainId: "${msgChainId}"`)
 
         if (fromSequenceNo != null && toSequenceNo != null && publisherId != null && msgChainId != null) {
-            if (toTimestamp > (Date.now() - RANGE_THRESHOLD)) {
-                const periodicQuery = new PeriodicQuery(() => this._fetchBetweenMessageRefsForPublisher(streamId, partition, fromTimestamp,
-                    fromSequenceNo, toTimestamp, toSequenceNo, publisherId, msgChainId), RETRY_INTERVAL, RETRY_TIMEOUT)
-                return periodicQuery.getStreamingResults()
-            }
             return this._fetchBetweenMessageRefsForPublisher(streamId, partition, fromTimestamp,
                 fromSequenceNo, toTimestamp, toSequenceNo, publisherId, msgChainId)
         }
@@ -286,7 +290,7 @@ const startCassandraStorage = async ({
     keyspace,
     username,
     password,
-    batchManagerOpts
+    opts
 }) => {
     const authProvider = new cassandra.auth.PlainTextAuthProvider(username || '', password || '')
     const requestLogger = new cassandra.tracker.RequestLogger({
@@ -310,11 +314,7 @@ const startCassandraStorage = async ({
         /* eslint-disable no-await-in-loop */
         try {
             await cassandraClient.connect().catch((err) => { throw err })
-
-            const opts = {
-                batchManagerOpts: batchManagerOpts || {}
-            }
-            return new Storage(cassandraClient, opts)
+            return new Storage(cassandraClient, opts || {})
         } catch (err) {
             console.log('Cassandra not responding yet...')
             retryCount -= 1

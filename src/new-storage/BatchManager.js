@@ -13,7 +13,7 @@ const INSERT_STATEMENT_WITH_TTL = 'INSERT INTO stream_data '
     + 'VALUES (?, ?, ?, ?, ?, ?, ?) USING TTL 259200' // 3 days
 
 class BatchManager extends EventEmitter {
-    constructor(cassandraClient, opts) {
+    constructor(cassandraClient, opts = {}) {
         super()
 
         const defaultOptions = {
