@@ -295,6 +295,7 @@ class BucketManager {
     }
 
     _storeBuckets() {
+        // for non-existing buckets UPDATE works as INSERT
         const UPDATE_BUCKET = 'UPDATE bucket SET size = ?, records = ?, id = ? WHERE stream_id = ? AND partition = ? AND date_create = ?'
 
         const notStoredBuckets = Object.values(this.buckets).filter((bucket) => !bucket.isStored())
@@ -319,6 +320,7 @@ class BucketManager {
                 }
             }
 
+            // if bucket is not in use, remove from memory
             if (!bucket.isAlive()) {
                 this._removeBucket(bucket.getId(), bucket.streamId, bucket.partition)
             }
@@ -340,6 +342,8 @@ class BucketManager {
                     break
                 }
             }
+
+            // after removing we need to rebuild heap
             stream.buckets = Heap.heapify(currentBuckets, (a, b) => {
                 return b.dateCreate - a.dateCreate
             })
