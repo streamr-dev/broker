@@ -45,10 +45,7 @@ class BucketManager {
 
             if (!bucketId) {
                 const stream = this.streams[key]
-                const { minTimestamp } = stream
-
-                stream.minTimestamp = minTimestamp !== undefined ? Math.min(minTimestamp, timestamp) : timestamp
-                this.streams[key] = stream
+                stream.minTimestamp = stream.minTimestamp !== undefined ? Math.min(stream.minTimestamp, timestamp) : timestamp
             }
         } else {
             debug(`stream ${key} not found, create new`)
@@ -89,28 +86,28 @@ class BucketManager {
         if (stream) {
             const latestBucket = this._getLatestInMemoryBucket(key)
 
-            if (latestBucket && !latestBucket.isAlmostFull() && latestBucket.dateCreate <= new Date(timestamp)) {
-                bucketId = latestBucket.getId()
-            }
+            if (latestBucket) {
+                // latest bucket is younger than timestamp
+                if (!latestBucket.isAlmostFull() && latestBucket.dateCreate <= new Date(timestamp)) {
+                    bucketId = latestBucket.getId()
+                    // timestamp is in the past
+                } else if (latestBucket.dateCreate > new Date(timestamp)) {
+                    const currentBuckets = stream.buckets.toArray()
+                    // remove latest
+                    currentBuckets.shift()
 
-            if (latestBucket && latestBucket.dateCreate > new Date(timestamp)) {
-                const currentBuckets = stream.buckets.toArray()
-                currentBuckets.shift()
-
-                for (let i = 0; i < currentBuckets.length; i++) {
-                    if (currentBuckets[i].dateCreate <= new Date(timestamp)) {
-                        bucketId = currentBuckets[i].getId()
-                        debug(`bucketId ${bucketId} FOUND for stream: ${key}, timestamp: ${timestamp}`)
-                        break
+                    for (let i = 0; i < currentBuckets.length; i++) {
+                        if (currentBuckets[i].dateCreate <= new Date(timestamp)) {
+                            bucketId = currentBuckets[i].getId()
+                            break
+                        }
                     }
                 }
             }
         }
 
-        if (!bucketId) {
-            debug(`bucketId NOT FOUND or is FULL for stream: ${key}, timestamp: ${timestamp} `)
-        }
-
+        // just for debugging
+        debug(`bucketId ${bucketId ? 'FOUND' : ' NOT FOUND'} for stream: ${key}, timestamp: ${timestamp}`)
         return bucketId
     }
 
@@ -122,6 +119,7 @@ class BucketManager {
             const { streamId, partition } = stream
             const { minTimestamp } = stream
 
+            // no need to check in database any timestamp
             if (minTimestamp === undefined) {
                 // eslint-disable-next-line no-continue
                 continue
@@ -133,15 +131,17 @@ class BucketManager {
             const key = toKey(streamId, partition)
             const latestBucket = this._getLatestInMemoryBucket(key)
             if (latestBucket) {
+                // if latest is full or almost full - create and insert new bucket
                 insertNewBucket = latestBucket.isAlmostFull()
             }
 
-            // check in database just latest
+            // if latest is not found or it's full => try to find latest in database
             if (!latestBucket || (latestBucket && latestBucket.isAlmostFull())) {
                 // eslint-disable-next-line no-await-in-loop
                 const foundBuckets = await this.getLastBuckets(stream.streamId, stream.partition, 1)
                 const foundBucket = foundBuckets.length ? foundBuckets[0] : undefined
 
+                // if we found bucket which is not in memory
                 if (foundBucket && !(foundBucket.getId() in this.buckets)) {
                     stream.buckets.push(foundBucket)
                     this.buckets[foundBucket.getId()] = foundBucket
@@ -151,7 +151,7 @@ class BucketManager {
                 }
             }
 
-            // check by timestamp
+            // check in database that we have bucket for minTimestamp
             if (!insertNewBucket && !this._findBucketId(key, minTimestamp)) {
                 // eslint-disable-next-line no-await-in-loop
                 const foundBuckets = await this.getLastBuckets(stream.streamId, stream.partition, 1, minTimestamp)
@@ -169,6 +169,7 @@ class BucketManager {
             if (insertNewBucket) {
                 debug(`bucket for timestamp: ${minTimestamp} not found, create new bucket`)
 
+                // we create first in memory, so don't wait for database, then _storeBuckets inserts bucket into database
                 const newBucket = new Bucket(
                     TimeUuid.fromDate(new Date(minTimestamp)).toString(), streamId, partition, 0, 0, new Date(minTimestamp),
                     this.opts.maxBucketSize, this.opts.maxBucketRecords, this.opts.bucketKeepAliveSeconds
@@ -178,13 +179,20 @@ class BucketManager {
                 this.buckets[newBucket.getId()] = newBucket
                 stream.minTimestamp = undefined
             }
-
-            this.streams[streamIds[i]] = stream
         }
 
         this._checkFullBucketsTimeout = setTimeout(() => this._checkFullBuckets(), this.opts.checkFullBucketsTimeout)
     }
 
+    /**
+     * Get buckets by timestamp range or all known from some timestamp or all buckets before some timestamp
+     *
+     * @param streamId
+     * @param partition
+     * @param fromTimestamp
+     * @param toTimestamp
+     * @returns {Promise<[]>}
+     */
     async getBucketsByTimestamp(streamId, partition, fromTimestamp = undefined, toTimestamp = undefined) {
         const GET_LAST_BUCKETS_RANGE_TIMESTAMP = 'SELECT * FROM bucket WHERE stream_id = ? and partition = ? AND date_create >= ? AND date_create <= ?'
         const GET_LAST_BUCKETS_FROM_TIMESTAMP = 'SELECT * FROM bucket WHERE stream_id = ? and partition = ? AND date_create >= ?'
@@ -210,7 +218,7 @@ class BucketManager {
 
         try {
             const resultSet = await this.cassandraClient.execute(query, params, {
-                prepare: true,
+                prepare: true
             })
 
             if (resultSet.rows.length) {
@@ -234,6 +242,15 @@ class BucketManager {
         return buckets
     }
 
+    /**
+     * Get latest N buckets or get latest N buckets before some date (to check buckets in the past)
+     *
+     * @param streamId
+     * @param partition
+     * @param limit
+     * @param timestamp
+     * @returns {Promise<[]>}
+     */
     async getLastBuckets(streamId, partition, limit = 1, timestamp = undefined) {
         const GET_LAST_BUCKETS = 'SELECT * FROM bucket WHERE stream_id = ? and partition = ? LIMIT ?'
         const GET_LAST_BUCKETS_TIMESTAMP = 'SELECT * FROM bucket WHERE stream_id = ? and partition = ? AND date_create <= ? LIMIT ?'
@@ -326,7 +343,6 @@ class BucketManager {
             stream.buckets = Heap.heapify(currentBuckets, (a, b) => {
                 return b.dateCreate - a.dateCreate
             })
-            this.streams[key] = stream
         }
     }
 }
