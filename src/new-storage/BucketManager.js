@@ -119,7 +119,7 @@ class BucketManager {
             const { streamId, partition } = stream
             const { minTimestamp } = stream
 
-            // no need to check in database any timestamp
+            // minTimestamp is undefined if all buckets are found
             if (minTimestamp === undefined) {
                 // eslint-disable-next-line no-continue
                 continue
@@ -131,7 +131,7 @@ class BucketManager {
             const key = toKey(streamId, partition)
             const latestBucket = this._getLatestInMemoryBucket(key)
             if (latestBucket) {
-                // if latest is full or almost full - create and insert new bucket
+                // if latest is full or almost full - create new bucket
                 insertNewBucket = latestBucket.isAlmostFull()
             }
 
@@ -214,32 +214,7 @@ class BucketManager {
             throw TypeError(`Not correct combination of fromTimestamp (${fromTimestamp}) and toTimestamp (${toTimestamp})`)
         }
 
-        const buckets = []
-
-        try {
-            const resultSet = await this.cassandraClient.execute(query, params, {
-                prepare: true
-            })
-
-            if (resultSet.rows.length) {
-                resultSet.rows.forEach((row) => {
-                    const { id, records, size, date_create: dateCreate } = row
-
-                    const bucket = new Bucket(
-                        id.toString(), streamId, partition, size, records, new Date(dateCreate),
-                        this.opts.maxBucketSize, this.opts.maxBucketRecords, this.opts.bucketKeepAliveSeconds
-                    )
-
-                    buckets.push(bucket)
-                })
-            }
-        } catch (e) {
-            if (this.opts.logErrors) {
-                console.error(e)
-            }
-        }
-
-        return buckets
+        return this._getBucketsFromDatabase(query, params, streamId, partition)
     }
 
     /**
@@ -266,6 +241,10 @@ class BucketManager {
             params = [streamId, partition, limit]
         }
 
+        return this._getBucketsFromDatabase(query, params, streamId, partition)
+    }
+
+    async _getBucketsFromDatabase(query, params, streamId, partition) {
         const buckets = []
 
         try {
@@ -273,23 +252,16 @@ class BucketManager {
                 prepare: true,
             })
 
-            if (resultSet.rows.length) {
-                resultSet.rows.forEach((row) => {
-                    const { id, records, size, date_create: dateCreate } = row
+            resultSet.rows.forEach((row) => {
+                const { id, records, size, date_create: dateCreate } = row
 
-                    const bucket = new Bucket(
-                        id.toString(), streamId, partition, size, records, new Date(dateCreate),
-                        this.opts.maxBucketSize, this.opts.maxBucketRecords, this.opts.bucketKeepAliveSeconds
-                    )
+                const bucket = new Bucket(
+                    id.toString(), streamId, partition, size, records, new Date(dateCreate),
+                    this.opts.maxBucketSize, this.opts.maxBucketRecords, this.opts.bucketKeepAliveSeconds
+                )
 
-                    debug(`found bucket: ${bucket.getId()}, size: ${size}, records: ${records}, dateCreate: ${bucket.dateCreate}`)
-                    debug(`for streamId: ${streamId}, partition: ${partition} ${timestamp ? `,timestamp: ${timestamp}` : ''}, limit: ${limit}`)
-
-                    buckets.push(bucket)
-                })
-            } else {
-                debug(`getLastBuckets: no buckets found for streamId: ${streamId} partition: ${partition}${timestamp !== undefined ? ` ,timestamp: ${timestamp}` : ''}, limit: ${limit}`)
-            }
+                buckets.push(bucket)
+            })
         } catch (e) {
             if (this.opts.logErrors) {
                 console.error(e)
