@@ -348,6 +348,14 @@ class Storage extends EventEmitter {
     }
 
     close() {
+        const keys = [...this.pendingMessages.keys()]
+        keys.forEach((key) => {
+            const timeout = this.pendingMessages.get(key)
+            console.log(`cleaning timeout: ${timeout}`)
+            clearTimeout(timeout)
+            this.pendingMessages.delete(key)
+        })
+
         this.batchManager.stop()
         return this.cassandraClient.shutdown()
     }
