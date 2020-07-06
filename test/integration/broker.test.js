@@ -25,7 +25,7 @@ describe('websocket server', () => {
         if (ws) {
             ws.terminate()
         }
-        broker.close()
+        await broker.close()
     })
 
     it('receives unencrypted connections', async (done) => {
@@ -49,11 +49,8 @@ describe('websocket server', () => {
     })
 
     describe('rejections', () => {
-        beforeEach(async () => {
-            broker = await startBroker('broker1', networkPort1, trackerPort, httpPort1, wsPort1, null, false)
-        })
-
         const testRejection = async (connectionUrl) => {
+            broker = await startBroker('broker1', networkPort1, trackerPort, httpPort1, wsPort1, null, false)
             ws = new WebSocket(connectionUrl)
             let gotError = false
             let closed = false
