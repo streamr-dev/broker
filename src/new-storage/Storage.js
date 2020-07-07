@@ -355,6 +355,7 @@ class Storage extends EventEmitter {
             this.pendingMessages.delete(key)
         })
 
+        this.bucketManager.stop()
         this.batchManager.stop()
         return this.cassandraClient.shutdown()
     }
