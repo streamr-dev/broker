@@ -747,6 +747,32 @@ describe('broker: end-to-end', () => {
         ])
     })
 
+    it('broker streams long resend from request via http', async () => {
+        const resend = []
+        for (let i = 0; i < 100; i++) {
+            const msg = {
+                key: i
+            }
+            // eslint-disable-next-line no-await-in-loop
+            await client1.publish(freshStreamId, msg)
+            resend.push(msg)
+        }
+
+        await wait(1500)
+
+        const url = `http://localhost:${httpPort1}/api/v1/streams/${freshStreamId}/data/partitions/0/from?fromTimestamp=0`
+        const response = await fetch(url, {
+            method: 'get',
+            headers: {
+                Authorization: 'token tester1-api-key'
+            },
+        })
+        const messagesAsObjects = await response.json()
+        const messages = messagesAsObjects.map((msgAsObject) => msgAsObject.content)
+
+        expect(resend).toEqual(messages)
+    })
+
     it('happy-path: resend from request via http', async () => {
         client1.subscribe({
             stream: freshStreamId
