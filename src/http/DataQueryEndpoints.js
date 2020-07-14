@@ -7,28 +7,32 @@ const VolumeLogger = require('../VolumeLogger')
 
 const authenticationMiddleware = require('./RequestAuthenticatorMiddleware')
 
-function onDataFetchDone(res, dataPoints, format = 'object', version, volumeLogger) {
-    return (err) => {
-        if (err) {
-            console.log(err)
-            res.status(500).send({
-                error: 'Failed to fetch data!',
-            })
-        } else {
-            let volumeBytes = 0
+const onError = (res, err) => {
+    console.error(err)
+    res.status(500).send({
+        error: 'Failed to fetch data!'
+    })
+}
+const onStarted = (res) => {
+    res.writeHead(200, {
+        'Content-Type': 'application/json'
+    })
+    res.write('[')
+}
 
-            res.send(dataPoints.map((unicastMessage) => {
-                const { streamMessage } = unicastMessage
-                volumeBytes += streamMessage.getSerializedContent().length
+const onRow = (res, unicastMessage, delimiter, format = 'object', version, volumeLogger) => {
+    let volumeBytes = 0
+    const { streamMessage } = unicastMessage
+    volumeBytes += streamMessage.getSerializedContent().length
+    volumeLogger.logOutput(volumeBytes)
 
-                if (format === 'protocol') {
-                    return streamMessage.serialize(version)
-                }
-                return streamMessage.toObject()
-            }))
-            volumeLogger.logOutput(volumeBytes)
-        }
-    }
+    res.write(delimiter) // because can't have trailing comma in JSON array
+    res.write(format === 'protocol' ? JSON.stringify(streamMessage.serialize(version)) : JSON.stringify(streamMessage.toObject()))
+}
+
+const onEnded = (res) => {
+    res.write(']')
+    res.end()
 }
 
 function parseIntIfExists(x) {
@@ -73,22 +77,23 @@ module.exports = (networkNode, streamFetcher, volumeLogger = new VolumeLogger(0)
                 error: `Query parameter "count" not a number: ${req.query.count}`,
             })
         } else {
-            const dataPoints = []
             const streamingData = networkNode.requestResendLast(
                 req.params.id,
                 partition,
                 generateSubId(),
                 count,
             )
-            streamingData.on('error', onDataFetchDone(res))
-            streamingData.on('data', dataPoints.push.bind(dataPoints))
-            streamingData.on('end', onDataFetchDone(
-                res,
-                dataPoints,
-                req.query.format,
-                version,
-                volumeLogger
-            ))
+
+            let delimiter = ''
+            streamingData.on('error', (err) => onError(res, err))
+            streamingData.on('data', (row) => {
+                if (delimiter === '') {
+                    onStarted(res)
+                }
+                onRow(res, row, delimiter, req.query.format, version, volumeLogger)
+                delimiter = ','
+            })
+            streamingData.on('end', () => onEnded(res))
         }
     })
 
@@ -108,7 +113,6 @@ module.exports = (networkNode, streamFetcher, volumeLogger = new VolumeLogger(0)
                 error: `Query parameter "fromTimestamp" not a number: ${req.query.fromTimestamp}`,
             })
         } else {
-            const dataPoints = []
             const streamingData = networkNode.requestResendFrom(
                 req.params.id,
                 partition,
@@ -118,9 +122,17 @@ module.exports = (networkNode, streamFetcher, volumeLogger = new VolumeLogger(0)
                 publisherId || null,
                 null,
             )
-            streamingData.on('error', onDataFetchDone(res))
-            streamingData.on('data', dataPoints.push.bind(dataPoints))
-            streamingData.on('end', onDataFetchDone(res, dataPoints, req.query.format, version, volumeLogger))
+
+            let delimiter = ''
+            streamingData.on('error', (err) => onError(res, err))
+            streamingData.on('data', (row) => {
+                if (delimiter === '') {
+                    onStarted(res)
+                }
+                onRow(res, row, delimiter, req.query.format, version, volumeLogger)
+                delimiter = ','
+            })
+            streamingData.on('end', () => onEnded(res))
         }
     })
 
@@ -156,7 +168,6 @@ module.exports = (networkNode, streamFetcher, volumeLogger = new VolumeLogger(0)
                 error: `Query parameter "toTimestamp" not a number: ${req.query.toTimestamp}`,
             })
         } else {
-            const dataPoints = []
             const streamingData = networkNode.requestResendRange(
                 req.params.id,
                 partition,
@@ -168,9 +179,17 @@ module.exports = (networkNode, streamFetcher, volumeLogger = new VolumeLogger(0)
                 publisherId || null,
                 null,
             )
-            streamingData.on('error', onDataFetchDone(res))
-            streamingData.on('data', dataPoints.push.bind(dataPoints))
-            streamingData.on('end', onDataFetchDone(res, dataPoints, req.query.format, version, volumeLogger))
+
+            let delimiter = ''
+            streamingData.on('error', (err) => onError(res, err))
+            streamingData.on('data', (row) => {
+                if (delimiter === '') {
+                    onStarted(res)
+                }
+                onRow(res, row, delimiter, req.query.format, version, volumeLogger)
+                delimiter = ','
+            })
+            streamingData.on('end', () => onEnded(res))
         }
     })
 

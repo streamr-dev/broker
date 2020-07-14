@@ -758,7 +758,7 @@ describe('broker: end-to-end', () => {
             resend.push(msg)
         }
 
-        await wait(1500)
+        await wait(4000)
 
         const url = `http://localhost:${httpPort1}/api/v1/streams/${freshStreamId}/data/partitions/0/from?fromTimestamp=0`
         const response = await fetch(url, {
@@ -771,7 +771,7 @@ describe('broker: end-to-end', () => {
         const messages = messagesAsObjects.map((msgAsObject) => msgAsObject.content)
 
         expect(resend).toEqual(messages)
-    })
+    }, 10000)
 
     it('happy-path: resend from request via http', async () => {
         client1.subscribe({
