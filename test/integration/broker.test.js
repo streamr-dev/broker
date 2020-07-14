@@ -747,9 +747,9 @@ describe('broker: end-to-end', () => {
         ])
     })
 
-    it('broker streams long resend from request via http', async () => {
+    it('broker streams resend from request via http', async () => {
         const resend = []
-        for (let i = 0; i < 10; i++) {
+        for (let i = 0; i < 3; i++) {
             const msg = {
                 key: i
             }
@@ -771,7 +771,7 @@ describe('broker: end-to-end', () => {
         const messages = messagesAsObjects.map((msgAsObject) => msgAsObject.content)
 
         expect(resend).toEqual(messages)
-    })
+    }, 10000)
 
     it('happy-path: resend from request via http', async () => {
         client1.subscribe({
