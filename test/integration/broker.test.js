@@ -135,6 +135,7 @@ describe('broker: end-to-end', () => {
         await client1.ensureDisconnected()
         await client2.ensureDisconnected()
         await client3.ensureDisconnected()
+        await client4.ensureDisconnected()
         await broker1.close()
         await broker2.close()
         await broker3.close()
