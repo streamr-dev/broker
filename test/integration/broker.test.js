@@ -1,11 +1,8 @@
-const { Writable } = require('stream')
-const http = require('http')
-
 const WebSocket = require('ws')
 const StreamrClient = require('streamr-client')
 const { startTracker } = require('streamr-network')
 const fetch = require('node-fetch')
-const { wait, waitForCondition, waitForStreamToEnd } = require('streamr-test-utils')
+const { wait, waitForCondition } = require('streamr-test-utils')
 
 const { startBroker, createClient, getWsUrl } = require('../utils')
 
@@ -750,42 +747,33 @@ describe('broker: end-to-end', () => {
         ])
     })
 
-    it('broker streams resend from request via http', async (done) => {
-        const resend = []
-        for (let i = 0; i < 3; i++) {
+    it('broker streams long resend from request via http', async () => {
+        const fromTimestamp = Date.now()
+
+        const sentMessages = []
+        for (let i = 0; i < 50; i++) {
             const msg = {
                 key: i
             }
             // eslint-disable-next-line no-await-in-loop
             await client1.publish(freshStreamId, msg)
-            resend.push(msg)
+            sentMessages.push(msg)
         }
 
         await wait(3000)
 
-        let body = ''
-
-        const options = {
-            hostname: 'localhost',
-            port: httpPort1,
-            path: `/api/v1/streams/${freshStreamId}/data/partitions/0/from?fromTimestamp=0`,
+        const url = `http://localhost:${httpPort1}/api/v1/streams/${freshStreamId}/data/partitions/0/from?fromTimestamp=${fromTimestamp}`
+        const response = await fetch(url, {
+            method: 'get',
             headers: {
                 Authorization: 'token tester1-api-key'
-            }
-        }
-
-        http.get(options, (res) => {
-            res.on('data', (chunk) => {
-                body += chunk
-            })
-            res.on('end', () => {
-                const arrayOfMessages = JSON.parse(body)
-                const messages = arrayOfMessages.map((msgAsObject) => msgAsObject.content)
-                expect(resend).toEqual(messages)
-                done()
-            })
+            },
         })
-    }, 10000)
+        const messagesAsObjects = await response.json()
+        const messages = messagesAsObjects.map((msgAsObject) => msgAsObject.content)
+
+        expect(sentMessages).toEqual(messages)
+    })
 
     it('happy-path: resend from request via http', async () => {
         client1.subscribe({
