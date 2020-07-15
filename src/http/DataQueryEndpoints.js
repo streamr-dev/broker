@@ -7,12 +7,6 @@ const VolumeLogger = require('../VolumeLogger')
 
 const authenticationMiddleware = require('./RequestAuthenticatorMiddleware')
 
-const onError = (res, err) => {
-    console.error(err)
-    res.status(500).send({
-        error: 'Failed to fetch data!'
-    })
-}
 const onStarted = (res) => {
     res.writeHead(200, {
         'Content-Type': 'application/json'
@@ -30,9 +24,26 @@ const onRow = (res, unicastMessage, delimiter, format = 'object', version, volum
     res.write(format === 'protocol' ? JSON.stringify(streamMessage.serialize(version)) : JSON.stringify(streamMessage.toObject()))
 }
 
-const onEnded = (res) => {
-    res.write(']')
-    res.end()
+const streamData = (res, stream, format, version, volumeLogger) => {
+    let delimiter = ''
+    stream.on('data', (row) => {
+        // first row
+        if (delimiter === '') {
+            onStarted(res)
+        }
+        onRow(res, row, delimiter, format, version, volumeLogger)
+        delimiter = ','
+    })
+    stream.on('end', () => {
+        res.write(']')
+        res.end()
+    })
+    stream.on('error', (err) => {
+        console.error(err)
+        res.status(500).send({
+            error: 'Failed to fetch data!'
+        })
+    })
 }
 
 function parseIntIfExists(x) {
@@ -84,16 +95,7 @@ module.exports = (networkNode, streamFetcher, volumeLogger = new VolumeLogger(0)
                 count,
             )
 
-            let delimiter = ''
-            streamingData.on('error', (err) => onError(res, err))
-            streamingData.on('data', (row) => {
-                if (delimiter === '') {
-                    onStarted(res)
-                }
-                onRow(res, row, delimiter, req.query.format, version, volumeLogger)
-                delimiter = ','
-            })
-            streamingData.on('end', () => onEnded(res))
+            streamData(res, streamingData, req.query.format, version, volumeLogger)
         }
     })
 
@@ -123,16 +125,7 @@ module.exports = (networkNode, streamFetcher, volumeLogger = new VolumeLogger(0)
                 null,
             )
 
-            let delimiter = ''
-            streamingData.on('error', (err) => onError(res, err))
-            streamingData.on('data', (row) => {
-                if (delimiter === '') {
-                    onStarted(res)
-                }
-                onRow(res, row, delimiter, req.query.format, version, volumeLogger)
-                delimiter = ','
-            })
-            streamingData.on('end', () => onEnded(res))
+            streamData(res, streamingData, req.query.format, version, volumeLogger)
         }
     })
 
@@ -180,16 +173,7 @@ module.exports = (networkNode, streamFetcher, volumeLogger = new VolumeLogger(0)
                 null,
             )
 
-            let delimiter = ''
-            streamingData.on('error', (err) => onError(res, err))
-            streamingData.on('data', (row) => {
-                if (delimiter === '') {
-                    onStarted(res)
-                }
-                onRow(res, row, delimiter, req.query.format, version, volumeLogger)
-                delimiter = ','
-            })
-            streamingData.on('end', () => onEnded(res))
+            streamData(res, streamingData, req.query.format, version, volumeLogger)
         }
     })
 
