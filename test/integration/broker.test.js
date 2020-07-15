@@ -1,8 +1,11 @@
+const { Writable } = require('stream')
+const http = require('http')
+
 const WebSocket = require('ws')
 const StreamrClient = require('streamr-client')
 const { startTracker } = require('streamr-network')
 const fetch = require('node-fetch')
-const { wait, waitForCondition } = require('streamr-test-utils')
+const { wait, waitForCondition, waitForStreamToEnd } = require('streamr-test-utils')
 
 const { startBroker, createClient, getWsUrl } = require('../utils')
 
@@ -747,7 +750,7 @@ describe('broker: end-to-end', () => {
         ])
     })
 
-    it('broker streams resend from request via http', async () => {
+    it('broker streams resend from request via http', async (done) => {
         const resend = []
         for (let i = 0; i < 3; i++) {
             const msg = {
@@ -760,17 +763,28 @@ describe('broker: end-to-end', () => {
 
         await wait(3000)
 
-        const url = `http://localhost:${httpPort1}/api/v1/streams/${freshStreamId}/data/partitions/0/from?fromTimestamp=0`
-        const response = await fetch(url, {
-            method: 'get',
+        let body = ''
+
+        const options = {
+            hostname: 'localhost',
+            port: httpPort1,
+            path: `/api/v1/streams/${freshStreamId}/data/partitions/0/from?fromTimestamp=0`,
             headers: {
                 Authorization: 'token tester1-api-key'
-            },
-        })
-        const messagesAsObjects = await response.json()
-        const messages = messagesAsObjects.map((msgAsObject) => msgAsObject.content)
+            }
+        }
 
-        expect(resend).toEqual(messages)
+        http.get(options, (res) => {
+            res.on('data', (chunk) => {
+                body += chunk
+            })
+            res.on('end', () => {
+                const arrayOfMessages = JSON.parse(body)
+                const messages = arrayOfMessages.map((msgAsObject) => msgAsObject.content)
+                expect(resend).toEqual(messages)
+                done()
+            })
+        })
     }, 10000)
 
     it('happy-path: resend from request via http', async () => {
