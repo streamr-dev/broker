@@ -63,9 +63,10 @@ describe('BucketManager', () => {
         expect(bucketManager.buckets[foundBucketId].records).toEqual(0)
         expect(bucketManager.buckets[foundBucketId].isStored()).toBeTruthy()
 
-        bucketManager.incrementBucket(foundBucketId, 3, 9)
-        expect(bucketManager.buckets[foundBucketId].size).toEqual(3)
-        expect(bucketManager.buckets[foundBucketId].records).toEqual(9)
+        bucketManager.incrementBucket(foundBucketId, 3)
+        bucketManager.incrementBucket(foundBucketId, 3)
+        expect(bucketManager.buckets[foundBucketId].size).toEqual(6)
+        expect(bucketManager.buckets[foundBucketId].records).toEqual(2)
         expect(bucketManager.buckets[foundBucketId].isStored()).toBeFalsy()
 
         await waitForCondition(() => bucketManager.buckets[foundBucketId].isStored())
@@ -77,8 +78,8 @@ describe('BucketManager', () => {
         expect(row).not.toBeUndefined()
         expect(row.stream_id).toEqual(streamId)
         expect(row.partition).toEqual(0)
-        expect(row.records).toEqual(9)
-        expect(row.size).toEqual(3)
+        expect(row.records).toEqual(2)
+        expect(row.size).toEqual(6)
     })
 
     test('calling getBucketId() updates last know min timestamp and resets it to undefined when bucket is found', async () => {
@@ -113,8 +114,8 @@ describe('BucketManager', () => {
         expect(lastBucketId).not.toEqual(bucketId5minAgo)
 
         // set stored = false
-        bucketManager.incrementBucket(lastBucketId, 1, 1)
-        bucketManager.incrementBucket(bucketId5minAgo, 1, 1)
+        bucketManager.incrementBucket(lastBucketId, 1)
+        bucketManager.incrementBucket(bucketId5minAgo, 1)
 
         await waitForCondition(() => bucketManager.buckets[lastBucketId].isStored())
         await waitForCondition(() => bucketManager.buckets[bucketId5minAgo].isStored())

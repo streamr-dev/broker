@@ -63,10 +63,10 @@ class BucketManager {
         return bucketId
     }
 
-    incrementBucket(bucketId, size, records = 1) {
+    incrementBucket(bucketId, size) {
         const bucket = this.buckets[bucketId]
         if (bucket) {
-            bucket.incrementBucket(size, records)
+            bucket.incrementBucket(size, 1)
         }
     }
 

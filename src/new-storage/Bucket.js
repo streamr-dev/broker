@@ -85,7 +85,7 @@ class Bucket {
         return this.id
     }
 
-    incrementBucket(size, records = 1) {
+    incrementBucket(size, records) {
         this.size += size
         this.records += records
 
