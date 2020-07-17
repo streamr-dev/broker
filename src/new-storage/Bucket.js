@@ -96,6 +96,7 @@ class Bucket {
     }
 
     _updateTTL() {
+        this.ttl = new Date()
         this.ttl.setSeconds(this.ttl.getSeconds() + this._keepAliveSeconds)
         this.debug(`new ttl: ${this.ttl}`)
     }
