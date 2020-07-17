@@ -50,7 +50,7 @@ class Storage extends EventEmitter {
             const uuid = uuidv1()
             const timeout = setTimeout(() => {
                 this.pendingStores.delete(uuid)
-                setImmediate(() => this.store(streamMessage))
+                this.store(streamMessage)
             }, this.opts.retriesIntervalMilliseconds)
             this.pendingStores.set(uuid, timeout)
         }
