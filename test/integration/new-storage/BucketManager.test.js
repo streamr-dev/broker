@@ -120,8 +120,6 @@ describe('BucketManager', () => {
         await waitForCondition(() => bucketManager.buckets[lastBucketId].isStored())
         await waitForCondition(() => bucketManager.buckets[bucketId5minAgo].isStored())
 
-        await wait(5000)
-
         // get latest sorted
         const lastBuckets = await bucketManager.getLastBuckets(streamId, 0, 5)
         expect(lastBuckets).toHaveLength(2)
