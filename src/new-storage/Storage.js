@@ -88,11 +88,10 @@ class Storage extends EventEmitter {
             resultSet.rows.reverse().forEach((r) => {
                 resultStream.write(r)
             })
+            resultStream.push(null)
         })
             .catch((e) => {
                 console.warn(e)
-            })
-            .finally(() => {
                 resultStream.push(null)
             })
 
@@ -141,9 +140,10 @@ class Storage extends EventEmitter {
         }).then((startBucketTimestamp) => {
             return this.bucketManager.getBucketsByTimestamp(streamId, partition, startBucketTimestamp)
         }).then((buckets) => {
-            if (!buckets.length) {
-                return resultStream.push(null)
+            if (!buckets || !buckets.length) {
+                throw new Error('Failed to find buckets')
             }
+
             const bucketsForQuery = bucketsToIds(buckets)
 
             const queryParams = [streamId, partition, bucketsForQuery, fromTimestamp]
@@ -181,9 +181,10 @@ class Storage extends EventEmitter {
         }).then((startBucketTimestamp) => {
             return this.bucketManager.getBucketsByTimestamp(streamId, partition, startBucketTimestamp)
         }).then((buckets) => {
-            if (!buckets.length) {
-                return resultStream.push(null)
+            if (!buckets || !buckets.length) {
+                throw new Error('Failed to find buckets')
             }
+
             const bucketsForQuery = bucketsToIds(buckets)
 
             const queryParams1 = [streamId, partition, bucketsForQuery, fromTimestamp, fromSequenceNo, publisherId, msgChainId]
@@ -220,12 +221,20 @@ class Storage extends EventEmitter {
             this.bucketManager.getLastBuckets(streamId, partition, 1, fromTimestamp),
             this.bucketManager.getLastBuckets(streamId, partition, 1, toTimestamp),
         ]).then((results) => {
+            if (!results || results.length !== 2) {
+                throw new Error('Failed to find buckets')
+            }
+
             const date1 = results[0][0].dateCreate
             const date2 = results[1][0].dateCreate
             return [Math.min(date1, date2), Math.max(date1, date2)]
         }).then(([startBucketDate, endBucketDate]) => {
             return this.bucketManager.getBucketsByTimestamp(streamId, partition, startBucketDate, endBucketDate)
         }).then((buckets) => {
+            if (!buckets || !buckets.length) {
+                throw new Error('Failed to find buckets')
+            }
+
             const bucketsForQuery = bucketsToIds(buckets)
 
             const queryParams = [streamId, partition, bucketsForQuery, fromTimestamp, toTimestamp]
@@ -265,12 +274,20 @@ class Storage extends EventEmitter {
             this.bucketManager.getLastBuckets(streamId, partition, 1, fromTimestamp),
             this.bucketManager.getLastBuckets(streamId, partition, 1, toTimestamp),
         ]).then((results) => {
+            if (!results || results.length !== 2) {
+                throw new Error('Failed to find buckets')
+            }
+
             const date1 = results[0][0].dateCreate
             const date2 = results[1][0].dateCreate
             return [Math.min(date1, date2), Math.max(date1, date2)]
         }).then(([startBucketDate, endBucketDate]) => {
             return this.bucketManager.getBucketsByTimestamp(streamId, partition, startBucketDate, endBucketDate)
         }).then((buckets) => {
+            if (!buckets || !buckets.length) {
+                throw new Error('Failed to find buckets')
+            }
+
             const bucketsForQuery = bucketsToIds(buckets)
 
             const queryParams1 = [streamId, partition, bucketsForQuery, fromTimestamp, fromSequenceNo, publisherId, msgChainId]
