@@ -32,7 +32,7 @@ class Storage extends EventEmitter {
         this.batchManager = new BatchManager(cassandraClient, {
             useTtl: this.opts.useTtl
         })
-        this.pendingMessages = new Map()
+        this.pendingStores = new Map()
     }
 
     store(streamMessage) {
@@ -49,10 +49,10 @@ class Storage extends EventEmitter {
 
             const uuid = uuidv1()
             const timeout = setTimeout(() => {
-                this.pendingMessages.delete(uuid)
+                this.pendingStores.delete(uuid)
                 setImmediate(() => this.store(streamMessage))
             }, this.opts.retriesIntervalMilliseconds)
-            this.pendingMessages.set(uuid, timeout)
+            this.pendingStores.set(uuid, timeout)
         }
     }
 
@@ -348,11 +348,11 @@ class Storage extends EventEmitter {
     }
 
     close() {
-        const keys = [...this.pendingMessages.keys()]
+        const keys = [...this.pendingStores.keys()]
         keys.forEach((key) => {
-            const timeout = this.pendingMessages.get(key)
+            const timeout = this.pendingStores.get(key)
             clearTimeout(timeout)
-            this.pendingMessages.delete(key)
+            this.pendingStores.delete(key)
         })
 
         this.bucketManager.stop()
