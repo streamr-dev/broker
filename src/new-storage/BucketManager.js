@@ -158,7 +158,7 @@ class BucketManager {
             // check in database that we have bucket for minTimestamp
             if (!insertNewBucket && !this._findBucketId(key, minTimestamp)) {
                 // eslint-disable-next-line no-await-in-loop
-                const foundBuckets = await this.getLastBuckets(stream.streamId, stream.partition, 1, minTimestamp)
+                const foundBuckets = await this.getLastBuckets(streamId, partition, 1, minTimestamp)
                 checkFoundBuckets(foundBuckets)
             }
 
