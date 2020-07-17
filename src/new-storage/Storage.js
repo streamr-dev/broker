@@ -13,6 +13,8 @@ const BucketManager = require('./BucketManager')
 
 const MAX_RESEND_LAST = 10000
 
+const bucketsToIds = (buckets) => buckets.map((bucket) => bucket.getId())
+
 class Storage extends EventEmitter {
     constructor(cassandraClient, opts) {
         super()
@@ -71,9 +73,7 @@ class Storage extends EventEmitter {
         const resultStream = this._createResultStream()
 
         this.bucketManager.getLastBuckets(streamId, partition, 100).then((buckets) => {
-            const bucketsForQuery = []
-            buckets.forEach((bucket) => bucketsForQuery.push(bucket.getId()))
-            return bucketsForQuery
+            return bucketsToIds(buckets)
         }).then((bucketsForQuery) => {
             if (!bucketsForQuery.length) {
                 throw new Error('Buckets not found')
@@ -144,12 +144,7 @@ class Storage extends EventEmitter {
             if (!buckets.length) {
                 return resultStream.push(null)
             }
-            const bucketsForQuery = []
-
-            for (let i = 0; i < buckets.length; i++) {
-                const bucket = buckets[i]
-                bucketsForQuery.push(bucket.id)
-            }
+            const bucketsForQuery = bucketsToIds(buckets)
 
             const queryParams = [streamId, partition, bucketsForQuery, fromTimestamp]
             const cassandraStream = this._queryWithStreamingResults(query, queryParams)
@@ -189,12 +184,7 @@ class Storage extends EventEmitter {
             if (!buckets.length) {
                 return resultStream.push(null)
             }
-            const bucketsForQuery = []
-
-            for (let i = 0; i < buckets.length; i++) {
-                const bucket = buckets[i]
-                bucketsForQuery.push(bucket.id)
-            }
+            const bucketsForQuery = bucketsToIds(buckets)
 
             const queryParams1 = [streamId, partition, bucketsForQuery, fromTimestamp, fromSequenceNo, publisherId, msgChainId]
             const queryParams2 = [streamId, partition, bucketsForQuery, fromTimestamp, publisherId, msgChainId]
@@ -236,12 +226,7 @@ class Storage extends EventEmitter {
         }).then(([startBucketDate, endBucketDate]) => {
             return this.bucketManager.getBucketsByTimestamp(streamId, partition, startBucketDate, endBucketDate)
         }).then((buckets) => {
-            const bucketsForQuery = []
-
-            for (let i = 0; i < buckets.length; i++) {
-                const bucket = buckets[i]
-                bucketsForQuery.push(bucket.id)
-            }
+            const bucketsForQuery = bucketsToIds(buckets)
 
             const queryParams = [streamId, partition, bucketsForQuery, fromTimestamp, toTimestamp]
             const cassandraStream = this._queryWithStreamingResults(query, queryParams)
@@ -286,12 +271,7 @@ class Storage extends EventEmitter {
         }).then(([startBucketDate, endBucketDate]) => {
             return this.bucketManager.getBucketsByTimestamp(streamId, partition, startBucketDate, endBucketDate)
         }).then((buckets) => {
-            const bucketsForQuery = []
-
-            for (let i = 0; i < buckets.length; i++) {
-                const bucket = buckets[i]
-                bucketsForQuery.push(bucket.id)
-            }
+            const bucketsForQuery = bucketsToIds(buckets)
 
             const queryParams1 = [streamId, partition, bucketsForQuery, fromTimestamp, fromSequenceNo, publisherId, msgChainId]
             const queryParams2 = [streamId, partition, bucketsForQuery, fromTimestamp, toTimestamp, publisherId, msgChainId]
