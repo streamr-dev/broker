@@ -68,55 +68,33 @@ class Storage extends EventEmitter {
             + 'stream_id = ? AND partition = ? AND bucket_id IN ? '
             + 'ORDER BY ts DESC, sequence_no DESC '
             + 'LIMIT ?'
-        const GET_BUCKETS = 'SELECT id, records FROM bucket WHERE stream_id = ? AND partition = ?'
         const resultStream = this._createResultStream()
 
-        let total = 0
-        const bucketsForQuery = []
-        const options = {
-            prepare: true, fetchSize: 10
-        }
-
-        const makeLastQuery = () => {
-            const params = [streamId, partition, bucketsForQuery, limit]
-            debug(`requestLast query: ${GET_LAST_N_MESSAGES}, params: ${params}`)
-
+        this.bucketManager.getLastBuckets(streamId, partition, 100).then((buckets) => {
+            const bucketsForQuery = []
+            buckets.forEach((bucket) => bucketsForQuery.push(bucket.getId()))
+            return bucketsForQuery
+        }).then((bucketsForQuery) => {
             if (!bucketsForQuery.length) {
-                resultStream.push(null)
-            } else {
-                this.cassandraClient.execute(GET_LAST_N_MESSAGES, params, {
-                    prepare: true,
-                    fetchSize: 0 // disable paging
-                }).then((resultSet) => {
-                    resultSet.rows.reverse().forEach((r) => {
-                        resultStream.write(r)
-                    })
-                    resultStream.push(null)
-                }).catch((e) => {
-                    console.warn(e)
-                    resultStream.push(null)
-                })
-            }
-        }
-
-        // eachRow is used to get needed amount of buckets dynamically
-        this.cassandraClient.eachRow(GET_BUCKETS, [streamId, partition], options, (n, row) => {
-            if (total <= limit) {
-                total += row.records
-                bucketsForQuery.push(row.id)
-            }
-        }, (err, result) => {
-            if (err) {
-                console.error(err)
+                throw new Error('Buckets not found')
             }
 
-            // if fetched buckets, but found not enough records => continue
-            if (result.nextPage && total < limit && total < MAX_RESEND_LAST) {
-                result.nextPage()
-            } else {
-                makeLastQuery()
-            }
+            const params = [streamId, partition, bucketsForQuery, limit]
+            return this.cassandraClient.execute(GET_LAST_N_MESSAGES, params, {
+                prepare: true,
+                fetchSize: 0 // disable paging
+            })
+        }).then((resultSet) => {
+            resultSet.rows.reverse().forEach((r) => {
+                resultStream.write(r)
+            })
         })
+            .catch((e) => {
+                console.warn(e)
+            })
+            .finally(() => {
+                resultStream.push(null)
+            })
 
         return resultStream
     }
