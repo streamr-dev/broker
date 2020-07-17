@@ -127,6 +127,19 @@ class BucketManager {
 
             let insertNewBucket = false
 
+            // helper function
+            const checkFoundBuckets = (foundBuckets) => {
+                const foundBucket = foundBuckets.length ? foundBuckets[0] : undefined
+
+                if (foundBucket && !(foundBucket.getId() in this.buckets)) {
+                    stream.buckets.push(foundBucket)
+                    this.buckets[foundBucket.getId()] = foundBucket
+                    stream.minTimestamp = undefined
+                } else {
+                    insertNewBucket = true
+                }
+            }
+
             // check in memory
             const key = toKey(streamId, partition)
             const latestBucket = this._getLatestInMemoryBucket(key)
@@ -138,32 +151,15 @@ class BucketManager {
             // if latest is not found or it's full => try to find latest in database
             if (!latestBucket || (latestBucket && latestBucket.isAlmostFull())) {
                 // eslint-disable-next-line no-await-in-loop
-                const foundBuckets = await this.getLastBuckets(stream.streamId, stream.partition, 1)
-                const foundBucket = foundBuckets.length ? foundBuckets[0] : undefined
-
-                // if we found bucket which is not in memory
-                if (foundBucket && !(foundBucket.getId() in this.buckets)) {
-                    stream.buckets.push(foundBucket)
-                    this.buckets[foundBucket.getId()] = foundBucket
-                    stream.minTimestamp = undefined
-                } else {
-                    insertNewBucket = true
-                }
+                const foundBuckets = await this.getLastBuckets(streamId, partition, 1)
+                checkFoundBuckets(foundBuckets)
             }
 
             // check in database that we have bucket for minTimestamp
             if (!insertNewBucket && !this._findBucketId(key, minTimestamp)) {
                 // eslint-disable-next-line no-await-in-loop
                 const foundBuckets = await this.getLastBuckets(stream.streamId, stream.partition, 1, minTimestamp)
-                const foundBucket = foundBuckets.length ? foundBuckets[0] : undefined
-
-                if (foundBucket && !(foundBucket.getId() in this.buckets)) {
-                    stream.buckets.push(foundBucket)
-                    this.buckets[foundBucket.getId()] = foundBucket
-                    stream.minTimestamp = undefined
-                } else {
-                    insertNewBucket = true
-                }
+                checkFoundBuckets(foundBuckets)
             }
 
             if (insertNewBucket) {
