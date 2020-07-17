@@ -283,8 +283,6 @@ class BucketManager {
         const notStoredBuckets = Object.values(this.buckets).filter((bucket) => !bucket.isStored())
 
         notStoredBuckets.forEach(async (bucket) => {
-            bucket.setStored()
-
             const {
                 id, size, records, streamId, partition, dateCreate
             } = bucket
@@ -295,6 +293,11 @@ class BucketManager {
                 await this.cassandraClient.execute(UPDATE_BUCKET, params, {
                     prepare: true
                 })
+
+                if (bucket.records === records) {
+                    bucket.setStored()
+                }
+
                 debug(`stored in database bucket state, params: ${params}`)
             } catch (e) {
                 if (this.opts.logErrors) {
@@ -302,8 +305,8 @@ class BucketManager {
                 }
             }
 
-            // if bucket is not in use, remove from memory
-            if (!bucket.isAlive()) {
+            // if bucket is not in use and isStored, remove from memory
+            if (!bucket.isAlive() && bucket.isStored()) {
                 this._removeBucket(bucket.getId(), bucket.streamId, bucket.partition)
             }
         })
