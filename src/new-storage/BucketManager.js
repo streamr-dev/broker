@@ -67,6 +67,8 @@ class BucketManager {
         const bucket = this.buckets[bucketId]
         if (bucket) {
             bucket.incrementBucket(size, 1)
+        } else {
+            console.warn(`${bucketId} not found`)
         }
     }
 
@@ -173,6 +175,7 @@ class BucketManager {
 
                 stream.buckets.push(newBucket)
                 this.buckets[newBucket.getId()] = newBucket
+                // eslint-disable-next-line require-atomic-updates
                 stream.minTimestamp = undefined
             }
         }
