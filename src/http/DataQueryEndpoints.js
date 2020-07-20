@@ -15,11 +15,8 @@ const onStarted = (res) => {
 }
 
 const onRow = (res, unicastMessage, delimiter, format = 'object', version, volumeLogger) => {
-    let volumeBytes = 0
     const { streamMessage } = unicastMessage
-    volumeBytes += streamMessage.getSerializedContent().length
-    volumeLogger.logOutput(volumeBytes)
-
+    volumeLogger.logOutput(streamMessage.getSerializedContent().length)
     res.write(delimiter) // because can't have trailing comma in JSON array
     res.write(format === 'protocol' ? JSON.stringify(streamMessage.serialize(version)) : JSON.stringify(streamMessage.toObject()))
 }
