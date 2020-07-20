@@ -32,6 +32,9 @@ const streamData = (res, stream, format, version, volumeLogger) => {
         delimiter = ','
     })
     stream.on('end', () => {
+        if (delimiter === '') {
+            onStarted(res)
+        }
         res.write(']')
         res.end()
     })

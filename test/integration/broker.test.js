@@ -776,6 +776,19 @@ describe('broker: end-to-end', () => {
         expect(sentMessages).toEqual(messages)
     })
 
+    it('broker returns [] for empty http resend', async () => {
+        const fromTimestamp = Date.now() + 99999999
+        const url = `http://localhost:${httpPort1}/api/v1/streams/${freshStreamId}/data/partitions/0/from?fromTimestamp=${fromTimestamp}`
+        const response = await fetch(url, {
+            method: 'get',
+            headers: {
+                Authorization: 'token tester1-api-key'
+            },
+        })
+        const messagesAsObjects = await response.json()
+        expect(messagesAsObjects).toEqual([])
+    })
+
     it('happy-path: resend from request via http', async () => {
         client1.subscribe({
             stream: freshStreamId
