@@ -152,7 +152,7 @@ class BucketManager {
             }
 
             // if latest is not found or it's full => try to find latest in database
-            if (!latestBucket || (latestBucket && latestBucket.isAlmostFull())) {
+            if (!latestBucket || latestBucket.isAlmostFull()) {
                 // eslint-disable-next-line no-await-in-loop
                 const foundBuckets = await this.getLastBuckets(streamId, partition, 1)
                 checkFoundBuckets(foundBuckets)
