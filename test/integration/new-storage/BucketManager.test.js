@@ -170,8 +170,21 @@ describe('BucketManager', () => {
         const timestamp = new Date()
         await insertBuckets(timestamp)
 
-        const buckets = await bucketManager.getBucketsByTimestamp(streamId, 0, timestamp.getTime() + 50 * 60 * 1000)
+        // middle
+        const fromTimestamp = timestamp.getTime() + 50 * 60 * 1000
+        const buckets = await bucketManager.getBucketsByTimestamp(streamId, 0, fromTimestamp)
 
         expect(buckets.length).toEqual(50)
+    })
+
+    test('bucketManager. getBucketsByTimestamp(streamId, 0, fromTs, toTs) when there are buckets in database for stream streamId outside and inside range [fromTs, toTs]', async () => {
+        const timestamp = new Date()
+        await insertBuckets(timestamp)
+
+        const fromTimestamp = timestamp.getTime() + 25 * 60 * 1000
+        const toTimestamp = timestamp.getTime() + 65 * 60 * 1000 - 1 // exclude 1 bucket
+        const buckets = await bucketManager.getBucketsByTimestamp(streamId, 0, fromTimestamp, toTimestamp)
+
+        expect(buckets.length).toEqual(40)
     })
 })
