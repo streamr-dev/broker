@@ -19,12 +19,10 @@ describe('BucketManager', () => {
             const currentTimestamp = new Date(startTimestamp.getTime() + i * 60 * 1000) // + "i" minutes
             // eslint-disable-next-line no-await-in-loop
             await cassandraClient.execute('INSERT INTO bucket (stream_id, partition, date_create, id, records, size) '
-                + 'VALUES (?, 0, ?, ?, ?, ?)', [
+                + 'VALUES (?, 0, ?, ?, 5, 5)', [
                 streamId,
                 currentTimestamp,
-                TimeUuid.fromDate(currentTimestamp).toString(),
-                i * 100,
-                i * 10000
+                TimeUuid.fromDate(currentTimestamp).toString()
             ], {
                 prepare: true
             })
@@ -197,4 +195,20 @@ describe('BucketManager', () => {
 
         expect(buckets.length).toEqual(65)
     })
+
+    test('buckets are removed from memory after opts.bucketKeepAliveSeconds', async () => {
+        const timestamp = new Date()
+        bucketManager.opts.bucketKeepAliveSeconds = 3 // keep in memory 5 seconds
+        await insertBuckets(timestamp)
+
+        // load latest bucket into memory
+        const latestTimestamp = timestamp.getTime() + 100 * 60 * 1000
+        await waitForCondition(() => bucketManager.getBucketId(streamId, 0, latestTimestamp) !== undefined)
+        const bucketId = bucketManager.getBucketId(streamId, 0, latestTimestamp)
+        const bucket = bucketManager.buckets[bucketId]
+
+        // bucket got removed after 3 seconds
+        await waitForCondition(() => bucket.isAlive() === false)
+        await waitForCondition(() => Object.values(bucketManager.buckets).length === 0)
+    }, 10000)
 })

@@ -291,14 +291,17 @@ class BucketManager {
             await this.cassandraClient.execute(UPDATE_BUCKET, params, {
                 prepare: true
             })
-            return bucket
+            return {
+                bucket,
+                records
+            }
         }))
 
         results.forEach((result) => {
             if (result.status === 'fulfilled') {
-                const storedBucket = result.value
+                const { bucket: storedBucket, records } = result.value
 
-                if (storedBucket.records === this.buckets[storedBucket.getId()].records) {
+                if (storedBucket.records === records) {
                     storedBucket.setStored()
                 }
 
@@ -307,6 +310,9 @@ class BucketManager {
                 }
             }
         })
+
+        const bucketsToRemove = Object.values(this.buckets).filter((bucket) => bucket.isStored() && !bucket.isAlive())
+        bucketsToRemove.forEach((bucket) => this._removeBucket(bucket.getId(), bucket.streamId, bucket.partition))
 
         this._storeBucketsTimeout = setTimeout(() => this._storeBuckets(), this.opts.storeBucketsTimeout)
     }
