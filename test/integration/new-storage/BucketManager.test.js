@@ -165,4 +165,13 @@ describe('BucketManager', () => {
 
         expect(buckets.length).toEqual(10)
     })
+
+    test('bucketManager. getBucketsByTimestamp(streamId, 0, fromTs) when there are buckets in database for stream streamId before (and after) fromTs', async () => {
+        const timestamp = new Date()
+        await insertBuckets(timestamp)
+
+        const buckets = await bucketManager.getBucketsByTimestamp(streamId, 0, timestamp.getTime() + 50 * 60 * 1000)
+
+        expect(buckets.length).toEqual(50)
+    })
 })
