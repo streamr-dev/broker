@@ -157,7 +157,7 @@ describe('BucketManager', () => {
         expect(lastBucketsFromTo[1].getId()).toEqual(bucketId5minAgo)
     }, 20000)
 
-    test('bucketManager.getLastBuckets(streamId, 0, n) when there are more than n buckets in database for stream streamId', async () => {
+    test('getLastBuckets(streamId, 0, n) when there are more than n buckets in database for stream streamId', async () => {
         const timestamp = new Date()
         await insertBuckets(timestamp)
 
@@ -166,7 +166,7 @@ describe('BucketManager', () => {
         expect(buckets.length).toEqual(10)
     })
 
-    test('bucketManager. getBucketsByTimestamp(streamId, 0, fromTs) when there are buckets in database for stream streamId before (and after) fromTs', async () => {
+    test('getBucketsByTimestamp(streamId, 0, fromTs) when there are buckets in database for stream streamId before (and after) fromTs', async () => {
         const timestamp = new Date()
         await insertBuckets(timestamp)
 
@@ -177,7 +177,7 @@ describe('BucketManager', () => {
         expect(buckets.length).toEqual(50)
     })
 
-    test('bucketManager. getBucketsByTimestamp(streamId, 0, fromTs, toTs) when there are buckets in database for stream streamId outside and inside range [fromTs, toTs]', async () => {
+    test('getBucketsByTimestamp(streamId, 0, fromTs, toTs) when there are buckets in database for stream streamId outside and inside range [fromTs, toTs]', async () => {
         const timestamp = new Date()
         await insertBuckets(timestamp)
 
@@ -186,5 +186,15 @@ describe('BucketManager', () => {
         const buckets = await bucketManager.getBucketsByTimestamp(streamId, 0, fromTimestamp, toTimestamp)
 
         expect(buckets.length).toEqual(40)
+    })
+
+    test('getBucketsByTimestamp(streamId, 0, undefined, toTs) when there are buckets in database for stream streamId after (and before) toTs', async () => {
+        const timestamp = new Date()
+        await insertBuckets(timestamp)
+
+        const toTimestamp = timestamp.getTime() + 65 * 60 * 1000 - 1 // exclude 1 bucket
+        const buckets = await bucketManager.getBucketsByTimestamp(streamId, 0, undefined, toTimestamp)
+
+        expect(buckets.length).toEqual(65)
     })
 })
