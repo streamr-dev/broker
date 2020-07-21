@@ -48,14 +48,14 @@ describe('Bucket', () => {
 
         expect(bucket.isAlmostFull(0)).toBeFalsy()
 
-        bucket.incrementBucket(1, 3)
-        bucket.incrementBucket(1, 3)
-        bucket.incrementBucket(1, 3)
+        bucket.incrementBucket(1)
+        bucket.incrementBucket(1)
+        bucket.incrementBucket(1)
 
         expect(bucket.isAlmostFull(0)).toBeFalsy()
         expect(bucket.isAlmostFull(25)).toBeTruthy()
 
-        bucket.incrementBucket(1, 3)
+        bucket.incrementBucket(1)
         expect(bucket.isAlmostFull(0)).toBeTruthy()
         expect(bucket.isAlmostFull(25)).toBeTruthy()
         expect(bucket.isAlmostFull(0)).toBeTruthy()

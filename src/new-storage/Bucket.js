@@ -81,9 +81,9 @@ class Bucket {
         return this.id
     }
 
-    incrementBucket(size, records) {
+    incrementBucket(size) {
         this.size += size
-        this.records += records
+        this.records += 1
 
         this.debug(`incremented bucket => size: ${this.size}, records: ${this.records}`)
 
