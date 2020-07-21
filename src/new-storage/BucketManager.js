@@ -1,6 +1,7 @@
 const debug = require('debug')('streamr:storage:bucket-manager')
 const Heap = require('heap')
 const { TimeUuid } = require('cassandra-driver').types
+const allSettled = require('promise.allsettled')
 
 const Bucket = require('./Bucket')
 
@@ -275,38 +276,35 @@ class BucketManager {
         clearInterval(this._storeBucketsTimeout)
     }
 
-    _storeBuckets() {
+    async _storeBuckets() {
         // for non-existing buckets UPDATE works as INSERT
         const UPDATE_BUCKET = 'UPDATE bucket SET size = ?, records = ?, id = ? WHERE stream_id = ? AND partition = ? AND date_create = ?'
 
         const notStoredBuckets = Object.values(this.buckets).filter((bucket) => !bucket.isStored())
 
-        notStoredBuckets.forEach(async (bucket) => {
+        const results = await allSettled(notStoredBuckets.map(async (bucket) => {
             const {
                 id, size, records, streamId, partition, dateCreate
             } = bucket
             const params = [size, records, id, streamId, partition, dateCreate]
 
-            try {
-                // eslint-disable-next-line no-await-in-loop
-                await this.cassandraClient.execute(UPDATE_BUCKET, params, {
-                    prepare: true
-                })
+            await this.cassandraClient.execute(UPDATE_BUCKET, params, {
+                prepare: true
+            })
+            return bucket
+        }))
 
-                if (bucket.records === records) {
-                    bucket.setStored()
+        results.forEach((result) => {
+            if (result.status === 'fulfilled') {
+                const storedBucket = result.value
+
+                if (storedBucket.records === this.buckets[storedBucket.getId()].records) {
+                    storedBucket.setStored()
                 }
 
-                debug(`stored in database bucket state, params: ${params}`)
-            } catch (e) {
-                if (this.opts.logErrors) {
-                    console.error(e)
+                if (!storedBucket.isAlive() && storedBucket.isStored()) {
+                    this._removeBucket(storedBucket.getId(), storedBucket.streamId, storedBucket.partition)
                 }
-            }
-
-            // if bucket is not in use and isStored, remove from memory
-            if (!bucket.isAlive() && bucket.isStored()) {
-                this._removeBucket(bucket.getId(), bucket.streamId, bucket.partition)
             }
         })
 
