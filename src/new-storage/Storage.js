@@ -72,6 +72,7 @@ class Storage extends EventEmitter {
             + 'LIMIT ?'
         const resultStream = this._createResultStream()
 
+        // Assumption: If a stream has more than MAX_RESEND_LAST messages, at least MAX_RESEND_LAST messages are present in the latest 100 buckets.
         this.bucketManager.getLastBuckets(streamId, partition, 100).then((buckets) => {
             return bucketsToIds(buckets)
         }).then((bucketsForQuery) => {
