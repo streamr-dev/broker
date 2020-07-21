@@ -43,20 +43,20 @@ describe('Bucket', () => {
         }).not.toThrow()
     })
 
-    it('incrementBucket and isFull and isAlmostFull', () => {
+    it('incrementBucket and isAlmostFull', () => {
         const bucket = new Bucket('id', 'streamId', 0, 0, 0, new Date(), 4, 12, 1)
 
-        expect(bucket.isFull()).toBeFalsy()
+        expect(bucket.isAlmostFull(0)).toBeFalsy()
 
         bucket.incrementBucket(1, 3)
         bucket.incrementBucket(1, 3)
         bucket.incrementBucket(1, 3)
 
-        expect(bucket.isFull()).toBeFalsy()
+        expect(bucket.isAlmostFull(0)).toBeFalsy()
         expect(bucket.isAlmostFull(25)).toBeTruthy()
 
         bucket.incrementBucket(1, 3)
-        expect(bucket.isFull()).toBeTruthy()
+        expect(bucket.isAlmostFull(0)).toBeTruthy()
         expect(bucket.isAlmostFull(25)).toBeTruthy()
         expect(bucket.isAlmostFull(0)).toBeTruthy()
     })

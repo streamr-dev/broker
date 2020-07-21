@@ -73,10 +73,6 @@ class Bucket {
         return this.size >= maxPercentSize || this.records >= maxRecords
     }
 
-    isFull() {
-        return this._checkSize(0)
-    }
-
     isAlmostFull(percentDeduction = 30) {
         return this._checkSize(percentDeduction)
     }
