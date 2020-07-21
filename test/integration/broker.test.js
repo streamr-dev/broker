@@ -4,7 +4,7 @@ const { startTracker } = require('streamr-network')
 const fetch = require('node-fetch')
 const { wait, waitForCondition } = require('streamr-test-utils')
 
-const { startBroker, createClient } = require('../utils')
+const { startBroker, createClient, getWsUrl } = require('../utils')
 
 const httpPort1 = 12341
 const httpPort2 = 12342
@@ -17,28 +17,70 @@ const networkPort2 = 12362
 const networkPort3 = 12363
 const trackerPort = 12370
 
-describe('ws and wss connections', () => {
-    it('can connect to ws endpoint', async (done) => {
-        const broker = await startBroker('broker1', networkPort1, trackerPort, httpPort1, wsPort1, null, true)
-        const ws = new WebSocket(`ws://127.0.0.1:${wsPort1}/api/v1/ws`)
-        ws.on('open', async () => {
+describe('websocket server', () => {
+    let ws
+    let broker
+
+    afterEach(async () => {
+        if (ws) {
             ws.terminate()
-            await broker.close()
+        }
+        await broker.close()
+    })
+
+    it('receives unencrypted connections', async (done) => {
+        broker = await startBroker('broker1', networkPort1, trackerPort, httpPort1, wsPort1, null, false)
+        ws = new WebSocket(getWsUrl(wsPort1))
+        ws.on('open', async () => {
             done()
         })
         ws.on('error', (err) => done(err))
     })
-    it('can connect to wss endpoint', async (done) => {
-        const broker = await startBroker('broker1', networkPort1, trackerPort, httpPort1, wsPort1, null, true, 'test/fixtures/key.pem', 'test/fixtures/cert.pem')
-        const ws = new WebSocket(`wss://127.0.0.1:${wsPort1}/api/v1/ws`, {
+
+    it('receives encrypted connections', async (done) => {
+        broker = await startBroker('broker1', networkPort1, trackerPort, httpPort1, wsPort1, null, false, 'test/fixtures/key.pem', 'test/fixtures/cert.pem')
+        ws = new WebSocket(getWsUrl(wsPort1, true), {
             rejectUnauthorized: false // needed to accept self-signed certificate
         })
         ws.on('open', async () => {
-            ws.terminate()
-            await broker.close()
             done()
         })
         ws.on('error', (err) => done(err))
+    })
+
+    describe('rejections', () => {
+        const testRejection = async (connectionUrl) => {
+            broker = await startBroker('broker1', networkPort1, trackerPort, httpPort1, wsPort1, null, false)
+            ws = new WebSocket(connectionUrl)
+            let gotError = false
+            let closed = false
+            ws.on('open', () => {
+                throw new Error('Websocket should not have opened!')
+            })
+            ws.on('error', (err) => {
+                if (err.message.includes('400')) {
+                    gotError = true
+                } else {
+                    throw new Error(`Got unexpected error message: ${err.message}`)
+                }
+            })
+            ws.on('close', () => {
+                closed = true
+            })
+            await waitForCondition(() => gotError && closed)
+        }
+
+        it('rejects connections without preferred versions given as query parameters', async () => {
+            await testRejection(`ws://127.0.0.1:${wsPort1}/api/v1/ws`)
+        })
+
+        it('rejects connections with unsupported ControlLayer version', async () => {
+            await testRejection(getWsUrl(wsPort1, false, 666, 31))
+        })
+
+        it('rejects connections with unsupported MessageLayer version', async () => {
+            await testRejection(getWsUrl(wsPort1, false, 1, 666))
+        })
     })
 })
 
@@ -93,6 +135,7 @@ describe('broker: end-to-end', () => {
         await client1.ensureDisconnected()
         await client2.ensureDisconnected()
         await client3.ensureDisconnected()
+        await client4.ensureDisconnected()
         await broker1.close()
         await broker2.close()
         await broker3.close()
@@ -703,6 +746,47 @@ describe('broker: end-to-end', () => {
                 key: 4
             },
         ])
+    })
+
+    it('broker streams long resend from request via http', async () => {
+        const fromTimestamp = Date.now()
+
+        const sentMessages = []
+        for (let i = 0; i < 50; i++) {
+            const msg = {
+                key: i
+            }
+            // eslint-disable-next-line no-await-in-loop
+            await client1.publish(freshStreamId, msg)
+            sentMessages.push(msg)
+        }
+
+        await wait(3000)
+
+        const url = `http://localhost:${httpPort1}/api/v1/streams/${freshStreamId}/data/partitions/0/from?fromTimestamp=${fromTimestamp}`
+        const response = await fetch(url, {
+            method: 'get',
+            headers: {
+                Authorization: 'token tester1-api-key'
+            },
+        })
+        const messagesAsObjects = await response.json()
+        const messages = messagesAsObjects.map((msgAsObject) => msgAsObject.content)
+
+        expect(sentMessages).toEqual(messages)
+    })
+
+    it('broker returns [] for empty http resend', async () => {
+        const fromTimestamp = Date.now() + 99999999
+        const url = `http://localhost:${httpPort1}/api/v1/streams/${freshStreamId}/data/partitions/0/from?fromTimestamp=${fromTimestamp}`
+        const response = await fetch(url, {
+            method: 'get',
+            headers: {
+                Authorization: 'token tester1-api-key'
+            },
+        })
+        const messagesAsObjects = await response.json()
+        expect(messagesAsObjects).toEqual([])
     })
 
     it('happy-path: resend from request via http', async () => {
