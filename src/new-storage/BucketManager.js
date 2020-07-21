@@ -67,7 +67,7 @@ class BucketManager {
     incrementBucket(bucketId, size) {
         const bucket = this.buckets[bucketId]
         if (bucket) {
-            bucket.incrementBucket(size, 1)
+            bucket.incrementBucket(size)
         } else {
             console.warn(`${bucketId} not found`)
         }

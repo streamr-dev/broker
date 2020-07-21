@@ -1,5 +1,6 @@
 const cassandra = require('cassandra-driver')
-const { waitForCondition, wait } = require('streamr-test-utils')
+const { waitForCondition } = require('streamr-test-utils')
+const { TimeUuid } = require('cassandra-driver').types
 
 const BucketManager = require('../../../src/new-storage/BucketManager')
 
@@ -12,6 +13,23 @@ describe('BucketManager', () => {
     let streamId
     let cassandraClient
     let streamIdx = 1
+
+    const insertBuckets = async (startTimestamp) => {
+        for (let i = 0; i < 100; i++) {
+            const currentTimestamp = new Date(startTimestamp.getTime() + i * 60 * 1000) // + "i" minutes
+            // eslint-disable-next-line no-await-in-loop
+            await cassandraClient.execute('INSERT INTO bucket (stream_id, partition, date_create, id, records, size) '
+                + 'VALUES (?, 0, ?, ?, ?, ?)', [
+                streamId,
+                currentTimestamp,
+                TimeUuid.fromDate(currentTimestamp).toString(),
+                i * 100,
+                i * 10000
+            ], {
+                prepare: true
+            })
+        }
+    }
 
     beforeEach(async () => {
         cassandraClient = new cassandra.Client({
@@ -138,4 +156,13 @@ describe('BucketManager', () => {
         expect(lastBucketsFromTo[0].getId()).toEqual(lastBucketId)
         expect(lastBucketsFromTo[1].getId()).toEqual(bucketId5minAgo)
     }, 20000)
+
+    test('bucketManager.getLastBuckets(streamId, 0, n) when there are more than n buckets in database for stream streamId', async () => {
+        const timestamp = new Date()
+        await insertBuckets(timestamp)
+
+        const buckets = await bucketManager.getLastBuckets(streamId, 0, 10)
+
+        expect(buckets.length).toEqual(10)
+    })
 })
