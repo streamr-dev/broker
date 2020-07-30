@@ -262,11 +262,11 @@ describe('Storage', () => {
             storage.store(msg)
         }
 
-        await wait(10000)
+        await wait(20000)
 
         const streamingResults = storage.requestFrom(streamId, 0, 1000)
         const results = await toArray(streamingResults)
 
         expect(results.length).toEqual(10000)
-    }, 20000)
+    }, 30000)
 })
