@@ -282,11 +282,11 @@ describe.each([false, true])('Storage (isBatching=%s)', (isBatching) => {
             storage.store(msg)
         }
 
-        await wait(10000)
+        await wait(50000)
 
         const streamingResults = storage.requestFrom(streamId, 0, 1000)
         const results = await toArray(streamingResults)
 
         expect(results.length).toEqual(10000)
-    }, 20000)
+    }, 70000)
 })
