@@ -2,6 +2,7 @@ const { startNetworkNode, startStorageNode, Protocol } = require('streamr-networ
 const StreamrClient = require('streamr-client')
 const publicIp = require('public-ip')
 const Sentry = require('@sentry/node')
+const ethers = require('ethers')
 
 const CURRENT_VERSION = require('../package.json').version
 
@@ -21,11 +22,13 @@ const { Utils } = Protocol
 module.exports = async (config, startUpLoggingEnabled = false) => {
     validateConfig(config)
 
-    const log = startUpLoggingEnabled ? console.info : () => {}
+    const log = startUpLoggingEnabled ? console.info : () => {
+    }
 
     log(`Starting broker version ${CURRENT_VERSION}`)
 
     const storages = []
+    let networkId = config.network.id
 
     // Start cassandra storage
     if (config.cassandra) {
@@ -58,6 +61,36 @@ module.exports = async (config, startUpLoggingEnabled = false) => {
         log('Cassandra ### NEW SCHEMA ### is disabled')
     }
 
+    let wallet
+    const provider = new ethers.providers.JsonRpcProvider(config.ethereum.url)
+    if (config.ethereum.mnemonic) {
+        log('Ethereum authentication with mnemonic')
+        try {
+            wallet = await ethers.Wallet.fromMnemonic(config.ethereum.mnemonic)
+            networkId = wallet.publicKey
+        } catch (e) {
+            throw new Error(e)
+        }
+    } else if (config.ethereum.privateKey) {
+        log('Ethereum Authentication with private key')
+        try {
+            wallet = new ethers.Wallet(config.ethereum.privateKey)
+            networkId = wallet.publicKey
+        } catch (e) {
+            throw new Error(e)
+        }
+    } else if (config.ethereum.newWallet === true) {
+        log('Ethereum authentication with new randomly generated wallet')
+        try {
+            wallet = ethers.Wallet.createRandom()
+            networkId = wallet.publicKey
+        } catch (e) {
+            throw new Error(e)
+        }
+    } else {
+        log('Ethereum login disabled')
+    }
+
     // Start network node
     const startFn = config.network.isStorageNode ? startStorageNode : startNetworkNode
     const advertisedWsUrl = config.network.advertisedWsUrl !== 'auto'
@@ -66,7 +99,7 @@ module.exports = async (config, startUpLoggingEnabled = false) => {
     const networkNode = await startFn(
         config.network.hostname,
         config.network.port,
-        config.network.id,
+        networkId,
         storages,
         advertisedWsUrl
     )
@@ -104,7 +137,7 @@ module.exports = async (config, startUpLoggingEnabled = false) => {
 
         Sentry.configureScope((scope) => {
             scope.setUser({
-                id: config.network.id
+                id: networkId
             })
         })
     }
@@ -165,7 +198,7 @@ module.exports = async (config, startUpLoggingEnabled = false) => {
         }
     })
 
-    log(`Network node '${config.network.id}' running on ${config.network.hostname}:${config.network.port}`)
+    log(`Network node '${networkId}' running on ${config.network.hostname}:${config.network.port}`)
     log(`Configured with trackers: ${[...networkNode.bootstrapTrackerAddresses].join(', ')}`)
     log(`Adapters: ${JSON.stringify(config.adapters.map((a) => a.name))}`)
     if (config.cassandra) {
