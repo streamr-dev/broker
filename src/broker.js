@@ -16,6 +16,7 @@ const MissingConfigError = require('./errors/MissingConfigError')
 const adapterRegistry = require('./adapterRegistry')
 const getTrackers = require('./helpers/getTrackers')
 const validateConfig = require('./helpers/validateConfig')
+const ethereumAutheticate = require('./helpers/ethereumAuthenticate')
 
 const { Utils } = Protocol
 
@@ -62,37 +63,10 @@ module.exports = async (config, startUpLoggingEnabled = false) => {
     }
 
     // Ethereum authentication
-    let wallet
-    let provider
-    if (config.ethereum.url) {
-        provider = new ethers.providers.JsonRpcProvider(config.ethereum.url)
-    }
-    if (config.ethereum.mnemonic) {
-        log('Ethereum authentication with mnemonic')
-        try {
-            wallet = await ethers.Wallet.fromMnemonic(config.ethereum.mnemonic)
-            networkId = wallet.publicKey
-        } catch (e) {
-            throw new Error(e)
-        }
-    } else if (config.ethereum.privateKey) {
-        log('Ethereum Authentication with private key')
-        try {
-            wallet = new ethers.Wallet(config.ethereum.privateKey, provider)
-            networkId = wallet.publicKey
-        } catch (e) {
-            throw new Error(e)
-        }
-    } else if (config.ethereum.newWallet) {
-        log('Ethereum authentication with new randomly generated wallet')
-        try {
-            wallet = ethers.Wallet.createRandom(provider)
-            networkId = wallet.publicKey
-        } catch (e) {
-            throw new Error(e)
-        }
-    } else {
-        log('Ethereum authentication disabled')
+    const { publicKey, privateKey } = ethereumAutheticate.authenticateFromConfig(config.ethereum, log)
+    if (publicKey) {
+        log(`Changing network id: ${networkId}, to Ethereum public key: ${publicKey}`)
+        networkId = publicKey
     }
 
     // Start network node
