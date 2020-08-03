@@ -2,6 +2,13 @@ const { startNetworkNode, startStorageNode, Protocol } = require('streamr-networ
 const StreamrClient = require('streamr-client')
 const publicIp = require('public-ip')
 const Sentry = require('@sentry/node')
+const SegfaultHandler = require('segfault-handler')
+
+SegfaultHandler.registerHandler('crash.log', (signal, address, stack) => {
+    console.error(signal)
+    console.error(address)
+    console.error(stack)
+})
 
 const CURRENT_VERSION = require('../package.json').version
 
