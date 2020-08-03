@@ -61,8 +61,12 @@ module.exports = async (config, startUpLoggingEnabled = false) => {
         log('Cassandra ### NEW SCHEMA ### is disabled')
     }
 
+    // Ethereum authentication
     let wallet
-    const provider = new ethers.providers.JsonRpcProvider(config.ethereum.url)
+    let provider
+    if (config.ethereum.url) {
+        provider = new ethers.providers.JsonRpcProvider(config.ethereum.url)
+    }
     if (config.ethereum.mnemonic) {
         log('Ethereum authentication with mnemonic')
         try {
@@ -74,21 +78,21 @@ module.exports = async (config, startUpLoggingEnabled = false) => {
     } else if (config.ethereum.privateKey) {
         log('Ethereum Authentication with private key')
         try {
-            wallet = new ethers.Wallet(config.ethereum.privateKey)
+            wallet = new ethers.Wallet(config.ethereum.privateKey, provider)
             networkId = wallet.publicKey
         } catch (e) {
             throw new Error(e)
         }
-    } else if (config.ethereum.newWallet === true) {
+    } else if (config.ethereum.newWallet) {
         log('Ethereum authentication with new randomly generated wallet')
         try {
-            wallet = ethers.Wallet.createRandom()
+            wallet = ethers.Wallet.createRandom(provider)
             networkId = wallet.publicKey
         } catch (e) {
             throw new Error(e)
         }
     } else {
-        log('Ethereum login disabled')
+        log('Ethereum authentication disabled')
     }
 
     // Start network node

@@ -48,6 +48,10 @@ function startBroker(id, networkPort, trackerPort, httpPort, wsPort, mqttPort, e
             ],
             isStorageNode: false
         },
+        ethereum: {
+            url: 'http://localhost:8545',
+            newWallet: false
+        },
         cassandra: enableCassandra ? {
             hosts: ['localhost'],
             username: '',

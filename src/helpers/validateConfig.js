@@ -82,6 +82,15 @@ const validateConfig = (config) => {
         // eslint-disable-next-line no-param-reassign
         config.thresholdForFutureMessageSeconds = 300
     }
+    if (config.ethereum === undefined) {
+        throw new MissingConfigError('ethereum')
+    }
+    if (config.ethereum.privateKey === undefined && config.ethereum.mnemonic === undefined && config.ethereum.newWallet === undefined) {
+        throw new MissingConfigError('ethereum.privateKey, ethereum.mnemonic or ethereum.newWallet must be defined.')
+    }
+    if (config.ethereum.url === undefined) {
+        throw new MissingConfigError('ethereum.url')
+    }
 
     config.adapters.forEach(({ name }, index) => {
         if (name === undefined) {
