@@ -242,31 +242,22 @@ describe('Storage', () => {
         expect(results).toEqual([msg1, msg2, msg3, msg4])
     })
 
-    test('requestLast fast big stream', async () => {
-        for (let i = 0; i < 10000; i++) {
+    test('requestLast & requestFrom fast big stream', async () => {
+        for (let i = 0; i < 1000; i++) {
             const msg = buildMsg(streamId, 0, (i + 1) * 1000, i, 'publisher1')
             storage.store(msg)
         }
 
         await wait(10000)
 
-        const streamingResults = storage.requestLast(streamId, 0, 10000)
-        const results = await toArray(streamingResults)
+        let streamingResults = storage.requestLast(streamId, 0, 1000)
+        let results = await toArray(streamingResults)
 
-        expect(results.length).toEqual(10000)
+        expect(results.length).toEqual(1000)
+
+        streamingResults = storage.requestFrom(streamId, 0, 1000)
+        results = await toArray(streamingResults)
+
+        expect(results.length).toEqual(1000)
     }, 20000)
-
-    test('requestFrom fast big stream', async () => {
-        for (let i = 0; i < 10000; i++) {
-            const msg = buildMsg(streamId, 0, (i + 1) * 1000, i, 'publisher1')
-            storage.store(msg)
-        }
-
-        await wait(50000)
-
-        const streamingResults = storage.requestFrom(streamId, 0, 1000)
-        const results = await toArray(streamingResults)
-
-        expect(results.length).toEqual(10000)
-    }, 70000)
 })
