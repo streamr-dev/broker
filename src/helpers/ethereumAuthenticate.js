@@ -26,14 +26,13 @@ async function authenticateFromConfig(ethereumConfig, log = console.info) {
     } else if (ethereumConfig.generateWallet) {
         log('Ethereum authentication with new randomly generated wallet')
         try {
-            wallet = await ethers.Wallet.createRandom(provider)
+            wallet = await ethers.Wallet.createRandom()
         } catch (e) {
             throw new Error(e)
         }
     } else {
         log('Ethereum authentication disabled')
     }
-    log(wallet)
     return wallet || {}
 }
 
