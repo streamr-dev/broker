@@ -1,5 +1,6 @@
-const ethereumAuthenticate = require('../../../src/helpers/ethereumAuthenticate')
 const { wait, waitForCondition } = require('streamr-test-utils')
+
+const ethereumAuthenticate = require('../../../src/helpers/ethereumAuthenticate')
 
 // Dev env 1 privateKey and address
 const privateKey = '0xaa7a3b3bb9b4a662e756e978ad8c6464412e7eef1b871f19e5120d4747bce966'
