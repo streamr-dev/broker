@@ -30,9 +30,12 @@ jobs:
     - "$TRAVIS_BUILD_DIR/streamr-docker-dev/streamr-docker-dev/bin.sh start --except
       tracker-1 --except tracker-2 --except tracker-3 --except broker-node-no-storage-1
       --except broker-node-no-storage-2 --except broker-node-storage-1 --wait"
+    - echo "start tests"
     - npm run test-integration
+    - echo "done tests"
     - "$TRAVIS_BUILD_DIR/streamr-docker-dev/streamr-docker-dev/bin.sh stop"
-    - sleep 30
+    - echo "stopped docker, sleeping 1m"
+    - sleep 1m
   - stage: Tests
     name: Unit Tests
     script:
