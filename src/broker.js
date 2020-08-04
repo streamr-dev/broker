@@ -29,7 +29,7 @@ module.exports = async (config, startUpLoggingEnabled = false) => {
     log(`Starting broker version ${CURRENT_VERSION}`)
 
     const storages = []
-    let networkId = config.network.id
+    const networkNodeName = config.network.name
 
     // Start cassandra storage
     if (config.cassandra) {
@@ -63,10 +63,11 @@ module.exports = async (config, startUpLoggingEnabled = false) => {
     }
 
     // Ethereum authentication
-    const { ethAddress, privateKey } = await ethereumAuthenticate.authenticateFromConfig(config.ethereum, log)
-    if (ethAddress) {
-        log(`Changing network id: ${networkId}, to Ethereum address: ${ethAddress}`)
-        networkId = ethAddress
+    const wallet = await ethereumAuthenticate.authenticateFromConfig(config.ethereum, log)
+    if (wallet.address) {
+        log(`Network node: ${networkNodeName}, id Ethereum address: ${wallet.address}`)
+    } else {
+        throw new MissingConfigError('Invalid Ethereum authentication options')
     }
 
     // Start network node
@@ -77,9 +78,10 @@ module.exports = async (config, startUpLoggingEnabled = false) => {
     const networkNode = await startFn(
         config.network.hostname,
         config.network.port,
-        networkId,
+        wallet.address,
         storages,
-        advertisedWsUrl
+        advertisedWsUrl,
+        networkNodeName
     )
 
     let trackers
@@ -115,7 +117,7 @@ module.exports = async (config, startUpLoggingEnabled = false) => {
 
         Sentry.configureScope((scope) => {
             scope.setUser({
-                id: networkId
+                id: networkNodeName
             })
         })
     }
@@ -176,7 +178,7 @@ module.exports = async (config, startUpLoggingEnabled = false) => {
         }
     })
 
-    log(`Network node '${networkId}' running on ${config.network.hostname}:${config.network.port}`)
+    log(`Network node '${networkNodeName}' running on ${config.network.hostname}:${config.network.port}`)
     log(`Configured with trackers: ${[...networkNode.bootstrapTrackerAddresses].join(', ')}`)
     log(`Adapters: ${JSON.stringify(config.adapters.map((a) => a.name))}`)
     if (config.cassandra) {

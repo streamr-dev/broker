@@ -9,7 +9,7 @@ const DEFAULT_CLIENT_OPTIONS = {
     }
 }
 
-function startBroker(id, networkPort, trackerPort, httpPort, wsPort, mqttPort, enableCassandra, privateKeyFileName, certFileName,
+function startBroker(name, networkPort, trackerPort, httpPort, wsPort, mqttPort, enableCassandra, privateKeyFileName, certFileName,
     generateWallet = true, ethereumPrivateKey) {
     const adapters = []
 
@@ -40,7 +40,7 @@ function startBroker(id, networkPort, trackerPort, httpPort, wsPort, mqttPort, e
 
     return createBroker({
         network: {
-            id,
+            name,
             hostname: '127.0.0.1',
             port: networkPort,
             advertisedWsUrl: null,

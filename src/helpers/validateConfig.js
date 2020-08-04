@@ -4,8 +4,8 @@ const validateConfig = (config) => {
     if (config.network === undefined) {
         throw new MissingConfigError('network')
     }
-    if (config.network.id === undefined) {
-        throw new MissingConfigError('network.id')
+    if (config.network.name === undefined) {
+        throw new MissingConfigError('network.name')
     }
     if (config.network.hostname === undefined) {
         throw new MissingConfigError('network.hostname')
