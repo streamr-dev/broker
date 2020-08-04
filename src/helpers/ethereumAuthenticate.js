@@ -9,14 +9,7 @@ async function authenticateFromConfig(ethereumConfig, log = console.info) {
         // eslint-disable-next-line no-underscore-dangle
         await provider._networkPromise
     }
-    if (ethereumConfig.mnemonic) {
-        log('Ethereum authentication with mnemonic')
-        try {
-            wallet = await ethers.Wallet.fromMnemonic(ethereumConfig.mnemonic, provider)
-        } catch (e) {
-            throw new Error(e)
-        }
-    } else if (ethereumConfig.privateKey) {
+    if (ethereumConfig.privateKey) {
         log('Ethereum Authentication with private key')
         try {
             wallet = await new ethers.Wallet(ethereumConfig.privateKey, provider)

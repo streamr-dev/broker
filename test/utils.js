@@ -9,7 +9,8 @@ const DEFAULT_CLIENT_OPTIONS = {
     }
 }
 
-function startBroker(id, networkPort, trackerPort, httpPort, wsPort, mqttPort, enableCassandra, privateKeyFileName, certFileName, ethereumAuthenticate = false) {
+function startBroker(id, networkPort, trackerPort, httpPort, wsPort, mqttPort, enableCassandra, privateKeyFileName, certFileName,
+    generateWallet = true, ethereumPrivateKey) {
     const adapters = []
 
     if (httpPort) {
@@ -50,7 +51,8 @@ function startBroker(id, networkPort, trackerPort, httpPort, wsPort, mqttPort, e
         },
         ethereum: {
             url: 'http://localhost:8545',
-            generateWallet: ethereumAuthenticate
+            privateKey: ethereumPrivateKey,
+            generateWallet
         },
         cassandra: enableCassandra ? {
             hosts: ['localhost'],

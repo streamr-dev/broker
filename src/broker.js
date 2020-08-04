@@ -16,7 +16,7 @@ const MissingConfigError = require('./errors/MissingConfigError')
 const adapterRegistry = require('./adapterRegistry')
 const getTrackers = require('./helpers/getTrackers')
 const validateConfig = require('./helpers/validateConfig')
-const ethereumAutheticate = require('./helpers/ethereumAuthenticate')
+const ethereumAuthenticate = require('./helpers/ethereumAuthenticate')
 
 const { Utils } = Protocol
 
@@ -63,10 +63,10 @@ module.exports = async (config, startUpLoggingEnabled = false) => {
     }
 
     // Ethereum authentication
-    const { publicKey, privateKey } = ethereumAutheticate.authenticateFromConfig(config.ethereum, log)
-    if (publicKey) {
-        log(`Changing network id: ${networkId}, to Ethereum public key: ${publicKey}`)
-        networkId = publicKey
+    const { ethAddress, privateKey } = await ethereumAuthenticate.authenticateFromConfig(config.ethereum, log)
+    if (ethAddress) {
+        log(`Changing network id: ${networkId}, to Ethereum address: ${ethAddress}`)
+        networkId = ethAddress
     }
 
     // Start network node

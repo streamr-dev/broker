@@ -85,8 +85,8 @@ const validateConfig = (config) => {
     if (config.ethereum === undefined) {
         throw new MissingConfigError('ethereum')
     }
-    if (config.ethereum.privateKey === undefined && config.ethereum.mnemonic === undefined && config.ethereum.generateWallet === undefined) {
-        throw new MissingConfigError('ethereum.privateKey, ethereum.mnemonic or ethereum.generateWallet must be defined.')
+    if (config.ethereum.privateKey === undefined && config.ethereum.generateWallet === undefined) {
+        throw new MissingConfigError('ethereum.privateKey or ethereum.generateWallet must be defined.')
     }
     if (config.ethereum.url === undefined) {
         throw new MissingConfigError('ethereum.url')
