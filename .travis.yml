@@ -31,6 +31,8 @@ jobs:
       tracker-1 --except tracker-2 --except tracker-3 --except broker-node-no-storage-1
       --except broker-node-no-storage-2 --except broker-node-storage-1 --wait"
     - npm run test-integration
+    - "$TRAVIS_BUILD_DIR/streamr-docker-dev/streamr-docker-dev/bin.sh stop"
+    - sleep 30
   - stage: Tests
     name: Unit Tests
     script:
