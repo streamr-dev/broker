@@ -88,8 +88,8 @@ const validateConfig = (config) => {
     if (config.ethereum.privateKey === undefined && config.ethereum.generateWallet === undefined) {
         throw new MissingConfigError('ethereum.privateKey or ethereum.generateWallet must be defined.')
     }
-    if (config.ethereum.url === undefined) {
-        throw new MissingConfigError('ethereum.url')
+    if (config.ethereum.privateKey && config.ethereum.generateWallet === true) {
+        throw new MissingConfigError('ethereum.privateKey and ethereum.generateWallet defined, define only one option.')
     }
 
     config.adapters.forEach(({ name }, index) => {

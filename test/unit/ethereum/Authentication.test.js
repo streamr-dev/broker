@@ -1,3 +1,5 @@
+const assert = require('assert')
+
 const { wait, waitForCondition } = require('streamr-test-utils')
 
 const ethereumAuthenticate = require('../../../src/helpers/ethereumAuthenticate')
@@ -7,34 +9,25 @@ const privateKey = '0xaa7a3b3bb9b4a662e756e978ad8c6464412e7eef1b871f19e5120d4747
 const address = '0xde1112f631486CfC759A50196853011528bC5FA0'
 
 describe('Ethereum authentication', () => {
-    it('authenticates with a private key', async (done) => {
+    it('authenticates with a private key', () => {
         const config = {
             privateKey
         }
-        const wallet = await ethereumAuthenticate.authenticateFromConfig(config)
-        await waitForCondition(() => wallet)
-        if (wallet.address === address) {
-            done()
-        }
+        const brokerAddress = ethereumAuthenticate.authenticateFromConfig(config)
+        assert.equal(brokerAddress, address)
     })
-    it('authenticates with a randomly generated wallet', async (done) => {
+    it('authenticates with a randomly generated wallet', () => {
         const config = {
             generateWallet: true
         }
-        const wallet = await ethereumAuthenticate.authenticateFromConfig(config)
-        await waitForCondition(() => wallet)
-        if (wallet !== {}) {
-            done()
-        }
+        const brokerAddress = ethereumAuthenticate.authenticateFromConfig(config)
+        assert.notEqual(brokerAddress, undefined)
     })
-    it('skips authentication if necessary', async (done) => {
+    it('skips authentication if necessary', () => {
         const config = {
             generateWallet: false
         }
-        const wallet = await ethereumAuthenticate.authenticateFromConfig(config)
-        await waitForCondition(() => wallet)
-        if (!Object.keys(wallet).length) {
-            done()
-        }
+        const brokerAddress = ethereumAuthenticate.authenticateFromConfig(config)
+        assert.equal(brokerAddress, undefined)
     })
 })

@@ -2,7 +2,6 @@ const { startNetworkNode, startStorageNode, Protocol } = require('streamr-networ
 const StreamrClient = require('streamr-client')
 const publicIp = require('public-ip')
 const Sentry = require('@sentry/node')
-const ethers = require('ethers')
 
 const CURRENT_VERSION = require('../package.json').version
 
@@ -63,9 +62,9 @@ module.exports = async (config, startUpLoggingEnabled = false) => {
     }
 
     // Ethereum authentication
-    const wallet = await ethereumAuthenticate.authenticateFromConfig(config.ethereum, log)
-    if (wallet.address) {
-        log(`Network node: ${networkNodeName}, id Ethereum address: ${wallet.address}`)
+    const brokerAddress = ethereumAuthenticate.authenticateFromConfig(config.ethereum, log)
+    if (brokerAddress) {
+        log(`Network node: ${networkNodeName}, id Ethereum address: ${brokerAddress}`)
     } else {
         throw new MissingConfigError('Invalid Ethereum authentication options')
     }
@@ -78,7 +77,7 @@ module.exports = async (config, startUpLoggingEnabled = false) => {
     const networkNode = await startFn(
         config.network.hostname,
         config.network.port,
-        wallet.address,
+        brokerAddress,
         storages,
         advertisedWsUrl,
         networkNodeName
