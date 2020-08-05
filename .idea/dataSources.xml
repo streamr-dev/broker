@@ -7,5 +7,11 @@
       <jdbc-driver>com.dbschema.CassandraJdbcDriver</jdbc-driver>
       <jdbc-url>jdbc:cassandra://localhost:9042/</jdbc-url>
     </data-source>
+    <data-source source="LOCAL" name="postgres@localhost" uuid="83fee8ff-864c-47ca-b52c-0e4889480fdf">
+      <driver-ref>postgresql</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>org.postgresql.Driver</jdbc-driver>
+      <jdbc-url>jdbc:postgresql://localhost:5432/postgres</jdbc-url>
+    </data-source>
   </component>
 </project>

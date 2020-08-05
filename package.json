@@ -50,7 +50,6 @@
     "streamr-network": "^19.0.2",
     "uWebSockets.js": "github:uNetworking/uWebSockets.js#v18.3.0",
     "uuid": "^8.3.0",
-    "why-is-node-running": "^2.2.0",
     "ws": "^7.3.1"
   },
   "devDependencies": {
