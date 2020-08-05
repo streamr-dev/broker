@@ -50,7 +50,6 @@ function startBroker(name, networkPort, trackerPort, httpPort, wsPort, mqttPort,
             isStorageNode: false
         },
         ethereum: {
-            url: 'http://localhost:8545',
             privateKey: ethereumPrivateKey,
             generateWallet
         },
