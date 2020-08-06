@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 const { spawn } = require('child_process')
 const path = require('path')
+
 const program = require('commander')
 
 const { authenticateFromConfig } = require('./src/helpers/ethereumAuthenticate')
 
 program
-    .usage('<privateKey>')
+    .usage('<ethereumPrivateKey> <trackerName>')
     .parse(process.argv)
 
 if (program.args.length < 2) {
@@ -19,7 +20,8 @@ const address = authenticateFromConfig({
     privateKey
 })
 
-process.argv.push(['--trackerName', trackerName])
+process.argv.splice(2, 2)
+process.argv.push(['--trackerName', trackerName, '--id', address])
 
 spawn(path.resolve(__dirname, './node_modules/streamr-network/bin/tracker.js'), process.argv, {
     cwd: process.cwd(),
