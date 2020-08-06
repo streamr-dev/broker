@@ -17,7 +17,7 @@ $TRAVIS_BUILD_DIR/streamr-docker-dev/streamr-docker-dev/bin.sh start --wait
 ## Wait for the service to come online and test
 wait_time=10;
 for (( i=0; i < 5; i=i+1 )); do
-    curl -s http://localhost:8791/api/v1/volume;
+    curl -s http://localhost:8891/api/v1/volume;
     res=$?;
     if test "$res" != "0"; then
         echo "Attempting to connect to broker retrying in $wait_time seconds";
@@ -27,4 +27,5 @@ for (( i=0; i < 5; i=i+1 )); do
         exit 0
     fi;
 done;
+$TRAVIS_BUILD_DIR/streamr-docker-dev/streamr-docker-dev/bin.sh log
 exit 1
