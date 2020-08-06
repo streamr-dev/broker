@@ -21,9 +21,9 @@ const address = authenticateFromConfig({
 })
 
 process.argv.splice(2, 2)
-process.argv.push(['--trackerName', trackerName, '--id', address])
+const argv = process.argv.concat(['--trackerName', trackerName, '--id', address])
 
-spawn(path.resolve(__dirname, './node_modules/streamr-network/bin/tracker.js'), process.argv, {
+spawn(path.resolve(__dirname, './node_modules/streamr-network/bin/tracker.js'), argv, {
     cwd: process.cwd(),
     detached: false,
     stdio: 'inherit'
