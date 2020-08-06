@@ -6,20 +6,20 @@ const program = require('commander')
 const { authenticateFromConfig } = require('./src/helpers/ethereumAuthenticate')
 
 program
-    .option('-g, --generateKey', 'Generate random wallet', false)
-    .option('-p, --privateKey <privateKey>', 'Ethereum private key', null)
-    .option('-n, --trackerName <trackerName>', 'Human readable name', null)
+    .usage('<privateKey>')
     .parse(process.argv)
 
-if (!program.generateKey && !program.privateKey) {
-    throw new Error('--generateKey (-g) or --privateKey (-p) parameter required')
+if (program.args.length < 2) {
+    program.help()
 }
+const privateKey = program.args[0]
+const trackerName = program.args[1]
+
 const address = authenticateFromConfig({
-    privateKey: program.privateKey,
-    generateWallet: program.generateKey
+    privateKey
 })
 
-const name = program.trackerName || address
+process.argv.push(['--trackerName', trackerName])
 
 spawn(path.resolve(__dirname, './node_modules/streamr-network/bin/tracker.js'), process.argv, {
     cwd: process.cwd(),
