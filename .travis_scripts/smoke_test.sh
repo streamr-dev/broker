@@ -27,5 +27,4 @@ for (( i=0; i < 5; i=i+1 )); do
         exit 0
     fi;
 done;
-$TRAVIS_BUILD_DIR/streamr-docker-dev/streamr-docker-dev/bin.sh log
 exit 1
