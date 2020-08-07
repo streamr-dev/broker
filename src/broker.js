@@ -62,11 +62,16 @@ module.exports = async (config, startUpLoggingEnabled = false) => {
     }
 
     // Ethereum authentication
-    const brokerAddress = ethereumAuthenticate.authenticateFromConfig(config.ethereum, log)
-    if (brokerAddress) {
-        log(`Network node: ${networkNodeName}, id Ethereum address: ${brokerAddress}`)
+    let brokerAddress
+    if (config.ethereum && config.ethereum.privateKey) {
+        brokerAddress = ethereumAuthenticate.authenticateFromConfig(config.ethereum, log)
+        if (brokerAddress) {
+            log(`Network node: ${networkNodeName}, id Ethereum address: ${brokerAddress}`)
+        } else {
+            throw new MissingConfigError('Invalid Ethereum authentication options')
+        }
     } else {
-        throw new MissingConfigError('Invalid Ethereum authentication options')
+        brokerAddress = config.network.name
     }
 
     // Start network node
