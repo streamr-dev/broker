@@ -46,6 +46,9 @@ const validateConfig = (config) => {
     if (config.cassandra && config.cassandra.keyspace === undefined) {
         throw new MissingConfigError('cassandra.keyspace')
     }
+    if (config.cassandra && config.cassandra.dataCenter === undefined) {
+        throw new MissingConfigError('cassandra.dataCenter')
+    }
     if (config.streamrUrl === undefined) {
         throw new MissingConfigError('streamrUrl')
     }
