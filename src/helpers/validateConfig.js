@@ -94,13 +94,13 @@ const validateConfig = (config) => {
     if (config.location === undefined) {
         throw new MissingConfigError('location')
     }
-    if (config.location.city === undefined) {
+    if (config.location && config.location.city === undefined) {
         throw new MissingConfigError('location.city must be defined')
     }
-    if (config.location.country === undefined) {
+    if (config.location && config.location.country === undefined) {
         throw new MissingConfigError('location.country must be defined')
     }
-    if (config.location.latitude === undefined && config.location.latitude === undefined) {
+    if (config.location && config.location.latitude === undefined && config.location.latitude === undefined) {
         throw new MissingConfigError('location.latitude and location.longitude must be defined')
     }
 
