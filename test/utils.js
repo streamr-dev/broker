@@ -58,7 +58,7 @@ function startBroker(name, networkPort, trackerPort, httpPort, wsPort, mqttPort,
             username: '',
             password: '',
             keyspace: 'streamr_dev',
-            dataCenter: 'datacenter1'
+            datacenter: 'datacenter1'
         } : false,
         reporting: false,
         sentry: false,

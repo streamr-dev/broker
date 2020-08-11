@@ -35,7 +35,7 @@ module.exports = async (config, startUpLoggingEnabled = false) => {
         log(`Starting Cassandra with hosts ${config.cassandra.hosts} and keyspace ${config.cassandra.keyspace}`)
         storages.push(await startCassandraStorage({
             contactPoints: [...config.cassandra.hosts],
-            localDataCenter: config.cassandra.dataCenter,
+            localDataCenter: config.cassandra.datacenter,
             keyspace: config.cassandra.keyspace,
             username: config.cassandra.username,
             password: config.cassandra.password,
@@ -49,7 +49,7 @@ module.exports = async (config, startUpLoggingEnabled = false) => {
         log(`Starting Cassandra ### NEW SCHEMA ### with hosts ${config.cassandraNew.hosts} and keyspace ${config.cassandraNew.keyspace}`)
         storages.push(await startCassandraStorageNew({
             contactPoints: [...config.cassandraNew.hosts],
-            localDataCenter: config.cassandra.dataCenter,
+            localDataCenter: config.cassandra.datacenter,
             keyspace: config.cassandraNew.keyspace,
             username: config.cassandraNew.username,
             password: config.cassandraNew.password,
