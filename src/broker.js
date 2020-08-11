@@ -61,12 +61,17 @@ module.exports = async (config, startUpLoggingEnabled = false) => {
         log('Cassandra ### NEW SCHEMA ### is disabled')
     }
 
+    let brokerAddress
     // Ethereum authentication
-    const brokerAddress = ethereumAuthenticate.authenticateFromConfig(config.ethereum, log)
-    if (brokerAddress) {
-        log(`Network node: ${networkNodeName}, id Ethereum address: ${brokerAddress}`)
+    if (config.ethereum) {
+        brokerAddress = ethereumAuthenticate.authenticateFromConfig(config.ethereum, log)
+        if (brokerAddress) {
+            log(`Network node: ${networkNodeName}, id Ethereum address: ${brokerAddress}`)
+        } else {
+            throw new MissingConfigError('Invalid Ethereum authentication options')
+        }
     } else {
-        throw new MissingConfigError('Invalid Ethereum authentication options')
+        brokerAddress = networkNodeName
     }
 
     // Start network node

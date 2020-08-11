@@ -82,13 +82,10 @@ const validateConfig = (config) => {
         // eslint-disable-next-line no-param-reassign
         config.thresholdForFutureMessageSeconds = 300
     }
-    if (config.ethereum === undefined) {
-        throw new MissingConfigError('ethereum')
-    }
-    if (config.ethereum.privateKey === undefined && config.ethereum.generateWallet === undefined) {
+    if (config.ethereum && config.ethereum.privateKey === undefined && config.ethereum.generateWallet === undefined) {
         throw new MissingConfigError('ethereum.privateKey or ethereum.generateWallet must be defined.')
     }
-    if (config.ethereum.privateKey && config.ethereum.generateWallet === true) {
+    if (config.ethereum && config.ethereum.privateKey && config.ethereum.generateWallet === true) {
         throw new MissingConfigError('ethereum.privateKey and ethereum.generateWallet defined, define only one option.')
     }
 
