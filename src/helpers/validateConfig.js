@@ -47,16 +47,16 @@ const validateConfig = (config) => {
         throw new MissingConfigError('cassandra.keyspace')
     }
     if (config.cassandraNew && config.cassandraNew.hosts === undefined) {
-        throw new MissingConfigError('cassandra.hosts')
+        throw new MissingConfigError('cassandraNew.hosts')
     }
     if (config.cassandraNew && config.cassandraNew.username === undefined) {
-        throw new MissingConfigError('cassandra.username')
+        throw new MissingConfigError('cassandraNew.username')
     }
     if (config.cassandraNew && config.cassandraNew.password === undefined) {
-        throw new MissingConfigError('cassandra.password')
+        throw new MissingConfigError('cassandraNew.password')
     }
     if (config.cassandraNew && config.cassandraNew.keyspace === undefined) {
-        throw new MissingConfigError('cassandra.keyspace')
+        throw new MissingConfigError('cassandraNew.keyspace')
     }
     if (config.cassandraNew && config.cassandraNew.datacenter === undefined) {
         throw new MissingConfigError('cassandraNew.datacenter')
