@@ -39,7 +39,7 @@ class BatchManager extends EventEmitter {
         this.insertStatement = this.opts.useTtl ? INSERT_STATEMENT_WITH_TTL : INSERT_STATEMENT
     }
 
-    store(bucketId, streamMessage) {
+    store(bucketId, streamMessage, doneCb) {
         const batch = this.batches[bucketId]
 
         if (batch && batch.isFull()) {
@@ -57,7 +57,7 @@ class BatchManager extends EventEmitter {
             this.batches[bucketId] = newBatch
         }
 
-        this.batches[bucketId].push(streamMessage)
+        this.batches[bucketId].push(streamMessage, doneCb)
     }
 
     _moveFullBatch(bucketId, batch) {
@@ -99,6 +99,7 @@ class BatchManager extends EventEmitter {
             })
 
             debug(`inserted batch id:${batch.getId()}`)
+            batch.done()
             batch.clear()
             delete this.pendingBatches[batch.getId()]
         } catch (e) {
