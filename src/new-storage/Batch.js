@@ -37,6 +37,7 @@ class Batch extends EventEmitter {
 
         this._id = uuidv4()
         this._bucketId = bucketId
+        this.createdAt = Date.now()
         this.streamMessages = []
         this.size = 0
         this.retries = 0

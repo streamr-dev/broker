@@ -121,7 +121,10 @@ class BatchManager extends EventEmitter {
     }
 
     metrics() {
+        const now = Date.now()
         const totalBatches = Object.values(this.batches).length + Object.values(this.pendingBatches).length
+        const meanBatchAge = totalBatches === 0 ? 0
+            : [...Object.values(this.batches), ...Object.values(this.pendingBatches)].reduce((acc, batch) => acc + (now - batch.createdAt), 0) / totalBatches
         const meanBatchRetries = totalBatches === 0 ? 0
             : Object.values(this.pendingBatches).reduce((acc, batch) => acc + batch.retries, 0) / totalBatches
 
@@ -143,6 +146,7 @@ class BatchManager extends EventEmitter {
 
         return {
             totalBatches,
+            meanBatchAge,
             meanBatchRetries,
             batchesWithFiveOrMoreRetries,
             batchesWithTenOrMoreRetries,
