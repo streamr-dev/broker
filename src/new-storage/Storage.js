@@ -100,6 +100,12 @@ class Storage extends EventEmitter {
 
         let bucketId
         const bucketIds = []
+        /**
+         * Process:
+         * - get latest bucketId => count number of messages in this bucket
+         * - if enough => get all messages and return
+         * - if not => move to the next bucket and repeat cycle
+         */
         this.cassandraClient.eachRow(GET_BUCKETS, [streamId, partition], options, (n, row) => {
             bucketId = row.id
             bucketIds.push(bucketId)
