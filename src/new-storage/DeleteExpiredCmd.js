@@ -1,5 +1,4 @@
 const cassandra = require('cassandra-driver')
-const allSettled = require('promise.allsettled')
 const fetch = require('node-fetch')
 const pLimit = require('p-limit')
 
@@ -24,7 +23,6 @@ class DeleteExpiredCmd {
 
         // used for limited concurrency
         this.limit = pLimit(5)
-        // this.progressBar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic)
     }
 
     async _getStreams() {
@@ -53,7 +51,7 @@ class DeleteExpiredCmd {
                     return {
                         streamId: stream.streamId,
                         partition: stream.partition,
-                        storageDays: json.storageDays
+                        storageDays: parseInt(json.storageDays)
                     }
                 }).catch((e) => console.error(e))
             })
@@ -62,30 +60,77 @@ class DeleteExpiredCmd {
         return Promise.all(tasks)
     }
 
+    async _deleteExpired(streamsInfo) {
+        const tasks = streamsInfo.map((stream) => {
+            const { bucketId, dateCreate, streamId, partition } = stream
+            const queries = [
+                {
+                    query: 'DELETE FROM bucket WHERE stream_id = ? AND partition = ? AND date_create = ?',
+                    params: [streamId, partition, dateCreate]
+                },
+                {
+                    query: 'DELETE FROM stream_data WHERE stream_id = ? AND partition = ? AND bucket_id = ?',
+                    params: [streamId, partition, bucketId]
+                }
+            ]
+
+            return this.limit(async () => {
+                await this.cassandraClient.batch(queries, {
+                    prepare: true
+                }).catch((err) => {
+                    console.error(err)
+                })
+            })
+        })
+
+        return Promise.all(tasks)
+    }
+
+    async _getExpiredBuckets(streamsInfo) {
+        const result = []
+
+        const query = 'SELECT * FROM bucket WHERE stream_id = ? AND partition = ? AND date_create <= ?'
+
+        const tasks = streamsInfo.map((stream) => {
+            const { streamId, partition, storageDays } = stream
+            const timestampBefore = new Date(Date.now() - 1000 * 60 * 60 * 24 * storageDays)
+            const params = [streamId, partition, timestampBefore]
+
+            return this.limit(async () => {
+                const resultSet = await this.cassandraClient.execute(query, params, {
+                    prepare: true,
+                }).catch((e) => console.error(e))
+
+                resultSet.rows.forEach((row) => {
+                    result.push({
+                        bucketId: row.id,
+                        dateCreate: row.date_create,
+                        streamId: row.stream_id,
+                        partition: row.partition,
+                        storageDays
+                    })
+                })
+            })
+        })
+
+        await Promise.all(tasks)
+        return result
+    }
+
     async run() {
         try {
             const streams = await this._getStreams()
             console.info(`Found ${streams.length} unique streams`)
 
-            const testingStreams = []
-            testingStreams.push({
-                streamId: 'd8NXKCAxToOBB0Our6yYkg',
-                partition: 0
-            })
+            const streamsInfo = await this._fetchStreamsInfo(streams)
+            const expiredBuckets = await this._getExpiredBuckets(streamsInfo)
 
-            testingStreams.push({
-                streamId: 'j3AHY-6GRoW7HDbMrCqm5g',
-                partition: 0
-            })
-
-            const streamsInfo = await this._fetchStreamsInfo(testingStreams)
-            console.log(streamsInfo)
-            // this.progressBar.start(streams.length, 0)
+            console.info(`Found ${expiredBuckets.length} expired buckets`)
+            await this._deleteExpired(expiredBuckets)
         } catch (e) {
             console.error(e)
             process.exit(-1)
         } finally {
-            // this.progressBar.stop()
             await this.cassandraClient.shutdown()
         }
     }
