@@ -82,6 +82,10 @@ describe('DeleteExpiredCmd', () => {
         await cassandraClient.shutdown()
     })
 
+    afterAll(() => {
+        jest.restoreAllMocks()
+    })
+
     const daysArray = [0, 1, 2, 3]
     daysArray.map(async (days) => {
         test(`keep in database ${days} days of data`, async () => {

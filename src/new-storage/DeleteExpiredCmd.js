@@ -93,7 +93,7 @@ class DeleteExpiredCmd {
 
         const tasks = streamsInfo.map((stream) => {
             const { streamId, partition, storageDays } = stream
-            const timestampBefore = new Date(Date.now() - 1000 * 60 * 60 * 24 * storageDays)
+            const timestampBefore = Date.now() - 1000 * 60 * 60 * 24 * storageDays
             const params = [streamId, partition, timestampBefore]
 
             return this.limit(async () => {
