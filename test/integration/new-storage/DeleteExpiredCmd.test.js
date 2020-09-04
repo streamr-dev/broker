@@ -1,8 +1,12 @@
 const cassandra = require('cassandra-driver')
 const { TimeUuid } = require('cassandra-driver').types
-const { wait } = require('streamr-test-utils')
 
+jest.mock('../../../src/helpers/validateConfig')
+const validateConfig = require('../../../src/helpers/validateConfig')
+const DeleteExpiredCmd = require('../../../src/new-storage/DeleteExpiredCmd')
 const { startBrokerNewSchema, createClient } = require('../../utils')
+
+validateConfig.mockImplementation(() => true)
 
 const contactPoints = ['127.0.0.1']
 const localDataCenter = 'datacenter1'
@@ -16,9 +20,10 @@ const trackerPort = 22370
 const fixtures = async (cassandraClient, streamId, daysAgo) => {
     const timestampDaysAgo = Date.now() - 1000 * 60 * 60 * 24 * daysAgo
     const dateDaysAgo = new Date(timestampDaysAgo)
+    const bucketId = TimeUuid.fromDate(dateDaysAgo).toString()
     const query = 'INSERT INTO bucket (stream_id, partition, date_create, id, records, size)'
                   + 'VALUES (?, 0, ?, ?, 1, 1)'
-    await cassandraClient.execute(query, [streamId, dateDaysAgo, TimeUuid.fromDate(dateDaysAgo).toString()], {
+    await cassandraClient.execute(query, [streamId, dateDaysAgo, bucketId], {
         prepare: true
     })
 
@@ -26,10 +31,24 @@ const fixtures = async (cassandraClient, streamId, daysAgo) => {
         + '(stream_id, partition, bucket_id, ts, sequence_no, publisher_id, msg_chain_id, payload) '
         + 'VALUES (?, 0, ?, ?, 0, ?, ?, ?)'
     await cassandraClient.execute(insert, [
-        streamId, TimeUuid.fromDate(dateDaysAgo).toString(), timestampDaysAgo, 'publisherId', 'chainId', Buffer.from('{}')
+        streamId, bucketId, timestampDaysAgo, 'publisherId', 'chainId', Buffer.from('{}')
     ], {
         prepare: true
     })
+}
+
+const checkDBCount = async (cassandraClient, streamId, days) => {
+    const countBuckets = 'SELECT COUNT(*) FROM bucket WHERE stream_id = ? AND partition = 0 ALLOW FILTERING'
+    const result = await cassandraClient.execute(countBuckets, [streamId], {
+        prepare: true
+    })
+    expect(result.first().count.low).toEqual(days)
+
+    const countData = 'SELECT COUNT(*) FROM stream_data WHERE stream_id = ? AND partition = 0 ALLOW FILTERING'
+    const resultData = await cassandraClient.execute(countData, [streamId], {
+        prepare: true
+    })
+    expect(resultData.first().count.low).toEqual(days)
 }
 
 describe('DeleteExpiredCmd', () => {
@@ -55,15 +74,6 @@ describe('DeleteExpiredCmd', () => {
             orderMessages: false,
         })
         await client.ensureConnected()
-
-        const stream = await client.createStream({
-            name: 'DeleteExpiredCmd.test.js-' + Date.now()
-        })
-        streamId = stream.id
-
-        await fixtures(cassandraClient, streamId, 0)
-        await fixtures(cassandraClient, streamId, 1)
-        await fixtures(cassandraClient, streamId, 2)
     })
 
     afterEach(async () => {
@@ -73,7 +83,110 @@ describe('DeleteExpiredCmd', () => {
     })
 
     test('keep in database 3 days of data', async () => {
-        expect(true).toBeTruthy()
-        await wait(3000)
+        const stream = await client.createStream({
+            name: 'DeleteExpiredCmd.test.js-' + Date.now(),
+            storageDays: 3
+        })
+        streamId = stream.id
+
+        await fixtures(cassandraClient, streamId, 0)
+        await fixtures(cassandraClient, streamId, 1)
+        await fixtures(cassandraClient, streamId, 2)
+
+        const deleteExpiredCmd = new DeleteExpiredCmd({
+            streamrUrl: 'http://localhost:8081/streamr-core',
+            cassandraNew: {
+                hosts: [
+                    '127.0.0.1'
+                ],
+                username: '',
+                password: '',
+                keyspace,
+                datacenter: localDataCenter
+            },
+        })
+        await deleteExpiredCmd.run()
+        await checkDBCount(cassandraClient, streamId, 3)
+    })
+
+    test('keep in database 2 days of data', async () => {
+        const stream = await client.createStream({
+            name: 'DeleteExpiredCmd.test.js-' + Date.now(),
+            storageDays: 2
+        })
+        streamId = stream.id
+
+        await fixtures(cassandraClient, streamId, 0)
+        await fixtures(cassandraClient, streamId, 1)
+        await fixtures(cassandraClient, streamId, 2)
+
+        const deleteExpiredCmd = new DeleteExpiredCmd({
+            streamrUrl: 'http://localhost:8081/streamr-core',
+            cassandraNew: {
+                hosts: [
+                    '127.0.0.1'
+                ],
+                username: '',
+                password: '',
+                keyspace,
+                datacenter: localDataCenter
+            },
+        })
+        await deleteExpiredCmd.run()
+        await checkDBCount(cassandraClient, streamId, 2)
+    })
+
+    test('keep in database 1 days of data', async () => {
+        const stream = await client.createStream({
+            name: 'DeleteExpiredCmd.test.js-' + Date.now(),
+            storageDays: 1
+        })
+        streamId = stream.id
+
+        await fixtures(cassandraClient, streamId, 0)
+        await fixtures(cassandraClient, streamId, 1)
+        await fixtures(cassandraClient, streamId, 2)
+
+        const deleteExpiredCmd = new DeleteExpiredCmd({
+            streamrUrl: 'http://localhost:8081/streamr-core',
+            cassandraNew: {
+                hosts: [
+                    '127.0.0.1'
+                ],
+                username: '',
+                password: '',
+                keyspace,
+                datacenter: localDataCenter
+            },
+        })
+        await deleteExpiredCmd.run()
+        await checkDBCount(cassandraClient, streamId, 1)
+    })
+
+    test('keep in database 0 days of data', async () => {
+        const stream = await client.createStream({
+            name: 'DeleteExpiredCmd.test.js-' + Date.now(),
+            storageDays: 0
+        })
+        streamId = stream.id
+
+        await fixtures(cassandraClient, streamId, 0)
+        await fixtures(cassandraClient, streamId, 1)
+        await fixtures(cassandraClient, streamId, 2)
+
+        const deleteExpiredCmd = new DeleteExpiredCmd({
+            streamrUrl: 'http://localhost:8081/streamr-core',
+            cassandraNew: {
+                hosts: [
+                    '127.0.0.1'
+                ],
+                username: '',
+                password: '',
+                keyspace,
+                datacenter: localDataCenter
+            },
+        })
+        await deleteExpiredCmd.run()
+        await checkDBCount(cassandraClient, streamId, 0)
     })
 })
