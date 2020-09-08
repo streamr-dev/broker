@@ -1,4 +1,5 @@
 const { startNetworkNode, startStorageNode, Protocol } = require('streamr-network')
+const logger = require('pino')()
 const StreamrClient = require('streamr-client')
 const publicIp = require('public-ip')
 const Sentry = require('@sentry/node')
@@ -19,13 +20,10 @@ const ethereumAuthenticate = require('./helpers/ethereumAuthenticate')
 
 const { Utils } = Protocol
 
-module.exports = async (config, startUpLoggingEnabled = false) => {
+module.exports = async (config) => {
     validateConfig(config)
 
-    const log = startUpLoggingEnabled ? console.info : () => {
-    }
-
-    log(`Starting broker version ${CURRENT_VERSION}`)
+    logger.info(`Starting broker version ${CURRENT_VERSION}`)
 
     const storages = []
     const networkNodeName = config.network.name
@@ -33,7 +31,7 @@ module.exports = async (config, startUpLoggingEnabled = false) => {
 
     // Start cassandra storage
     if (config.cassandra) {
-        log(`Starting Cassandra with hosts ${config.cassandra.hosts} and keyspace ${config.cassandra.keyspace}`)
+        logger.info(`Starting Cassandra with hosts ${config.cassandra.hosts} and keyspace ${config.cassandra.keyspace}`)
         storages.push(await startCassandraStorage({
             contactPoints: [...config.cassandra.hosts],
             localDataCenter: 'datacenter1',
@@ -43,11 +41,11 @@ module.exports = async (config, startUpLoggingEnabled = false) => {
             useTtl: !config.network.isStorageNode
         }))
     } else {
-        log('Cassandra disabled')
+        logger.info('Cassandra disabled')
     }
 
     if (config.cassandraNew) {
-        log(`Starting Cassandra ### NEW SCHEMA ### with hosts ${config.cassandraNew.hosts} and keyspace ${config.cassandraNew.keyspace}`)
+        logger.info(`Starting Cassandra ### NEW SCHEMA ### with hosts ${config.cassandraNew.hosts} and keyspace ${config.cassandraNew.keyspace}`)
         storages.push(await startCassandraStorageNew({
             contactPoints: [...config.cassandraNew.hosts],
             localDataCenter: config.cassandraNew.datacenter,
@@ -59,13 +57,13 @@ module.exports = async (config, startUpLoggingEnabled = false) => {
             }
         }))
     } else {
-        log('Cassandra ### NEW SCHEMA ### is disabled')
+        logger.info('Cassandra ### NEW SCHEMA ### is disabled')
     }
 
     // Ethereum authentication
-    const brokerAddress = ethereumAuthenticate.authenticateFromConfig(config.ethereum, log)
+    const brokerAddress = ethereumAuthenticate.authenticateFromConfig(config.ethereum, logger)
     if (brokerAddress) {
-        log(`Network node: ${networkNodeName}, id Ethereum address: ${brokerAddress}`)
+        logger.info(`Network node: ${networkNodeName}, id Ethereum address: ${brokerAddress}`)
     } else {
         throw new MissingConfigError('Invalid Ethereum authentication options')
     }
@@ -102,7 +100,7 @@ module.exports = async (config, startUpLoggingEnabled = false) => {
 
     // Set up sentry logging
     if (config.sentry) {
-        log('Starting Sentry with dns: %s', config.sentry)
+        logger.info('Starting Sentry with dns: %s', config.sentry)
         Sentry.init({
             dsn: config.sentry,
             integrations: [
@@ -127,7 +125,7 @@ module.exports = async (config, startUpLoggingEnabled = false) => {
     let client
     const { apiKey, streamId } = config.reporting
     if (config.reporting && streamId !== undefined && apiKey !== undefined) {
-        log(`Starting StreamrClient reporting with apiKey: ${apiKey} and streamId: ${streamId}`)
+        logger.info(`Starting StreamrClient reporting with apiKey: ${apiKey} and streamId: ${streamId}`)
         client = new StreamrClient({
             auth: {
                 apiKey
@@ -135,7 +133,7 @@ module.exports = async (config, startUpLoggingEnabled = false) => {
             autoConnect: false
         })
     } else {
-        log('StreamrClient reporting disabled')
+        logger.info('StreamrClient reporting disabled')
     }
 
     // Initialize common utilities
@@ -179,15 +177,15 @@ module.exports = async (config, startUpLoggingEnabled = false) => {
         }
     })
 
-    log(`Network node '${networkNodeName}' running on ${config.network.hostname}:${config.network.port}`)
-    log(`Configured with trackers: ${[...networkNode.bootstrapTrackerAddresses].join(', ')}`)
-    log(`Adapters: ${JSON.stringify(config.adapters.map((a) => a.name))}`)
+    logger.info(`Network node '${networkNodeName}' running on ${config.network.hostname}:${config.network.port}`)
+    logger.info(`Configured with trackers: ${[...networkNode.bootstrapTrackerAddresses].join(', ')}`)
+    logger.info(`Adapters: ${JSON.stringify(config.adapters.map((a) => a.name))}`)
     if (config.cassandra) {
-        log(`Configured with Cassandra: hosts=${config.cassandra.hosts} and keyspace=${config.cassandra.keyspace}`)
+        logger.info(`Configured with Cassandra: hosts=${config.cassandra.hosts} and keyspace=${config.cassandra.keyspace}`)
     }
-    log(`Configured with Streamr: ${config.streamrUrl}`)
+    logger.info(`Configured with Streamr: ${config.streamrUrl}`)
     if (advertisedWsUrl) {
-        log(`Advertising to tracker WS url: ${advertisedWsUrl}`)
+        logger.info(`Advertising to tracker WS url: ${advertisedWsUrl}`)
     }
 
     return {

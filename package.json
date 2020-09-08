@@ -42,6 +42,7 @@
     "merge2": "^1.4.1",
     "mqtt-connection": "^4.0.0",
     "node-fetch": "^2.6.0",
+    "pino": "^6.6.0",
     "promise.allsettled": "^1.0.2",
     "public-ip": "^4.0.2",
     "pump": "^3.0.0",
