@@ -1,6 +1,7 @@
 const fs = require('fs')
 const https = require('https')
 
+const logger = require('pino')()
 const cors = require('cors')
 const express = require('express')
 
@@ -11,7 +12,7 @@ const dataProduceEndpoints = require('./DataProduceEndpoints')
 const volumeEndpoint = require('./VolumeEndpoint')
 
 adapterRegistry.register('http', ({ port, privateKeyFileName, certFileName }, {
-    networkNode, publisher, streamFetcher, volumeLogger, logger
+    networkNode, publisher, streamFetcher, volumeLogger
 }) => {
     const app = express()
 
@@ -28,9 +29,9 @@ adapterRegistry.register('http', ({ port, privateKeyFileName, certFileName }, {
         httpServer = https.createServer({
             cert: fs.readFileSync(certFileName),
             key: fs.readFileSync(privateKeyFileName)
-        }, app).listen(port, () => console.info(`HTTPS adapter listening on ${httpServer.address().port}`))
+        }, app).listen(port, () => logger.info(`HTTPS adapter listening on ${httpServer.address().port}`))
     } else {
-        httpServer = app.listen(port, () => console.info(`HTTP adapter listening on ${httpServer.address().port}`))
+        httpServer = app.listen(port, () => logger.info(`HTTP adapter listening on ${httpServer.address().port}`))
     }
     return () => new Promise((resolve, reject) => {
         httpServer.close((err) => {
