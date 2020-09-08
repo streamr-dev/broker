@@ -1,0 +1,421 @@
+{"level":30,"time":1599557860779,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Starting broker version 12.1.1"}
+{"level":30,"time":1599557860780,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Cassandra disabled"}
+{"level":30,"time":1599557860780,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Cassandra ### NEW SCHEMA ### is disabled"}
+{"level":30,"time":1599557860786,"pid":19396,"hostname":"Miroslavs-MBP","msg":"Starting broker version 12.1.1"}
+{"level":30,"time":1599557860787,"pid":19396,"hostname":"Miroslavs-MBP","msg":"Cassandra disabled"}
+{"level":30,"time":1599557860787,"pid":19396,"hostname":"Miroslavs-MBP","msg":"Cassandra ### NEW SCHEMA ### is disabled"}
+{"level":30,"time":1599557860821,"pid":19397,"hostname":"Miroslavs-MBP","msg":"Starting broker version 12.1.1"}
+{"level":30,"time":1599557860822,"pid":19397,"hostname":"Miroslavs-MBP","msg":"Cassandra disabled"}
+{"level":30,"time":1599557860822,"pid":19397,"hostname":"Miroslavs-MBP","msg":"Cassandra ### NEW SCHEMA ### is disabled"}
+{"level":30,"time":1599557860822,"pid":19394,"hostname":"Miroslavs-MBP","msg":"Starting broker version 12.1.1"}
+{"level":30,"time":1599557860822,"pid":19394,"hostname":"Miroslavs-MBP","msg":"Starting Cassandra with hosts localhost and keyspace streamr_dev"}
+{"level":30,"time":1599557860823,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Starting broker version 12.1.1"}
+{"level":30,"time":1599557860824,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Starting Cassandra with hosts localhost and keyspace streamr_dev"}
+{"level":30,"time":1599557860826,"pid":19392,"hostname":"Miroslavs-MBP","msg":"Starting broker version 12.1.1"}
+{"level":30,"time":1599557860827,"pid":19392,"hostname":"Miroslavs-MBP","msg":"Starting Cassandra with hosts localhost and keyspace streamr_dev"}
+{"level":30,"time":1599557860828,"pid":19395,"hostname":"Miroslavs-MBP","msg":"Starting broker version 12.1.1"}
+{"level":30,"time":1599557860829,"pid":19395,"hostname":"Miroslavs-MBP","msg":"Cassandra disabled"}
+{"level":30,"time":1599557860829,"pid":19395,"hostname":"Miroslavs-MBP","msg":"Cassandra ### NEW SCHEMA ### is disabled"}
+{"level":30,"time":1599557860862,"pid":19390,"hostname":"Miroslavs-MBP","msg":"Starting broker version 12.1.1"}
+{"level":30,"time":1599557860863,"pid":19390,"hostname":"Miroslavs-MBP","msg":"Starting Cassandra with hosts localhost and keyspace streamr_dev"}
+{"level":30,"time":1599557860918,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Cassandra ### NEW SCHEMA ### is disabled"}
+{"level":30,"time":1599557860931,"pid":19392,"hostname":"Miroslavs-MBP","msg":"Cassandra ### NEW SCHEMA ### is disabled"}
+{"level":30,"time":1599557860934,"pid":19394,"hostname":"Miroslavs-MBP","msg":"Cassandra ### NEW SCHEMA ### is disabled"}
+{"level":30,"time":1599557860964,"pid":19390,"hostname":"Miroslavs-MBP","msg":"Cassandra ### NEW SCHEMA ### is disabled"}
+{"level":30,"time":1599557863674,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Network node: broker1, id Ethereum address: 0x1C97f6759CA8cF040f4E2771d1B84ff4E1696A7f"}
+{"level":30,"time":1599557863689,"pid":19396,"hostname":"Miroslavs-MBP","msg":"Network node: broker, id Ethereum address: 0x3f79388aB3d900fC9e79f5Abf82985De365d3113"}
+{"level":30,"time":1599557863712,"pid":19389,"hostname":"Miroslavs-MBP","msg":"StreamrClient reporting disabled"}
+{"level":30,"time":1599557863730,"pid":19392,"hostname":"Miroslavs-MBP","msg":"Network node: broker1, id Ethereum address: 0xe076650b7b6C4f4259F417c9556b738b6a30849e"}
+{"level":30,"time":1599557863732,"pid":19392,"hostname":"Miroslavs-MBP","msg":"StreamrClient reporting disabled"}
+{"level":30,"time":1599557863733,"pid":19396,"hostname":"Miroslavs-MBP","msg":"StreamrClient reporting disabled"}
+{"level":30,"time":1599557863738,"pid":19394,"hostname":"Miroslavs-MBP","msg":"Network node: broker1, id Ethereum address: 0x6851092Cd2FEdF084F18078eeA24afbc671B8d72"}
+{"level":30,"time":1599557863746,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Network node 'broker1' running on 127.0.0.1:12361"}
+{"level":30,"time":1599557863746,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Configured with trackers: ws://127.0.0.1:12370"}
+{"level":30,"time":1599557863746,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Adapters: [\"http\",\"ws\"]"}
+{"level":30,"time":1599557863746,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Configured with Streamr: http://localhost:8081/streamr-core"}
+{"level":30,"time":1599557863747,"pid":19390,"hostname":"Miroslavs-MBP","msg":"Network node: broker1, id Ethereum address: 0x8fE60901999103941d32DA4b98Ab48b7cA503a07"}
+{"level":30,"time":1599557863761,"pid":19397,"hostname":"Miroslavs-MBP","msg":"Network node: broker, id Ethereum address: 0x7f22093c5AcCE8Da5558d1b55985CD7273fEcd1a"}
+{"level":30,"time":1599557863767,"pid":19392,"hostname":"Miroslavs-MBP","msg":"Network node 'broker1' running on 127.0.0.1:11403"}
+{"level":30,"time":1599557863767,"pid":19392,"hostname":"Miroslavs-MBP","msg":"Configured with trackers: ws://127.0.0.1:11400"}
+{"level":30,"time":1599557863767,"pid":19392,"hostname":"Miroslavs-MBP","msg":"Adapters: [\"ws\"]"}
+{"level":30,"time":1599557863768,"pid":19392,"hostname":"Miroslavs-MBP","msg":"Configured with Cassandra: hosts=localhost and keyspace=streamr_dev"}
+{"level":30,"time":1599557863768,"pid":19392,"hostname":"Miroslavs-MBP","msg":"Configured with Streamr: http://localhost:8081/streamr-core"}
+{"level":30,"time":1599557863768,"pid":19396,"hostname":"Miroslavs-MBP","msg":"Network node 'broker' running on 127.0.0.1:12421"}
+{"level":30,"time":1599557863768,"pid":19396,"hostname":"Miroslavs-MBP","msg":"Configured with trackers: ws://127.0.0.1:12420"}
+{"level":30,"time":1599557863768,"pid":19396,"hostname":"Miroslavs-MBP","msg":"Adapters: [\"http\"]"}
+{"level":30,"time":1599557863768,"pid":19396,"hostname":"Miroslavs-MBP","msg":"Configured with Streamr: http://localhost:8081/streamr-core"}
+{"level":30,"time":1599557863782,"pid":19395,"hostname":"Miroslavs-MBP","msg":"Network node: broker, id Ethereum address: 0x2cC131A51B59C97714ba2677fFED18E73EfC5504"}
+{"level":30,"time":1599557863784,"pid":19394,"hostname":"Miroslavs-MBP","msg":"StreamrClient reporting disabled"}
+{"level":30,"time":1599557863797,"pid":19390,"hostname":"Miroslavs-MBP","msg":"StreamrClient reporting disabled"}
+{"level":30,"time":1599557863821,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Network node: broker1, id Ethereum address: 0xf1216143bF94Ff9B55d928783Eedb86548438D4c"}
+{"level":30,"time":1599557863851,"pid":19394,"hostname":"Miroslavs-MBP","msg":"Network node 'broker1' running on 127.0.0.1:13401"}
+{"level":30,"time":1599557863851,"pid":19394,"hostname":"Miroslavs-MBP","msg":"Configured with trackers: ws://127.0.0.1:13410"}
+{"level":30,"time":1599557863851,"pid":19394,"hostname":"Miroslavs-MBP","msg":"Adapters: [\"http\",\"ws\",\"mqtt\"]"}
+{"level":30,"time":1599557863851,"pid":19394,"hostname":"Miroslavs-MBP","msg":"Configured with Cassandra: hosts=localhost and keyspace=streamr_dev"}
+{"level":30,"time":1599557863851,"pid":19394,"hostname":"Miroslavs-MBP","msg":"Configured with Streamr: http://localhost:8081/streamr-core"}
+{"level":30,"time":1599557863851,"pid":19394,"hostname":"Miroslavs-MBP","msg":"Starting broker version 12.1.1"}
+{"level":30,"time":1599557863851,"pid":19394,"hostname":"Miroslavs-MBP","msg":"Starting Cassandra with hosts localhost and keyspace streamr_dev"}
+{"level":30,"time":1599557863854,"pid":19395,"hostname":"Miroslavs-MBP","msg":"StreamrClient reporting disabled"}
+{"level":30,"time":1599557863855,"pid":19397,"hostname":"Miroslavs-MBP","msg":"StreamrClient reporting disabled"}
+{"level":30,"time":1599557863867,"pid":19390,"hostname":"Miroslavs-MBP","msg":"Network node 'broker1' running on 127.0.0.1:17701"}
+{"level":30,"time":1599557863867,"pid":19390,"hostname":"Miroslavs-MBP","msg":"Configured with trackers: ws://127.0.0.1:17711"}
+{"level":30,"time":1599557863867,"pid":19390,"hostname":"Miroslavs-MBP","msg":"Adapters: [\"http\",\"ws\",\"mqtt\"]"}
+{"level":30,"time":1599557863867,"pid":19390,"hostname":"Miroslavs-MBP","msg":"Configured with Cassandra: hosts=localhost and keyspace=streamr_dev"}
+{"level":30,"time":1599557863867,"pid":19390,"hostname":"Miroslavs-MBP","msg":"Configured with Streamr: http://localhost:8081/streamr-core"}
+{"level":30,"time":1599557863903,"pid":19388,"hostname":"Miroslavs-MBP","msg":"StreamrClient reporting disabled"}
+{"level":30,"time":1599557863906,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Starting broker version 12.1.1"}
+{"level":30,"time":1599557863906,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Cassandra disabled"}
+{"level":30,"time":1599557863906,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Cassandra ### NEW SCHEMA ### is disabled"}
+{"level":30,"time":1599557863924,"pid":19397,"hostname":"Miroslavs-MBP","msg":"Network node 'broker' running on 127.0.0.1:12412"}
+{"level":30,"time":1599557863925,"pid":19397,"hostname":"Miroslavs-MBP","msg":"Configured with trackers: ws://127.0.0.1:12411"}
+{"level":30,"time":1599557863925,"pid":19397,"hostname":"Miroslavs-MBP","msg":"Adapters: [\"mqtt\"]"}
+{"level":30,"time":1599557863925,"pid":19397,"hostname":"Miroslavs-MBP","msg":"Configured with Streamr: http://localhost:8081/streamr-core"}
+{"level":30,"time":1599557863965,"pid":19395,"hostname":"Miroslavs-MBP","msg":"Network node 'broker' running on 127.0.0.1:19421"}
+{"level":30,"time":1599557863965,"pid":19395,"hostname":"Miroslavs-MBP","msg":"Configured with trackers: ws://127.0.0.1:19420"}
+{"level":30,"time":1599557863965,"pid":19395,"hostname":"Miroslavs-MBP","msg":"Adapters: [\"http\",\"ws\",\"mqtt\"]"}
+{"level":30,"time":1599557863965,"pid":19395,"hostname":"Miroslavs-MBP","msg":"Configured with Streamr: http://localhost:8081/streamr-core"}
+{"level":30,"time":1599557864003,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Network node 'broker1' running on 127.0.0.1:12401"}
+{"level":30,"time":1599557864003,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Configured with trackers: ws://127.0.0.1:12410"}
+{"level":30,"time":1599557864003,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Adapters: [\"http\",\"ws\",\"mqtt\"]"}
+{"level":30,"time":1599557864003,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Configured with Cassandra: hosts=localhost and keyspace=streamr_dev"}
+{"level":30,"time":1599557864004,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Configured with Streamr: http://localhost:8081/streamr-core"}
+{"level":30,"time":1599557864004,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Starting broker version 12.1.1"}
+{"level":30,"time":1599557864004,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Starting Cassandra with hosts localhost and keyspace streamr_dev"}
+{"level":30,"time":1599557864173,"pid":19394,"hostname":"Miroslavs-MBP","msg":"Cassandra ### NEW SCHEMA ### is disabled"}
+{"level":30,"time":1599557864251,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Cassandra ### NEW SCHEMA ### is disabled"}
+{"level":30,"time":1599557864677,"pid":19395,"hostname":"Miroslavs-MBP","msg":"Starting broker version 12.1.1"}
+{"level":30,"time":1599557864677,"pid":19395,"hostname":"Miroslavs-MBP","msg":"Cassandra disabled"}
+{"level":30,"time":1599557864677,"pid":19395,"hostname":"Miroslavs-MBP","msg":"Cassandra ### NEW SCHEMA ### is disabled"}
+{"level":30,"time":1599557865441,"pid":19392,"hostname":"Miroslavs-MBP","msg":"Starting broker version 12.1.1"}
+{"level":30,"time":1599557865441,"pid":19392,"hostname":"Miroslavs-MBP","msg":"Starting Cassandra with hosts localhost and keyspace streamr_dev"}
+{"level":30,"time":1599557865493,"pid":19392,"hostname":"Miroslavs-MBP","msg":"Cassandra ### NEW SCHEMA ### is disabled"}
+{"level":30,"time":1599557866892,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Network node: broker1, id Ethereum address: 0x6cD0F7769909D27192eA76A024A2A9011AF537C6"}
+{"level":30,"time":1599557866893,"pid":19389,"hostname":"Miroslavs-MBP","msg":"StreamrClient reporting disabled"}
+{"level":30,"time":1599557866896,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Network node 'broker1' running on 127.0.0.1:12361"}
+{"level":30,"time":1599557866896,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Configured with trackers: ws://127.0.0.1:12370"}
+{"level":30,"time":1599557866896,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Adapters: [\"http\",\"ws\"]"}
+{"level":30,"time":1599557866896,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Configured with Streamr: http://localhost:8081/streamr-core"}
+{"level":30,"time":1599557866954,"pid":19394,"hostname":"Miroslavs-MBP","msg":"Network node: broker2, id Ethereum address: 0xCFe6A6bB34f298C28D2cF3187fff32b476DA76E4"}
+{"level":30,"time":1599557866955,"pid":19394,"hostname":"Miroslavs-MBP","msg":"StreamrClient reporting disabled"}
+{"level":30,"time":1599557866957,"pid":19394,"hostname":"Miroslavs-MBP","msg":"Network node 'broker2' running on 127.0.0.1:13402"}
+{"level":30,"time":1599557866958,"pid":19394,"hostname":"Miroslavs-MBP","msg":"Configured with trackers: ws://127.0.0.1:13410"}
+{"level":30,"time":1599557866958,"pid":19394,"hostname":"Miroslavs-MBP","msg":"Adapters: [\"http\",\"ws\",\"mqtt\"]"}
+{"level":30,"time":1599557866958,"pid":19394,"hostname":"Miroslavs-MBP","msg":"Configured with Cassandra: hosts=localhost and keyspace=streamr_dev"}
+{"level":30,"time":1599557866958,"pid":19394,"hostname":"Miroslavs-MBP","msg":"Configured with Streamr: http://localhost:8081/streamr-core"}
+{"level":30,"time":1599557867027,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Starting broker version 12.1.1"}
+{"level":30,"time":1599557867027,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Cassandra disabled"}
+{"level":30,"time":1599557867027,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Cassandra ### NEW SCHEMA ### is disabled"}
+{"level":30,"time":1599557867060,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Network node: broker2, id Ethereum address: 0xF0df79d215cDD79f45706EC61851334450eF5DF3"}
+{"level":30,"time":1599557867061,"pid":19388,"hostname":"Miroslavs-MBP","msg":"StreamrClient reporting disabled"}
+{"level":30,"time":1599557867064,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Network node 'broker2' running on 127.0.0.1:12402"}
+{"level":30,"time":1599557867064,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Configured with trackers: ws://127.0.0.1:12410"}
+{"level":30,"time":1599557867064,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Adapters: [\"http\",\"ws\",\"mqtt\"]"}
+{"level":30,"time":1599557867064,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Configured with Cassandra: hosts=localhost and keyspace=streamr_dev"}
+{"level":30,"time":1599557867064,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Configured with Streamr: http://localhost:8081/streamr-core"}
+{"level":30,"time":1599557867064,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Starting broker version 12.1.1"}
+{"level":30,"time":1599557867064,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Starting Cassandra with hosts localhost and keyspace streamr_dev"}
+{"level":30,"time":1599557867135,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Cassandra ### NEW SCHEMA ### is disabled"}
+{"level":30,"time":1599557867194,"pid":19395,"hostname":"Miroslavs-MBP","msg":"Network node: broker, id Ethereum address: 0x666e76bC1EA58b00970A1a5a593E873e2Ce38F84"}
+{"level":30,"time":1599557867195,"pid":19395,"hostname":"Miroslavs-MBP","msg":"StreamrClient reporting disabled"}
+{"level":30,"time":1599557867197,"pid":19395,"hostname":"Miroslavs-MBP","msg":"Network node 'broker' running on 127.0.0.1:19421"}
+{"level":30,"time":1599557867197,"pid":19395,"hostname":"Miroslavs-MBP","msg":"Configured with trackers: ws://127.0.0.1:19420"}
+{"level":30,"time":1599557867197,"pid":19395,"hostname":"Miroslavs-MBP","msg":"Adapters: [\"http\",\"ws\",\"mqtt\"]"}
+{"level":30,"time":1599557867197,"pid":19395,"hostname":"Miroslavs-MBP","msg":"Configured with Streamr: http://localhost:8081/streamr-core"}
+{"level":30,"time":1599557867482,"pid":19392,"hostname":"Miroslavs-MBP","msg":"Network node: broker1, id Ethereum address: 0x1BE419cD8346E2F22966B024530F408b79E199a2"}
+{"level":30,"time":1599557867483,"pid":19392,"hostname":"Miroslavs-MBP","msg":"StreamrClient reporting disabled"}
+{"level":30,"time":1599557867484,"pid":19392,"hostname":"Miroslavs-MBP","msg":"Network node 'broker1' running on 127.0.0.1:11403"}
+{"level":30,"time":1599557867484,"pid":19392,"hostname":"Miroslavs-MBP","msg":"Configured with trackers: ws://127.0.0.1:11400"}
+{"level":30,"time":1599557867484,"pid":19392,"hostname":"Miroslavs-MBP","msg":"Adapters: [\"ws\"]"}
+{"level":30,"time":1599557867484,"pid":19392,"hostname":"Miroslavs-MBP","msg":"Configured with Cassandra: hosts=localhost and keyspace=streamr_dev"}
+{"level":30,"time":1599557867484,"pid":19392,"hostname":"Miroslavs-MBP","msg":"Configured with Streamr: http://localhost:8081/streamr-core"}
+{"level":30,"time":1599557868608,"pid":19390,"hostname":"Miroslavs-MBP","msg":"Starting broker version 12.1.1"}
+{"level":30,"time":1599557868608,"pid":19390,"hostname":"Miroslavs-MBP","msg":"Starting Cassandra with hosts localhost and keyspace streamr_dev"}
+{"level":30,"time":1599557868660,"pid":19390,"hostname":"Miroslavs-MBP","msg":"Cassandra ### NEW SCHEMA ### is disabled"}
+{"level":30,"time":1599557868761,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Network node: broker1, id Ethereum address: 0x52735b586d94Da684C1f57DE03e077fB22eC573E"}
+{"level":30,"time":1599557868762,"pid":19389,"hostname":"Miroslavs-MBP","msg":"StreamrClient reporting disabled"}
+{"level":30,"time":1599557868764,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Network node 'broker1' running on 127.0.0.1:12361"}
+{"level":30,"time":1599557868764,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Configured with trackers: ws://127.0.0.1:12370"}
+{"level":30,"time":1599557868764,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Adapters: [\"http\",\"ws\"]"}
+{"level":30,"time":1599557868764,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Configured with Streamr: http://localhost:8081/streamr-core"}
+{"level":30,"time":1599557868878,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Network node: broker3, id Ethereum address: 0x60634214dCFaf3c7a95BFe6B826FF57751e7909d"}
+{"level":30,"time":1599557868879,"pid":19388,"hostname":"Miroslavs-MBP","msg":"StreamrClient reporting disabled"}
+{"level":30,"time":1599557868881,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Network node 'broker3' running on 127.0.0.1:12403"}
+{"level":30,"time":1599557868881,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Configured with trackers: ws://127.0.0.1:12410"}
+{"level":30,"time":1599557868881,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Adapters: [\"http\",\"ws\",\"mqtt\"]"}
+{"level":30,"time":1599557868881,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Configured with Cassandra: hosts=localhost and keyspace=streamr_dev"}
+{"level":30,"time":1599557868881,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Configured with Streamr: http://localhost:8081/streamr-core"}
+{"level":30,"time":1599557868969,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Starting broker version 12.1.1"}
+{"level":30,"time":1599557868969,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Cassandra disabled"}
+{"level":30,"time":1599557868969,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Cassandra ### NEW SCHEMA ### is disabled"}
+{"level":30,"time":1599557869713,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Starting broker version 12.1.1"}
+{"level":30,"time":1599557869713,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Starting Cassandra with hosts localhost and keyspace streamr_dev"}
+{"level":30,"time":1599557869768,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Cassandra ### NEW SCHEMA ### is disabled"}
+{"level":30,"time":1599557870513,"pid":19390,"hostname":"Miroslavs-MBP","msg":"Network node: broker1, id Ethereum address: 0x48f26E7647a89671Cc4d1054E9dD65259C24C00E"}
+{"level":30,"time":1599557870515,"pid":19390,"hostname":"Miroslavs-MBP","msg":"StreamrClient reporting disabled"}
+{"level":30,"time":1599557870517,"pid":19390,"hostname":"Miroslavs-MBP","msg":"Network node 'broker1' running on 127.0.0.1:17701"}
+{"level":30,"time":1599557870517,"pid":19390,"hostname":"Miroslavs-MBP","msg":"Configured with trackers: ws://127.0.0.1:17711"}
+{"level":30,"time":1599557870517,"pid":19390,"hostname":"Miroslavs-MBP","msg":"Adapters: [\"http\",\"ws\",\"mqtt\"]"}
+{"level":30,"time":1599557870517,"pid":19390,"hostname":"Miroslavs-MBP","msg":"Configured with Cassandra: hosts=localhost and keyspace=streamr_dev"}
+{"level":30,"time":1599557870517,"pid":19390,"hostname":"Miroslavs-MBP","msg":"Configured with Streamr: http://localhost:8081/streamr-core"}
+{"level":30,"time":1599557870814,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Network node: broker1, id Ethereum address: 0x1C1C783041EbeE50Cfb3Dd81d19E3f8D529e5C5F"}
+{"level":30,"time":1599557870815,"pid":19389,"hostname":"Miroslavs-MBP","msg":"StreamrClient reporting disabled"}
+{"level":30,"time":1599557870817,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Network node 'broker1' running on 127.0.0.1:12361"}
+{"level":30,"time":1599557870817,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Configured with trackers: ws://127.0.0.1:12370"}
+{"level":30,"time":1599557870817,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Adapters: [\"http\",\"ws\"]"}
+{"level":30,"time":1599557870817,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Configured with Streamr: http://localhost:8081/streamr-core"}
+{"level":30,"time":1599557871021,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Starting broker version 12.1.1"}
+{"level":30,"time":1599557871021,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Cassandra disabled"}
+{"level":30,"time":1599557871021,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Cassandra ### NEW SCHEMA ### is disabled"}
+{"level":30,"time":1599557871544,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Network node: broker1, id Ethereum address: 0x5D15A7B416A2E291a923FF9E7b65FDc3B78Dc7B0"}
+{"level":30,"time":1599557871545,"pid":19388,"hostname":"Miroslavs-MBP","msg":"StreamrClient reporting disabled"}
+{"level":30,"time":1599557871547,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Network node 'broker1' running on 127.0.0.1:12401"}
+{"level":30,"time":1599557871547,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Configured with trackers: ws://127.0.0.1:12410"}
+{"level":30,"time":1599557871547,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Adapters: [\"http\",\"ws\",\"mqtt\"]"}
+{"level":30,"time":1599557871547,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Configured with Cassandra: hosts=localhost and keyspace=streamr_dev"}
+{"level":30,"time":1599557871547,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Configured with Streamr: http://localhost:8081/streamr-core"}
+{"level":30,"time":1599557871547,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Starting broker version 12.1.1"}
+{"level":30,"time":1599557871547,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Starting Cassandra with hosts localhost and keyspace streamr_dev"}
+{"level":30,"time":1599557871578,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Cassandra ### NEW SCHEMA ### is disabled"}
+{"level":30,"time":1599557872690,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Network node: broker1, id Ethereum address: 0x79BF5C432694F5C0D4B0F3265c8b6B268DD3e3b0"}
+{"level":30,"time":1599557872691,"pid":19389,"hostname":"Miroslavs-MBP","msg":"StreamrClient reporting disabled"}
+{"level":30,"time":1599557872693,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Network node 'broker1' running on 127.0.0.1:12361"}
+{"level":30,"time":1599557872693,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Configured with trackers: ws://127.0.0.1:12370"}
+{"level":30,"time":1599557872693,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Adapters: [\"http\",\"ws\"]"}
+{"level":30,"time":1599557872693,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Configured with Streamr: http://localhost:8081/streamr-core"}
+{"level":30,"time":1599557872903,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Starting broker version 12.1.1"}
+{"level":30,"time":1599557872903,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Starting Cassandra with hosts localhost and keyspace streamr_dev"}
+{"level":30,"time":1599557872962,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Cassandra ### NEW SCHEMA ### is disabled"}
+{"level":30,"time":1599557873252,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Network node: broker2, id Ethereum address: 0x699466796076ef1c5906c50D32e8583239505777"}
+{"level":30,"time":1599557873253,"pid":19388,"hostname":"Miroslavs-MBP","msg":"StreamrClient reporting disabled"}
+{"level":30,"time":1599557873255,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Network node 'broker2' running on 127.0.0.1:12402"}
+{"level":30,"time":1599557873255,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Configured with trackers: ws://127.0.0.1:12410"}
+{"level":30,"time":1599557873255,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Adapters: [\"http\",\"ws\",\"mqtt\"]"}
+{"level":30,"time":1599557873255,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Configured with Cassandra: hosts=localhost and keyspace=streamr_dev"}
+{"level":30,"time":1599557873255,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Configured with Streamr: http://localhost:8081/streamr-core"}
+{"level":30,"time":1599557873255,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Starting broker version 12.1.1"}
+{"level":30,"time":1599557873255,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Starting Cassandra with hosts localhost and keyspace streamr_dev"}
+{"level":30,"time":1599557873293,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Cassandra ### NEW SCHEMA ### is disabled"}
+{"level":30,"time":1599557873770,"pid":19390,"hostname":"Miroslavs-MBP","msg":"Starting broker version 12.1.1"}
+{"level":30,"time":1599557873770,"pid":19390,"hostname":"Miroslavs-MBP","msg":"Starting Cassandra with hosts localhost and keyspace streamr_dev"}
+{"level":30,"time":1599557873806,"pid":19390,"hostname":"Miroslavs-MBP","msg":"Cassandra ### NEW SCHEMA ### is disabled"}
+{"level":30,"time":1599557874648,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Network node: broker1, id Ethereum address: 0xd1E12b9f22219eF609c9d402bA566eC95eA4eF2F"}
+{"level":30,"time":1599557874649,"pid":19389,"hostname":"Miroslavs-MBP","msg":"StreamrClient reporting disabled"}
+{"level":30,"time":1599557874651,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Network node 'broker1' running on 127.0.0.1:12361"}
+{"level":30,"time":1599557874651,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Configured with trackers: ws://127.0.0.1:12370"}
+{"level":30,"time":1599557874651,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Adapters: [\"http\",\"ws\"]"}
+{"level":30,"time":1599557874651,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Configured with Cassandra: hosts=localhost and keyspace=streamr_dev"}
+{"level":30,"time":1599557874651,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Configured with Streamr: http://localhost:8081/streamr-core"}
+{"level":30,"time":1599557874651,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Starting broker version 12.1.1"}
+{"level":30,"time":1599557874651,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Starting Cassandra with hosts localhost and keyspace streamr_dev"}
+{"level":30,"time":1599557874703,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Cassandra ### NEW SCHEMA ### is disabled"}
+{"level":30,"time":1599557874972,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Network node: broker3, id Ethereum address: 0x52C15Df3055e961A164d22Ac7Ca43cBabb54103B"}
+{"level":30,"time":1599557874973,"pid":19388,"hostname":"Miroslavs-MBP","msg":"StreamrClient reporting disabled"}
+{"level":30,"time":1599557874975,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Network node 'broker3' running on 127.0.0.1:12403"}
+{"level":30,"time":1599557874975,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Configured with trackers: ws://127.0.0.1:12410"}
+{"level":30,"time":1599557874975,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Adapters: [\"http\",\"ws\",\"mqtt\"]"}
+{"level":30,"time":1599557874975,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Configured with Cassandra: hosts=localhost and keyspace=streamr_dev"}
+{"level":30,"time":1599557874975,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Configured with Streamr: http://localhost:8081/streamr-core"}
+{"level":30,"time":1599557875521,"pid":19390,"hostname":"Miroslavs-MBP","msg":"Network node: broker1, id Ethereum address: 0x70136F916ac956f025aC8B7D8F55aa095FaAa1Ff"}
+{"level":30,"time":1599557875522,"pid":19390,"hostname":"Miroslavs-MBP","msg":"StreamrClient reporting disabled"}
+{"level":30,"time":1599557875525,"pid":19390,"hostname":"Miroslavs-MBP","msg":"Network node 'broker1' running on 127.0.0.1:17701"}
+{"level":30,"time":1599557875525,"pid":19390,"hostname":"Miroslavs-MBP","msg":"Configured with trackers: ws://127.0.0.1:17711"}
+{"level":30,"time":1599557875525,"pid":19390,"hostname":"Miroslavs-MBP","msg":"Adapters: [\"http\",\"ws\",\"mqtt\"]"}
+{"level":30,"time":1599557875525,"pid":19390,"hostname":"Miroslavs-MBP","msg":"Configured with Cassandra: hosts=localhost and keyspace=streamr_dev"}
+{"level":30,"time":1599557875525,"pid":19390,"hostname":"Miroslavs-MBP","msg":"Configured with Streamr: http://localhost:8081/streamr-core"}
+{"level":30,"time":1599557875605,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Starting broker version 12.1.1"}
+{"level":30,"time":1599557875605,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Starting Cassandra with hosts localhost and keyspace streamr_dev"}
+{"level":30,"time":1599557875642,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Cassandra ### NEW SCHEMA ### is disabled"}
+{"level":30,"time":1599557876443,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Network node: broker2, id Ethereum address: 0x4734da3c851131dCa917194d07E3276097D6Da4C"}
+{"level":30,"time":1599557876444,"pid":19389,"hostname":"Miroslavs-MBP","msg":"StreamrClient reporting disabled"}
+{"level":30,"time":1599557876445,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Network node 'broker2' running on 127.0.0.1:12362"}
+{"level":30,"time":1599557876445,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Configured with trackers: ws://127.0.0.1:12370"}
+{"level":30,"time":1599557876445,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Adapters: [\"http\",\"ws\"]"}
+{"level":30,"time":1599557876446,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Configured with Cassandra: hosts=localhost and keyspace=streamr_dev"}
+{"level":30,"time":1599557876446,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Configured with Streamr: http://localhost:8081/streamr-core"}
+{"level":30,"time":1599557876446,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Starting broker version 12.1.1"}
+{"level":30,"time":1599557876446,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Starting Cassandra with hosts localhost and keyspace streamr_dev"}
+{"level":30,"time":1599557876503,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Cassandra ### NEW SCHEMA ### is disabled"}
+{"level":30,"time":1599557877396,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Network node: broker1, id Ethereum address: 0x16491C2ee375D7833093C90D39FB20502eaB6288"}
+{"level":30,"time":1599557877396,"pid":19388,"hostname":"Miroslavs-MBP","msg":"StreamrClient reporting disabled"}
+{"level":30,"time":1599557877398,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Network node 'broker1' running on 127.0.0.1:12401"}
+{"level":30,"time":1599557877398,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Configured with trackers: ws://127.0.0.1:12410"}
+{"level":30,"time":1599557877398,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Adapters: [\"http\",\"ws\",\"mqtt\"]"}
+{"level":30,"time":1599557877398,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Configured with Cassandra: hosts=localhost and keyspace=streamr_dev"}
+{"level":30,"time":1599557877399,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Configured with Streamr: http://localhost:8081/streamr-core"}
+{"level":30,"time":1599557877399,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Starting broker version 12.1.1"}
+{"level":30,"time":1599557877399,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Starting Cassandra with hosts localhost and keyspace streamr_dev"}
+{"level":30,"time":1599557877444,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Cassandra ### NEW SCHEMA ### is disabled"}
+{"level":30,"time":1599557878221,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Network node: broker3, id Ethereum address: 0x4eF289ea3bB8e85C35921Fe362C5173c4106A06e"}
+{"level":30,"time":1599557878222,"pid":19389,"hostname":"Miroslavs-MBP","msg":"StreamrClient reporting disabled"}
+{"level":30,"time":1599557878224,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Network node 'broker3' running on 127.0.0.1:12363"}
+{"level":30,"time":1599557878224,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Configured with trackers: ws://127.0.0.1:12370"}
+{"level":30,"time":1599557878224,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Adapters: [\"http\",\"ws\"]"}
+{"level":30,"time":1599557878224,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Configured with Cassandra: hosts=localhost and keyspace=streamr_dev"}
+{"level":30,"time":1599557878224,"pid":19389,"hostname":"Miroslavs-MBP","msg":"Configured with Streamr: http://localhost:8081/streamr-core"}
+{"level":30,"time":1599557879235,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Network node: broker2, id Ethereum address: 0xC590468EFC73601D442e30d05508015f4916953d"}
+{"level":30,"time":1599557879236,"pid":19388,"hostname":"Miroslavs-MBP","msg":"StreamrClient reporting disabled"}
+{"level":30,"time":1599557879238,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Network node 'broker2' running on 127.0.0.1:12402"}
+{"level":30,"time":1599557879238,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Configured with trackers: ws://127.0.0.1:12410"}
+{"level":30,"time":1599557879238,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Adapters: [\"http\",\"ws\",\"mqtt\"]"}
+{"level":30,"time":1599557879238,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Configured with Cassandra: hosts=localhost and keyspace=streamr_dev"}
+{"level":30,"time":1599557879238,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Configured with Streamr: http://localhost:8081/streamr-core"}
+{"level":30,"time":1599557879238,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Starting broker version 12.1.1"}
+{"level":30,"time":1599557879238,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Starting Cassandra with hosts localhost and keyspace streamr_dev"}
+{"level":30,"time":1599557879273,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Cassandra ### NEW SCHEMA ### is disabled"}
+{"level":30,"time":1599557881049,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Network node: broker3, id Ethereum address: 0x8dA9711911E1f12B2cb1cb122B692F5D65188902"}
+{"level":30,"time":1599557881050,"pid":19388,"hostname":"Miroslavs-MBP","msg":"StreamrClient reporting disabled"}
+{"level":30,"time":1599557881052,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Network node 'broker3' running on 127.0.0.1:12403"}
+{"level":30,"time":1599557881052,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Configured with trackers: ws://127.0.0.1:12410"}
+{"level":30,"time":1599557881052,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Adapters: [\"http\",\"ws\",\"mqtt\"]"}
+{"level":30,"time":1599557881052,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Configured with Cassandra: hosts=localhost and keyspace=streamr_dev"}
+{"level":30,"time":1599557881052,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Configured with Streamr: http://localhost:8081/streamr-core"}
+{"level":30,"time":1599557883042,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Starting broker version 12.1.1"}
+{"level":30,"time":1599557883042,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Starting Cassandra with hosts localhost and keyspace streamr_dev"}
+{"level":30,"time":1599557883086,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Cassandra ### NEW SCHEMA ### is disabled"}
+{"level":30,"time":1599557884803,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Network node: broker1, id Ethereum address: 0x547cF747910472DF81264ba5aA16B267b9798aB6"}
+{"level":30,"time":1599557884804,"pid":19388,"hostname":"Miroslavs-MBP","msg":"StreamrClient reporting disabled"}
+{"level":30,"time":1599557884806,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Network node 'broker1' running on 127.0.0.1:12401"}
+{"level":30,"time":1599557884806,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Configured with trackers: ws://127.0.0.1:12410"}
+{"level":30,"time":1599557884806,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Adapters: [\"http\",\"ws\",\"mqtt\"]"}
+{"level":30,"time":1599557884806,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Configured with Cassandra: hosts=localhost and keyspace=streamr_dev"}
+{"level":30,"time":1599557884806,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Configured with Streamr: http://localhost:8081/streamr-core"}
+{"level":30,"time":1599557884806,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Starting broker version 12.1.1"}
+{"level":30,"time":1599557884806,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Starting Cassandra with hosts localhost and keyspace streamr_dev"}
+{"level":30,"time":1599557884860,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Cassandra ### NEW SCHEMA ### is disabled"}
+{"level":30,"time":1599557886547,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Network node: broker2, id Ethereum address: 0x04951dcB3e3b265a43eaf6C2B670685616818b62"}
+{"level":30,"time":1599557886548,"pid":19388,"hostname":"Miroslavs-MBP","msg":"StreamrClient reporting disabled"}
+{"level":30,"time":1599557886550,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Network node 'broker2' running on 127.0.0.1:12402"}
+{"level":30,"time":1599557886550,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Configured with trackers: ws://127.0.0.1:12410"}
+{"level":30,"time":1599557886550,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Adapters: [\"http\",\"ws\",\"mqtt\"]"}
+{"level":30,"time":1599557886550,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Configured with Cassandra: hosts=localhost and keyspace=streamr_dev"}
+{"level":30,"time":1599557886550,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Configured with Streamr: http://localhost:8081/streamr-core"}
+{"level":30,"time":1599557886550,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Starting broker version 12.1.1"}
+{"level":30,"time":1599557886550,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Starting Cassandra with hosts localhost and keyspace streamr_dev"}
+{"level":30,"time":1599557886590,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Cassandra ### NEW SCHEMA ### is disabled"}
+{"level":30,"time":1599557888240,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Network node: broker3, id Ethereum address: 0x27383e32BaB854F0d3945C444023F2C6E989fCeA"}
+{"level":30,"time":1599557888240,"pid":19388,"hostname":"Miroslavs-MBP","msg":"StreamrClient reporting disabled"}
+{"level":30,"time":1599557888242,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Network node 'broker3' running on 127.0.0.1:12403"}
+{"level":30,"time":1599557888242,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Configured with trackers: ws://127.0.0.1:12410"}
+{"level":30,"time":1599557888242,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Adapters: [\"http\",\"ws\",\"mqtt\"]"}
+{"level":30,"time":1599557888242,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Configured with Cassandra: hosts=localhost and keyspace=streamr_dev"}
+{"level":30,"time":1599557888242,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Configured with Streamr: http://localhost:8081/streamr-core"}
+{"level":30,"time":1599557890093,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Starting broker version 12.1.1"}
+{"level":30,"time":1599557890094,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Starting Cassandra with hosts localhost and keyspace streamr_dev"}
+{"level":30,"time":1599557890144,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Cassandra ### NEW SCHEMA ### is disabled"}
+{"level":30,"time":1599557891794,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Network node: broker1, id Ethereum address: 0x7B52751970211aFc722f267d7F42De28d3dA8b2F"}
+{"level":30,"time":1599557891795,"pid":19388,"hostname":"Miroslavs-MBP","msg":"StreamrClient reporting disabled"}
+{"level":30,"time":1599557891796,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Network node 'broker1' running on 127.0.0.1:12401"}
+{"level":30,"time":1599557891796,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Configured with trackers: ws://127.0.0.1:12410"}
+{"level":30,"time":1599557891796,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Adapters: [\"http\",\"ws\",\"mqtt\"]"}
+{"level":30,"time":1599557891796,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Configured with Cassandra: hosts=localhost and keyspace=streamr_dev"}
+{"level":30,"time":1599557891796,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Configured with Streamr: http://localhost:8081/streamr-core"}
+{"level":30,"time":1599557891796,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Starting broker version 12.1.1"}
+{"level":30,"time":1599557891796,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Starting Cassandra with hosts localhost and keyspace streamr_dev"}
+{"level":30,"time":1599557891829,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Cassandra ### NEW SCHEMA ### is disabled"}
+{"level":30,"time":1599557893450,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Network node: broker2, id Ethereum address: 0x364Fc213f485B87b8588d4258eC1A6C9a396aD5a"}
+{"level":30,"time":1599557893450,"pid":19388,"hostname":"Miroslavs-MBP","msg":"StreamrClient reporting disabled"}
+{"level":30,"time":1599557893452,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Network node 'broker2' running on 127.0.0.1:12402"}
+{"level":30,"time":1599557893452,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Configured with trackers: ws://127.0.0.1:12410"}
+{"level":30,"time":1599557893452,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Adapters: [\"http\",\"ws\",\"mqtt\"]"}
+{"level":30,"time":1599557893452,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Configured with Cassandra: hosts=localhost and keyspace=streamr_dev"}
+{"level":30,"time":1599557893452,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Configured with Streamr: http://localhost:8081/streamr-core"}
+{"level":30,"time":1599557893452,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Starting broker version 12.1.1"}
+{"level":30,"time":1599557893452,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Starting Cassandra with hosts localhost and keyspace streamr_dev"}
+{"level":30,"time":1599557893483,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Cassandra ### NEW SCHEMA ### is disabled"}
+{"level":30,"time":1599557895192,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Network node: broker3, id Ethereum address: 0x6124E2a38205A07103D54772f87c09b91D8A1299"}
+{"level":30,"time":1599557895193,"pid":19388,"hostname":"Miroslavs-MBP","msg":"StreamrClient reporting disabled"}
+{"level":30,"time":1599557895194,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Network node 'broker3' running on 127.0.0.1:12403"}
+{"level":30,"time":1599557895194,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Configured with trackers: ws://127.0.0.1:12410"}
+{"level":30,"time":1599557895194,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Adapters: [\"http\",\"ws\",\"mqtt\"]"}
+{"level":30,"time":1599557895194,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Configured with Cassandra: hosts=localhost and keyspace=streamr_dev"}
+{"level":30,"time":1599557895194,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Configured with Streamr: http://localhost:8081/streamr-core"}
+{"level":30,"time":1599557898150,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Starting broker version 12.1.1"}
+{"level":30,"time":1599557898150,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Starting Cassandra with hosts localhost and keyspace streamr_dev"}
+{"level":30,"time":1599557898186,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Cassandra ### NEW SCHEMA ### is disabled"}
+{"level":30,"time":1599557899920,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Network node: broker1, id Ethereum address: 0xbb20D65687c71d02E2942BDbae7E250f100aC31f"}
+{"level":30,"time":1599557899921,"pid":19388,"hostname":"Miroslavs-MBP","msg":"StreamrClient reporting disabled"}
+{"level":30,"time":1599557899923,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Network node 'broker1' running on 127.0.0.1:12401"}
+{"level":30,"time":1599557899923,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Configured with trackers: ws://127.0.0.1:12410"}
+{"level":30,"time":1599557899923,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Adapters: [\"http\",\"ws\",\"mqtt\"]"}
+{"level":30,"time":1599557899923,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Configured with Cassandra: hosts=localhost and keyspace=streamr_dev"}
+{"level":30,"time":1599557899923,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Configured with Streamr: http://localhost:8081/streamr-core"}
+{"level":30,"time":1599557899923,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Starting broker version 12.1.1"}
+{"level":30,"time":1599557899923,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Starting Cassandra with hosts localhost and keyspace streamr_dev"}
+{"level":30,"time":1599557899954,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Cassandra ### NEW SCHEMA ### is disabled"}
+{"level":30,"time":1599557901647,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Network node: broker2, id Ethereum address: 0xf157A83a85640EF0954488C1228343D0B85f350B"}
+{"level":30,"time":1599557901648,"pid":19388,"hostname":"Miroslavs-MBP","msg":"StreamrClient reporting disabled"}
+{"level":30,"time":1599557901650,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Network node 'broker2' running on 127.0.0.1:12402"}
+{"level":30,"time":1599557901650,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Configured with trackers: ws://127.0.0.1:12410"}
+{"level":30,"time":1599557901650,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Adapters: [\"http\",\"ws\",\"mqtt\"]"}
+{"level":30,"time":1599557901650,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Configured with Cassandra: hosts=localhost and keyspace=streamr_dev"}
+{"level":30,"time":1599557901650,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Configured with Streamr: http://localhost:8081/streamr-core"}
+{"level":30,"time":1599557901650,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Starting broker version 12.1.1"}
+{"level":30,"time":1599557901650,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Starting Cassandra with hosts localhost and keyspace streamr_dev"}
+{"level":30,"time":1599557901693,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Cassandra ### NEW SCHEMA ### is disabled"}
+{"level":30,"time":1599557903388,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Network node: broker3, id Ethereum address: 0x394acf1D7008FBD23470D83Cd7F612a4Fef6aa6b"}
+{"level":30,"time":1599557903391,"pid":19388,"hostname":"Miroslavs-MBP","msg":"StreamrClient reporting disabled"}
+{"level":30,"time":1599557903393,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Network node 'broker3' running on 127.0.0.1:12403"}
+{"level":30,"time":1599557903393,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Configured with trackers: ws://127.0.0.1:12410"}
+{"level":30,"time":1599557903393,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Adapters: [\"http\",\"ws\",\"mqtt\"]"}
+{"level":30,"time":1599557903394,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Configured with Cassandra: hosts=localhost and keyspace=streamr_dev"}
+{"level":30,"time":1599557903394,"pid":19388,"hostname":"Miroslavs-MBP","msg":"Configured with Streamr: http://localhost:8081/streamr-core"}
+{"level":30,"time":1599557950717,"pid":19492,"hostname":"Miroslavs-MBP","msg":"Starting broker version 12.1.1"}
+{"level":30,"time":1599557950718,"pid":19492,"hostname":"Miroslavs-MBP","msg":"Starting Cassandra with hosts localhost and keyspace streamr_dev"}
+{"level":30,"time":1599557950768,"pid":19492,"hostname":"Miroslavs-MBP","msg":"Cassandra ### NEW SCHEMA ### is disabled"}
+{"level":30,"time":1599557952125,"pid":19492,"hostname":"Miroslavs-MBP","msg":"Network node: broker1, id Ethereum address: 0x11c0822631E1e3C1C6A2f2cE1108557f0da544E4"}
+{"level":30,"time":1599557952144,"pid":19492,"hostname":"Miroslavs-MBP","msg":"StreamrClient reporting disabled"}
+{"level":30,"time":1599557952168,"pid":19492,"hostname":"Miroslavs-MBP","msg":"Network node 'broker1' running on 127.0.0.1:12361"}
+{"level":30,"time":1599557952168,"pid":19492,"hostname":"Miroslavs-MBP","msg":"Configured with trackers: ws://127.0.0.1:12370"}
+{"level":30,"time":1599557952169,"pid":19492,"hostname":"Miroslavs-MBP","msg":"Adapters: [\"http\",\"ws\"]"}
+{"level":30,"time":1599557952169,"pid":19492,"hostname":"Miroslavs-MBP","msg":"Configured with Cassandra: hosts=localhost and keyspace=streamr_dev"}
+{"level":30,"time":1599557952169,"pid":19492,"hostname":"Miroslavs-MBP","msg":"Configured with Streamr: http://localhost:8081/streamr-core"}
+{"level":30,"time":1599557952169,"pid":19492,"hostname":"Miroslavs-MBP","msg":"Starting broker version 12.1.1"}
+{"level":30,"time":1599557952169,"pid":19492,"hostname":"Miroslavs-MBP","msg":"Starting Cassandra with hosts localhost and keyspace streamr_dev"}
+{"level":30,"time":1599557952215,"pid":19492,"hostname":"Miroslavs-MBP","msg":"Cassandra ### NEW SCHEMA ### is disabled"}
+{"level":30,"time":1599557953372,"pid":19492,"hostname":"Miroslavs-MBP","msg":"Network node: broker2, id Ethereum address: 0x03daEef3D1826bc54c6Ca65A0Db050f2C283568F"}
+{"level":30,"time":1599557953373,"pid":19492,"hostname":"Miroslavs-MBP","msg":"StreamrClient reporting disabled"}
+{"level":30,"time":1599557953374,"pid":19492,"hostname":"Miroslavs-MBP","msg":"Network node 'broker2' running on 127.0.0.1:12362"}
+{"level":30,"time":1599557953375,"pid":19492,"hostname":"Miroslavs-MBP","msg":"Configured with trackers: ws://127.0.0.1:12370"}
+{"level":30,"time":1599557953375,"pid":19492,"hostname":"Miroslavs-MBP","msg":"Adapters: [\"http\",\"ws\"]"}
+{"level":30,"time":1599557953375,"pid":19492,"hostname":"Miroslavs-MBP","msg":"Configured with Cassandra: hosts=localhost and keyspace=streamr_dev"}
+{"level":30,"time":1599557953375,"pid":19492,"hostname":"Miroslavs-MBP","msg":"Configured with Streamr: http://localhost:8081/streamr-core"}
+{"level":30,"time":1599557953375,"pid":19492,"hostname":"Miroslavs-MBP","msg":"Starting broker version 12.1.1"}
+{"level":30,"time":1599557953375,"pid":19492,"hostname":"Miroslavs-MBP","msg":"Starting Cassandra with hosts localhost and keyspace streamr_dev"}
+{"level":30,"time":1599557953413,"pid":19492,"hostname":"Miroslavs-MBP","msg":"Cassandra ### NEW SCHEMA ### is disabled"}
+{"level":30,"time":1599557954546,"pid":19492,"hostname":"Miroslavs-MBP","msg":"Network node: broker3, id Ethereum address: 0xB2172C2026a99a8fD2A7E74c28CDd340b37F4C89"}
+{"level":30,"time":1599557954547,"pid":19492,"hostname":"Miroslavs-MBP","msg":"StreamrClient reporting disabled"}
+{"level":30,"time":1599557954548,"pid":19492,"hostname":"Miroslavs-MBP","msg":"Network node 'broker3' running on 127.0.0.1:12363"}
+{"level":30,"time":1599557954548,"pid":19492,"hostname":"Miroslavs-MBP","msg":"Configured with trackers: ws://127.0.0.1:12370"}
+{"level":30,"time":1599557954548,"pid":19492,"hostname":"Miroslavs-MBP","msg":"Adapters: [\"http\",\"ws\"]"}
+{"level":30,"time":1599557954548,"pid":19492,"hostname":"Miroslavs-MBP","msg":"Configured with Cassandra: hosts=localhost and keyspace=streamr_dev"}
+{"level":30,"time":1599557954548,"pid":19492,"hostname":"Miroslavs-MBP","msg":"Configured with Streamr: http://localhost:8081/streamr-core"}
+{"level":30,"time":1599557991152,"pid":19546,"hostname":"Miroslavs-MBP","msg":"Starting broker version 12.1.1"}
+{"level":30,"time":1599557991153,"pid":19546,"hostname":"Miroslavs-MBP","msg":"Starting Cassandra with hosts localhost and keyspace streamr_dev"}
+{"level":30,"time":1599557991210,"pid":19546,"hostname":"Miroslavs-MBP","msg":"Cassandra ### NEW SCHEMA ### is disabled"}
+{"level":30,"time":1599557992499,"pid":19546,"hostname":"Miroslavs-MBP","msg":"Network node: broker1, id Ethereum address: 0xa58344389fF9D1d8af9dFeeED717a1d7E013899F"}
+{"level":30,"time":1599557992522,"pid":19546,"hostname":"Miroslavs-MBP","msg":"StreamrClient reporting disabled"}
+{"level":30,"time":1599557992544,"pid":19546,"hostname":"Miroslavs-MBP","msg":"Network node 'broker1' running on 127.0.0.1:12361"}
+{"level":30,"time":1599557992544,"pid":19546,"hostname":"Miroslavs-MBP","msg":"Configured with trackers: ws://127.0.0.1:12370"}
+{"level":30,"time":1599557992544,"pid":19546,"hostname":"Miroslavs-MBP","msg":"Adapters: [\"http\",\"ws\"]"}
+{"level":30,"time":1599557992544,"pid":19546,"hostname":"Miroslavs-MBP","msg":"Configured with Cassandra: hosts=localhost and keyspace=streamr_dev"}
+{"level":30,"time":1599557992544,"pid":19546,"hostname":"Miroslavs-MBP","msg":"Configured with Streamr: http://localhost:8081/streamr-core"}
+{"level":30,"time":1599557992544,"pid":19546,"hostname":"Miroslavs-MBP","msg":"Starting broker version 12.1.1"}
+{"level":30,"time":1599557992544,"pid":19546,"hostname":"Miroslavs-MBP","msg":"Starting Cassandra with hosts localhost and keyspace streamr_dev"}
+{"level":30,"time":1599557992589,"pid":19546,"hostname":"Miroslavs-MBP","msg":"Cassandra ### NEW SCHEMA ### is disabled"}
+{"level":30,"time":1599557993705,"pid":19546,"hostname":"Miroslavs-MBP","msg":"Network node: broker2, id Ethereum address: 0x355b7116aF2B577268Bc41c6a51EE6F9f5E521BF"}
+{"level":30,"time":1599557993706,"pid":19546,"hostname":"Miroslavs-MBP","msg":"StreamrClient reporting disabled"}
+{"level":30,"time":1599557993707,"pid":19546,"hostname":"Miroslavs-MBP","msg":"Network node 'broker2' running on 127.0.0.1:12362"}
+{"level":30,"time":1599557993707,"pid":19546,"hostname":"Miroslavs-MBP","msg":"Configured with trackers: ws://127.0.0.1:12370"}
+{"level":30,"time":1599557993707,"pid":19546,"hostname":"Miroslavs-MBP","msg":"Adapters: [\"http\",\"ws\"]"}
+{"level":30,"time":1599557993707,"pid":19546,"hostname":"Miroslavs-MBP","msg":"Configured with Cassandra: hosts=localhost and keyspace=streamr_dev"}
+{"level":30,"time":1599557993707,"pid":19546,"hostname":"Miroslavs-MBP","msg":"Configured with Streamr: http://localhost:8081/streamr-core"}
+{"level":30,"time":1599557993708,"pid":19546,"hostname":"Miroslavs-MBP","msg":"Starting broker version 12.1.1"}
+{"level":30,"time":1599557993708,"pid":19546,"hostname":"Miroslavs-MBP","msg":"Starting Cassandra with hosts localhost and keyspace streamr_dev"}
+{"level":30,"time":1599557993741,"pid":19546,"hostname":"Miroslavs-MBP","msg":"Cassandra ### NEW SCHEMA ### is disabled"}
+{"level":30,"time":1599557994833,"pid":19546,"hostname":"Miroslavs-MBP","msg":"Network node: broker3, id Ethereum address: 0x299e9a1135eF1850e37f8AaDdE46963774270D43"}
+{"level":30,"time":1599557994834,"pid":19546,"hostname":"Miroslavs-MBP","msg":"StreamrClient reporting disabled"}
+{"level":30,"time":1599557994835,"pid":19546,"hostname":"Miroslavs-MBP","msg":"Network node 'broker3' running on 127.0.0.1:12363"}
+{"level":30,"time":1599557994835,"pid":19546,"hostname":"Miroslavs-MBP","msg":"Configured with trackers: ws://127.0.0.1:12370"}
+{"level":30,"time":1599557994835,"pid":19546,"hostname":"Miroslavs-MBP","msg":"Adapters: [\"http\",\"ws\"]"}
+{"level":30,"time":1599557994835,"pid":19546,"hostname":"Miroslavs-MBP","msg":"Configured with Cassandra: hosts=localhost and keyspace=streamr_dev"}
+{"level":30,"time":1599557994835,"pid":19546,"hostname":"Miroslavs-MBP","msg":"Configured with Streamr: http://localhost:8081/streamr-core"}

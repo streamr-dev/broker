@@ -1,5 +1,7 @@
 const net = require('net')
 
+const logger = require('pino')()
+
 const MissingConfigError = require('../errors/MissingConfigError')
 const adapterRegistry = require('../adapterRegistry')
 
@@ -7,7 +9,7 @@ const MqttServer = require('./MqttServer')
 
 // eslint-disable-next-line max-len
 adapterRegistry.register('mqtt', ({ port, streamsTimeout }, {
-    networkNode, publisher, streamFetcher, volumeLogger, subscriptionManager, logger
+    networkNode, publisher, streamFetcher, volumeLogger, subscriptionManager
 }) => {
     if (port === undefined) {
         throw new MissingConfigError('port')
@@ -18,14 +20,13 @@ adapterRegistry.register('mqtt', ({ port, streamsTimeout }, {
     }
 
     const mqttServer = new MqttServer(
-        new net.Server().listen(port).on('listening', () => console.info(`Mqtt adapter listening on ${port}`)),
+        new net.Server().listen(port).on('listening', () => logger.info(`Mqtt adapter listening on ${port}`)),
         streamsTimeout,
         networkNode,
         streamFetcher,
         publisher,
         volumeLogger,
-        subscriptionManager,
-        logger
+        subscriptionManager
     )
 
     return () => mqttServer.close()

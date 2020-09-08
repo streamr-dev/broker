@@ -6,7 +6,7 @@ const adapterRegistry = require('../adapterRegistry')
 const WebsocketServer = require('./WebsocketServer')
 
 adapterRegistry.register('ws', ({ port, privateKeyFileName, certFileName, pingInterval }, {
-    networkNode, publisher, streamFetcher, volumeLogger, subscriptionManager, logger
+    networkNode, publisher, streamFetcher, volumeLogger, subscriptionManager
 }) => {
     if (port === undefined) {
         throw new MissingConfigError('port')
@@ -29,8 +29,7 @@ adapterRegistry.register('ws', ({ port, privateKeyFileName, certFileName, pingIn
         publisher,
         volumeLogger,
         subscriptionManager,
-        pingInterval,
-        logger
+        pingInterval
     )
     return () => {
         websocketServer.close()

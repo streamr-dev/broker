@@ -1,11 +1,12 @@
 const { startNetworkNode, startStorageNode, Protocol } = require('streamr-network')
-const logger = require('pino')()
+const pino = require('pino')
 const StreamrClient = require('streamr-client')
 const publicIp = require('public-ip')
 const Sentry = require('@sentry/node')
 
 const CURRENT_VERSION = require('../package.json').version
 
+const logger = require('./helpers/logger')('streamr:broker')
 const StreamFetcher = require('./StreamFetcher')
 const { startCassandraStorage } = require('./storage/Storage')
 const { startCassandraStorage: startCassandraStorageNew } = require('./new-storage/Storage')
@@ -61,7 +62,7 @@ module.exports = async (config) => {
     }
 
     // Ethereum authentication
-    const brokerAddress = ethereumAuthenticate.authenticateFromConfig(config.ethereum, logger)
+    const brokerAddress = ethereumAuthenticate.authenticateFromConfig(config.ethereum)
     if (brokerAddress) {
         logger.info(`Network node: ${networkNodeName}, id Ethereum address: ${brokerAddress}`)
     } else {
@@ -171,8 +172,8 @@ module.exports = async (config) => {
             if (e instanceof MissingConfigError) {
                 throw new MissingConfigError(`adapters[${index}].${e.config}`)
             }
-            console.error(`Error thrown while starting adapter ${name}: ${e}`)
-            console.error(e.stack)
+            logger.error(`Error thrown while starting adapter ${name}: ${e}`)
+            logger.error(e.stack)
             return () => {}
         }
     })
@@ -198,3 +199,13 @@ module.exports = async (config) => {
         ])
     }
 }
+
+process.on('uncaughtException', pino.final(logger, (err, finalLogger) => {
+    finalLogger.error(err, 'uncaughtException')
+    process.exit(1)
+}))
+
+process.on('unhandledRejection', pino.final(logger, (err, finalLogger) => {
+    finalLogger.error(err, 'unhandledRejection')
+    process.exit(1)
+}))

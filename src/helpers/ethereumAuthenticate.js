@@ -1,6 +1,8 @@
 const ethers = require('ethers')
 
-function authenticateFromConfig(ethereumConfig, logger) {
+const logger = require('./logger')('streamr:helpers:authenticateFromConfig')
+
+function authenticateFromConfig(ethereumConfig) {
     let wallet = {}
     if (ethereumConfig.privateKey) {
         logger.info('Ethereum Authentication with private key')
