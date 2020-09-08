@@ -34,7 +34,6 @@
     "cassandra-driver": "^4.6.0",
     "commander": "^6.0.0",
     "cors": "^2.7.1",
-    "debug": "^4.1.1",
     "ethers": "^5.0.9",
     "express": "^4.17.1",
     "heap": "^0.2.6",
