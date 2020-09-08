@@ -29,7 +29,7 @@ class DeleteExpiredCmd {
         const result = []
 
         const query = 'SELECT DISTINCT stream_id, partition FROM bucket'
-        const resultSet = await this.cassandraClient.execute(query)
+        const resultSet = await this.cassandraClient.execute(query).catch((err) => console.error(err))
 
         if (resultSet.rows.length) {
             resultSet.rows.forEach((row) => {
@@ -53,15 +53,16 @@ class DeleteExpiredCmd {
                         partition: stream.partition,
                         storageDays: parseInt(json.storageDays)
                     }
-                }).catch((e) => console.error(e))
+                }).catch((err) => console.error(err))
             })
         })
 
-        return Promise.all(tasks)
+        const result = await Promise.all(tasks)
+        return result || []
     }
 
-    async _deleteExpired(streamsInfo) {
-        const tasks = streamsInfo.map((stream) => {
+    async _deleteExpired(expiredBuckets) {
+        const tasks = expiredBuckets.map((stream) => {
             const { bucketId, dateCreate, streamId, partition } = stream
             const queries = [
                 {
@@ -77,9 +78,7 @@ class DeleteExpiredCmd {
             return this.limit(async () => {
                 await this.cassandraClient.batch(queries, {
                     prepare: true
-                }).catch((err) => {
-                    console.error(err)
-                })
+                }).catch((err) => console.error(err))
             })
         })
 
@@ -99,17 +98,19 @@ class DeleteExpiredCmd {
             return this.limit(async () => {
                 const resultSet = await this.cassandraClient.execute(query, params, {
                     prepare: true,
-                }).catch((e) => console.error(e))
+                }).catch((err) => console.error(err))
 
-                resultSet.rows.forEach((row) => {
-                    result.push({
-                        bucketId: row.id,
-                        dateCreate: row.date_create,
-                        streamId: row.stream_id,
-                        partition: row.partition,
-                        storageDays
+                if (resultSet.rows.length) {
+                    resultSet.rows.forEach((row) => {
+                        result.push({
+                            bucketId: row.id,
+                            dateCreate: row.date_create,
+                            streamId: row.stream_id,
+                            partition: row.partition,
+                            storageDays
+                        })
                     })
-                })
+                }
             })
         })
 
@@ -118,21 +119,16 @@ class DeleteExpiredCmd {
     }
 
     async run() {
-        try {
-            const streams = await this._getStreams()
-            console.info(`Found ${streams.length} unique streams`)
+        const streams = await this._getStreams()
+        console.info(`Found ${streams.length} unique streams`)
 
-            const streamsInfo = await this._fetchStreamsInfo(streams)
-            const expiredBuckets = await this._getExpiredBuckets(streamsInfo)
+        const streamsInfo = await this._fetchStreamsInfo(streams)
+        const expiredBuckets = await this._getExpiredBuckets(streamsInfo)
 
-            console.info(`Found ${expiredBuckets.length} expired buckets`)
-            await this._deleteExpired(expiredBuckets)
-        } catch (e) {
-            console.error(e)
-            process.exit(-1)
-        } finally {
-            await this.cassandraClient.shutdown()
-        }
+        console.info(`Found ${expiredBuckets.length} expired buckets`)
+        await this._deleteExpired(expiredBuckets)
+
+        await this.cassandraClient.shutdown()
     }
 }
 
