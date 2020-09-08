@@ -57,8 +57,7 @@ class DeleteExpiredCmd {
             })
         })
 
-        const result = await Promise.all(tasks)
-        return result || []
+        return Promise.all(tasks)
     }
 
     async _deleteExpired(expiredBuckets) {
