@@ -44,9 +44,11 @@ module.exports = (streamFetcher, permission = 'stream_subscribe') => (req, res, 
             } else if (err instanceof HttpError && err.code === 404) {
                 errorMsg = `Stream ${req.params.id} not found.`
             } else {
-                console.error(err)
                 errorMsg = 'Request failed.'
             }
+
+            logger.error(err)
+            logger.error(errorMsg)
 
             res.status(err.code || 503).send({
                 error: errorMsg,

@@ -94,7 +94,7 @@ class Storage extends EventEmitter {
                 })
                 resultStream.push(null)
             }).catch((e) => {
-                console.warn(e)
+                logger.warn(e)
                 resultStream.push(null)
             })
         }
@@ -349,14 +349,14 @@ class Storage extends EventEmitter {
                 resultStream,
                 (err) => {
                     if (err) {
-                        console.error('pump finished with error', err)
+                        logger.error('pump finished with error', err)
                         resultStream.push(null)
                     }
                 }
             )
         })
             .catch((e) => {
-                console.warn(e)
+                logger.warn(e)
                 resultStream.push(null)
             })
 
@@ -399,7 +399,7 @@ class Storage extends EventEmitter {
                 setImmediate(() => cassandraStream.resume())
             }
         }).on('error', (err) => {
-            console.error(err)
+            logger.error(err)
         })
 
         return cassandraStream
@@ -437,7 +437,7 @@ const startCassandraStorage = async ({
     const requestLogger = new cassandra.tracker.RequestLogger({
         slowThreshold: 10 * 1000, // 10 secs
     })
-    requestLogger.emitter.on('slow', (message) => console.warn(message))
+    requestLogger.emitter.on('slow', (message) => logger.warn(message))
     const cassandraClient = new cassandra.Client({
         contactPoints,
         localDataCenter,
@@ -457,7 +457,7 @@ const startCassandraStorage = async ({
             await cassandraClient.connect().catch((err) => { throw err })
             return new Storage(cassandraClient, opts || {})
         } catch (err) {
-            console.log('Cassandra not responding yet...')
+            logger.info('Cassandra not responding yet...')
             retryCount -= 1
             await sleep(5000)
             lastError = err
