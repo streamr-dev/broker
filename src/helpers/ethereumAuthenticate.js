@@ -1,6 +1,6 @@
 const ethers = require('ethers')
 
-function authenticateFromConfig(ethereumConfig, logger = console.info) {
+function authenticateFromConfig(ethereumConfig, logger) {
     let wallet = {}
     if (ethereumConfig.privateKey) {
         logger.info('Ethereum Authentication with private key')
