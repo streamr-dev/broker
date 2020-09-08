@@ -4,9 +4,10 @@ const EventEmitter = require('events')
 const pump = require('pump')
 const { v1: uuidv1 } = require('uuid')
 const merge2 = require('merge2')
-const debug = require('debug')('streamr:storage')
 const cassandra = require('cassandra-driver')
 const { StreamMessage } = require('streamr-network').Protocol.MessageLayer
+
+const logger = require('../helpers/logger')('streamr:storage')
 
 const BatchManager = require('./BatchManager')
 const BucketManager = require('./BucketManager')
@@ -41,14 +42,14 @@ class Storage extends EventEmitter {
         const bucketId = this.bucketManager.getBucketId(streamMessage.getStreamId(), streamMessage.getStreamPartition(), streamMessage.getTimestamp())
 
         if (bucketId) {
-            debug(`found bucketId: ${bucketId}`)
+            logger.debug(`found bucketId: ${bucketId}`)
 
             this.bucketManager.incrementBucket(bucketId, Buffer.from(streamMessage.serialize()).length)
             const doneCb = () => this.emit('write', streamMessage)
             setImmediate(() => this.batchManager.store(bucketId, streamMessage, doneCb))
         } else {
             const messageId = streamMessage.messageId.serialize()
-            debug(`bucket not found, put ${messageId} to pendingMessages`)
+            logger.debug(`bucket not found, put ${messageId} to pendingMessages`)
 
             const uuid = uuidv1()
             const timeout = setTimeout(() => {
@@ -65,7 +66,7 @@ class Storage extends EventEmitter {
             limit = MAX_RESEND_LAST
         }
 
-        debug(`requestLast, streamId: "${streamId}", partition: "${partition}", limit: "${limit}"`)
+        logger.debug(`requestLast, streamId: "${streamId}", partition: "${partition}", limit: "${limit}"`)
 
         const GET_LAST_N_MESSAGES = 'SELECT payload FROM stream_data WHERE '
             + 'stream_id = ? AND partition = ? AND bucket_id IN ? '
@@ -83,7 +84,7 @@ class Storage extends EventEmitter {
 
         const makeLastQuery = (bucketIds) => {
             const params = [streamId, partition, bucketIds, limit]
-            debug(`requestLast query: ${GET_LAST_N_MESSAGES}, params: ${params}`)
+            logger.debug(`requestLast query: ${GET_LAST_N_MESSAGES}, params: ${params}`)
             this.cassandraClient.execute(GET_LAST_N_MESSAGES, params, {
                 prepare: true,
                 fetchSize: 0 // disable paging
@@ -111,7 +112,7 @@ class Storage extends EventEmitter {
             bucketIds.push(bucketId)
         }, (err, result) => {
             if (err) {
-                console.error(err)
+                logger.error(err)
                 resultStream.push(null)
             } else {
                 // no buckets found at all
@@ -135,7 +136,7 @@ class Storage extends EventEmitter {
                         makeLastQuery(bucketIds)
                     }
                 }).catch((e) => {
-                    console.warn(e)
+                    logger.warn(e)
                     resultStream.push(null)
                 })
             }
@@ -145,7 +146,7 @@ class Storage extends EventEmitter {
     }
 
     requestFrom(streamId, partition, fromTimestamp, fromSequenceNo, publisherId, msgChainId) {
-        debug(`requestFrom, streamId: "${streamId}", partition: "${partition}", fromTimestamp: "${fromTimestamp}", fromSequenceNo: `
+        logger.debug(`requestFrom, streamId: "${streamId}", partition: "${partition}", fromTimestamp: "${fromTimestamp}", fromSequenceNo: `
             + `"${fromSequenceNo}", publisherId: "${publisherId}", msgChainId: "${msgChainId}"`)
 
         if (fromSequenceNo != null && publisherId != null && msgChainId != null) {
@@ -160,7 +161,7 @@ class Storage extends EventEmitter {
     }
 
     requestRange(streamId, partition, fromTimestamp, fromSequenceNo, toTimestamp, toSequenceNo, publisherId, msgChainId) {
-        debug(`requestRange, streamId: "${streamId}", partition: "${partition}", fromTimestamp: "${fromTimestamp}", fromSequenceNo: "${fromSequenceNo}"`
+        logger.debug(`requestRange, streamId: "${streamId}", partition: "${partition}", fromTimestamp: "${fromTimestamp}", fromSequenceNo: "${fromSequenceNo}"`
             + `, toTimestamp: "${toTimestamp}", toSequenceNo: "${toSequenceNo}", publisherId: "${publisherId}", msgChainId: "${msgChainId}"`)
 
         if (fromSequenceNo != null && toSequenceNo != null && publisherId != null && msgChainId != null) {
@@ -200,14 +201,14 @@ class Storage extends EventEmitter {
                 resultStream,
                 (err) => {
                     if (err) {
-                        console.error('pump finished with error', err)
+                        logger.error('pump finished with error', err)
                         resultStream.push(null)
                     }
                 }
             )
         })
             .catch((e) => {
-                console.warn(e)
+                logger.warn(e)
                 resultStream.push(null)
             })
 
@@ -243,14 +244,14 @@ class Storage extends EventEmitter {
                 resultStream,
                 (err) => {
                     if (err) {
-                        console.error('pump finished with error', err)
+                        logger.error('pump finished with error', err)
                         resultStream.push(null)
                     }
                 }
             )
         })
             .catch((e) => {
-                console.warn(e)
+                logger.warn(e)
                 resultStream.push(null)
             })
 
@@ -291,14 +292,14 @@ class Storage extends EventEmitter {
                 resultStream,
                 (err) => {
                     if (err) {
-                        console.error('pump finished with error', err)
+                        logger.error('pump finished with error', err)
                         resultStream.push(null)
                     }
                 }
             )
         })
             .catch((e) => {
-                console.warn(e)
+                logger.warn(e)
                 resultStream.push(null)
             })
 
