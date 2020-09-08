@@ -1,7 +1,11 @@
 const pino = require('pino')
 
 const getLogger = (name) => pino({
-    name
+    name,
+    prettyPrint: {
+        colorize: true,
+        translateTime: true
+    }
 })
 
 module.exports = getLogger

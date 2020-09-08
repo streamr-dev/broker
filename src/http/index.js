@@ -1,10 +1,10 @@
 const fs = require('fs')
 const https = require('https')
 
-const logger = require('pino')()
 const cors = require('cors')
 const express = require('express')
 
+const logger = require('../helpers/logger')('streamr:httpAdapter')
 const adapterRegistry = require('../adapterRegistry')
 
 const dataQueryEndpoints = require('./DataQueryEndpoints')

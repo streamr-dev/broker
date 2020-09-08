@@ -1,9 +1,8 @@
 const net = require('net')
 
-const logger = require('pino')()
-
 const MissingConfigError = require('../errors/MissingConfigError')
 const adapterRegistry = require('../adapterRegistry')
+const logger = require('../helpers/logger')('streamr:mqttAdapter')
 
 const MqttServer = require('./MqttServer')
 
