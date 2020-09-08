@@ -31,7 +31,7 @@ class DeleteExpiredCmd {
         const query = 'SELECT DISTINCT stream_id, partition FROM bucket'
         const resultSet = await this.cassandraClient.execute(query).catch((err) => console.error(err))
 
-        if (resultSet.rows.length) {
+        if (resultSet) {
             resultSet.rows.forEach((row) => {
                 result.push({
                     streamId: row.stream_id,
@@ -99,7 +99,7 @@ class DeleteExpiredCmd {
                     prepare: true,
                 }).catch((err) => console.error(err))
 
-                if (resultSet.rows.length) {
+                if (resultSet) {
                     resultSet.rows.forEach((row) => {
                         result.push({
                             bucketId: row.id,
