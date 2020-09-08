@@ -44,7 +44,7 @@ class DeleteExpiredCmd {
     }
 
     async _fetchStreamsInfo(streams) {
-        const tasks = streams.map((stream) => {
+        const tasks = streams.filter(Boolean).map((stream) => {
             return this.limit(async () => {
                 const url = `${this.baseUrl}/api/v1/streams/${stream.streamId}/validation`
                 return fetch(url).then((res) => res.json()).then((json) => {
@@ -62,7 +62,7 @@ class DeleteExpiredCmd {
     }
 
     async _deleteExpired(expiredBuckets) {
-        const tasks = expiredBuckets.map((stream) => {
+        const tasks = expiredBuckets.filter(Boolean).map((stream) => {
             const { bucketId, dateCreate, streamId, partition } = stream
             const queries = [
                 {
@@ -90,7 +90,7 @@ class DeleteExpiredCmd {
 
         const query = 'SELECT * FROM bucket WHERE stream_id = ? AND partition = ? AND date_create <= ?'
 
-        const tasks = streamsInfo.map((stream) => {
+        const tasks = streamsInfo.filter(Boolean).map((stream) => {
             const { streamId, partition, storageDays } = stream
             const timestampBefore = Date.now() - 1000 * 60 * 60 * 24 * storageDays
             const params = [streamId, partition, timestampBefore]
