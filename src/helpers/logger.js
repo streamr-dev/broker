@@ -4,7 +4,7 @@ const getLogger = (name) => pino({
     name,
     enabled: !process.env.NOLOG,
     level: process.env.LOG_LEVEL || 'info',
-    prettyPrint: {
+    prettyPrint: process.env.NODE_ENV === 'production' ? false : {
         colorize: true,
         translateTime: true
     }
