@@ -72,11 +72,11 @@ module.exports = class StreamFetcher {
         }).catch((e) => {
             logger.error(`failed to communicate with E&E: ${e}`)
             throw e
-        }).then((response) => {
+        }).then(async (response) => {
             if (response.status !== 200) {
                 logger.debug(
                     'fetch failed with status %d for streamId %s, apiKey %s, sessionToken %s : %o',
-                    response.status, streamId, apiKey, sessionToken, response.text(),
+                    response.status, streamId, apiKey, sessionToken, await response.text(),
                 )
                 this.fetch.delete(streamId, apiKey, sessionToken) // clear cache result
                 throw new HttpError(response.status, 'GET', url)
