@@ -86,7 +86,7 @@ module.exports = (streamFetcher, publisher, partitionFn = partition) => {
                 }
                 signatureType = req.query.signatureType ? parsePositiveInteger(req.query.signatureType) : 0
             } catch (err) {
-                logger.error(err.message)
+                logger.error(err)
                 res.status(400).send({
                     error: err.message
                 })
