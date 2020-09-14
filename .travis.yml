@@ -35,6 +35,7 @@ jobs:
     after_failure:
     - "$TRAVIS_BUILD_DIR/streamr-docker-dev/streamr-docker-dev/bin.sh log"
     - "$TRAVIS_BUILD_DIR/streamr-docker-dev/streamr-docker-dev/bin.sh log engine-and-editor"
+    - sleep 30
   - stage: Tests
     name: Unit Tests
     script:
