@@ -249,6 +249,8 @@ class Storage extends EventEmitter {
                 (err) => {
                     if (err) {
                         logger.error('pump finished with error', err)
+                        stream1.destroy(err)
+                        stream2.destroy(err)
                         resultStream.push(null)
                     }
                 }
@@ -297,6 +299,7 @@ class Storage extends EventEmitter {
                 (err) => {
                     if (err) {
                         logger.error('pump finished with error', err)
+                        cassandraStream.destroy(err)
                         resultStream.push(null)
                     }
                 }
@@ -354,6 +357,9 @@ class Storage extends EventEmitter {
                 (err) => {
                     if (err) {
                         logger.error('pump finished with error', err)
+                        stream1.destroy(err)
+                        stream2.destroy(err)
+                        stream3.destroy(err)
                         resultStream.push(null)
                     }
                 }
