@@ -205,6 +205,7 @@ class Storage extends EventEmitter {
                 (err) => {
                     if (err) {
                         logger.error('pump finished with error', err)
+                        cassandraStream.destroy(err)
                         resultStream.push(null)
                     }
                 }
