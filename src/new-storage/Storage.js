@@ -405,6 +405,10 @@ class Storage extends EventEmitter {
             autoPage: true,
             continuousPaging: true
         })
+        cassandraStream.setHandlers({
+            continuousPaging: true,
+            cancelHandler: () => {}
+        })
 
         // To avoid blocking main thread for too long, on every 1000th message
         // pause & resume the cassandraStream to give other events in the event
