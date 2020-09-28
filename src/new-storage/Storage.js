@@ -205,8 +205,6 @@ class Storage extends EventEmitter {
                 (err) => {
                     if (err) {
                         logger.error('pump finished with error', err)
-                        cassandraStream.cancel()
-                        cassandraStream.destroy(err)
                         resultStream.push(null)
                     }
                 }
@@ -250,10 +248,6 @@ class Storage extends EventEmitter {
                 (err) => {
                     if (err) {
                         logger.error('pump finished with error', err)
-                        stream1.cancel()
-                        stream2.cancel()
-                        stream1.destroy(err)
-                        stream2.destroy(err)
                         resultStream.push(null)
                     }
                 }
@@ -302,8 +296,6 @@ class Storage extends EventEmitter {
                 (err) => {
                     if (err) {
                         logger.error('pump finished with error', err)
-                        cassandraStream.cancel()
-                        cassandraStream.destroy(err)
                         resultStream.push(null)
                     }
                 }
@@ -361,12 +353,6 @@ class Storage extends EventEmitter {
                 (err) => {
                     if (err) {
                         logger.error('pump finished with error', err)
-                        stream1.cancel()
-                        stream2.cancel()
-                        stream3.cancel()
-                        stream1.destroy(err)
-                        stream2.destroy(err)
-                        stream3.destroy(err)
                         resultStream.push(null)
                     }
                 }
@@ -402,12 +388,7 @@ class Storage extends EventEmitter {
     _queryWithStreamingResults(query, queryParams) {
         const cassandraStream = this.cassandraClient.stream(query, queryParams, {
             prepare: true,
-            autoPage: true,
-            continuousPaging: true
-        })
-        cassandraStream.setHandlers({
-            continuousPaging: true,
-            cancelHandler: () => {}
+            autoPage: false
         })
 
         // To avoid blocking main thread for too long, on every 1000th message
