@@ -146,6 +146,63 @@ class Storage extends EventEmitter {
         return resultStream
     }
 
+    requestFromV2(streamId, partition, fromTimestamp, pageState = undefined) {
+        const resultStream = this._createResultStream()
+
+        const query = 'SELECT payload FROM stream_data WHERE '
+            + 'stream_id = ? AND partition = ? AND bucket_id IN ? AND ts >= ?'
+
+        this.bucketManager.getLastBuckets(streamId, partition, 1, fromTimestamp).then((buckets) => {
+            return buckets.length ? buckets[0].dateCreate : fromTimestamp
+        }).then((startBucketTimestamp) => {
+            return this.bucketManager.getBucketsByTimestamp(streamId, partition, startBucketTimestamp)
+        }).then((buckets) => {
+            if (!buckets || !buckets.length) {
+                throw new Error('Failed to find buckets')
+            }
+
+            const bucketsForQuery = bucketsToIds(buckets)
+
+            const queryParams = [streamId, partition, bucketsForQuery, fromTimestamp]
+            logger.info(queryParams) // TODO can be removed later
+
+            const options = {
+                prepare: true,
+                autoPage: false,
+                fetchSize: 100
+            }
+
+            if (pageState) {
+                logger.info(`got page state ${pageState}`)
+                options.pageState = pageState
+            }
+
+            this.cassandraClient.eachRow(query, queryParams, options, (n, row) => {
+                resultStream.write(row)
+            }, (err, result) => {
+                if (result.pageState) {
+                    logger.info('have more pages')
+                    resultStream.push({
+                        nextPage: result.pageState
+                    })
+                    resultStream.push(null)
+                } else {
+                    logger.info('no more pages')
+                    resultStream.push({
+                        nextPage: undefined
+                    })
+                    resultStream.push(null)
+                }
+            })
+        })
+            .catch((e) => {
+                logger.warn(e)
+                resultStream.push(null)
+            })
+
+        return resultStream
+    }
+
     requestFrom(streamId, partition, fromTimestamp, fromSequenceNo, publisherId, msgChainId) {
         logger.debug(`requestFrom, streamId: "${streamId}", partition: "${partition}", fromTimestamp: "${fromTimestamp}", fromSequenceNo: `
             + `"${fromSequenceNo}", publisherId: "${publisherId}", msgChainId: "${msgChainId}"`)

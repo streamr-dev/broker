@@ -277,4 +277,46 @@ describe('Storage', () => {
 
         expect(results.length).toEqual(1000)
     }, 20000)
+
+    test('manual pagination', async () => {
+        const storedMessages = []
+        const MAX_MSG = 500000
+
+        const storeMsg = (i) => {
+            const msg = buildMsg(streamId, 0, (i + 1) * 1000, i, 'publisher1')
+
+            if (i < MAX_MSG) {
+                storedMessages.push(msg)
+                storage.store(msg)
+                setImmediate(() => storeMsg(i + 1))
+            }
+        }
+
+        storeMsg(0)
+
+        await wait(20000)
+
+        const messages = []
+
+        const resendFrom = async (state) => {
+            const streamingResults = storage.requestFromV2(streamId, 0, 1, state)
+            const results = await toArray(streamingResults)
+            const lastResult = results.pop()
+
+            messages.push(...results)
+
+            if (lastResult.nextPage) {
+                await resendFrom(lastResult.nextPage)
+            } else {
+                console.log('null next page')
+            }
+        }
+
+        console.time()
+        await resendFrom(undefined)
+        console.timeEnd()
+
+        expect(messages.length).toEqual(MAX_MSG)
+        expect(messages).toEqual(storedMessages)
+    }, 200000)
 })
