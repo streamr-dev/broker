@@ -11,7 +11,6 @@ const DEFAULT_CLIENT_OPTIONS = {
 
 function formConfig(name, networkPort, trackerPort, httpPort, wsPort, mqttPort, enableCassandra, privateKeyFileName, certFileName,
     generateWallet = true, ethereumPrivateKey) {
-
     const adapters = []
     if (httpPort) {
         adapters.push({
