@@ -39,6 +39,20 @@ jobs:
         env:
           CI: true
 
+  docker:
+    needs: [test]
+    name: Build and publish Docker images
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master'
+
+    steps:
+      - run: docker build -t $OWNER/$IMAGE_NAME:taggit .
+      - run: sh .travis_scripts/smoke_test.sh
+      - run: sh .travis_scripts/deploy_docker.sh dev
+    env:
+      OWNER: streamr
+      IMAGE_NAME: broker-node
+
   publish:
     needs: [test]
     name: Publishing master using Node 14
