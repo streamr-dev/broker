@@ -62,7 +62,15 @@ describe('DeleteExpiredCmd', () => {
             keyspace,
         })
 
-        broker = await startBroker('broker', networkPort, trackerPort, httpPort, wsPort, null, true)
+        broker = await startBroker({
+            name: 'broker',
+            privateKey: '0xb198d9659173e0957d9cf8f4939d74efb9516465766f2952436103a5f31017b4',
+            networkPort,
+            trackerPort,
+            httpPort,
+            wsPort,
+            enableCassandra: true
+        })
         client = createClient(wsPort, {
             auth: {
                 apiKey: 'tester1-api-key'
@@ -96,7 +104,13 @@ describe('DeleteExpiredCmd', () => {
             await fixtures(cassandraClient, streamId, 2)
             await fixtures(cassandraClient, streamId, 3)
 
-            const deleteExpiredCmd = new DeleteExpiredCmd(formConfig('name', 0, 0, 0, 0, 0, true))
+            const deleteExpiredCmd = new DeleteExpiredCmd(formConfig({
+                name: 'name',
+                networkPort: 0,
+                trackerPort: 0,
+                privateKey: '0x09a0c3b1de507fe8655d6d042176c68f7905a77248b0c7c6671d2d94b1fda83e',
+                enableCassandra: true
+            }))
             await deleteExpiredCmd.run()
             await checkDBCount(cassandraClient, streamId, days)
         })
