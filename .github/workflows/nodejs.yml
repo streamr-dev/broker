@@ -31,8 +31,8 @@ jobs:
       - name: Cache streamr-docker-dev environment
         uses: actions/cache@v2
         with:
-        path: ${GITHUB_WORKSPACE}/streamr-docker-dev
-        key: streamr-docker-dev
+          path: ${GITHUB_WORKSPACE}/streamr-docker-dev
+          key: streamr-docker-dev
       - name: streamr-docker-dev
         run: |
           if streamr-docker-dev; then git pull; else git clone --depth 1 https://github.com/streamr-dev/streamr-docker-dev.git; fi
