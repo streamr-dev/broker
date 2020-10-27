@@ -28,16 +28,10 @@ jobs:
       - run: npm run eslint
       - run: npm run build --if-present
       - run: npm run test-unit
-      - name: Cache streamr-docker-dev environment
-        uses: actions/cache@v2
-        with:
-          path: ${GITHUB_WORKSPACE}/streamr-docker-dev
-          key: streamr-docker-dev
       - name: streamr-docker-dev
         run: |
-          if streamr-docker-dev; then git pull; else git clone --depth 1 https://github.com/streamr-dev/streamr-docker-dev.git; fi
+          git clone --depth 1 https://github.com/streamr-dev/streamr-docker-dev.git
           sudo ifconfig docker0 10.200.10.1/24
-          streamr-docker-dev pull engine-and-editor cassandra
           ${GITHUB_WORKSPACE}/streamr-docker-dev/streamr-docker-dev/bin.sh start engine-and-editor cassandra --except tracker-1 --except tracker-2 --except tracker-3 --except broker-node-storage-1 --except broker-node-no-storage-1 --except broker-node-no-storage-2 --wait
       - run: npm run test-integration
         env:
