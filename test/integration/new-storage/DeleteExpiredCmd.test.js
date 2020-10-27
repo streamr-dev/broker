@@ -2,16 +2,11 @@ const cassandra = require('cassandra-driver')
 const { TimeUuid } = require('cassandra-driver').types
 
 const DeleteExpiredCmd = require('../../../src/new-storage/DeleteExpiredCmd')
-const { startBroker, createClient, formConfig } = require('../../utils')
+const { createClient, formConfig } = require('../../utils')
 
 const contactPoints = ['127.0.0.1']
 const localDataCenter = 'datacenter1'
 const keyspace = 'streamr_dev_v2'
-
-const httpPort = 22341
-const wsPort = 22351
-const networkPort = 22361
-const trackerPort = 22370
 
 const fixtures = async (cassandraClient, streamId, daysAgo) => {
     const timestampDaysAgo = Date.now() - 1000 * 60 * 60 * 24 * daysAgo
@@ -48,12 +43,8 @@ const checkDBCount = async (cassandraClient, streamId, days) => {
 }
 
 describe('DeleteExpiredCmd', () => {
-    let broker
     let client
-
     let cassandraClient
-
-    let streamId
 
     beforeEach(async () => {
         cassandraClient = new cassandra.Client({
@@ -61,33 +52,16 @@ describe('DeleteExpiredCmd', () => {
             localDataCenter,
             keyspace,
         })
-
-        broker = await startBroker({
-            name: 'broker',
-            privateKey: '0xb198d9659173e0957d9cf8f4939d74efb9516465766f2952436103a5f31017b4',
-            networkPort,
-            trackerPort,
-            httpPort,
-            wsPort,
-            enableCassandra: true
-        })
-        client = createClient(wsPort, {
+        client = createClient(9999, {
             auth: {
                 apiKey: 'tester1-api-key'
             },
             orderMessages: false,
         })
-        await client.ensureConnected()
     })
 
     afterEach(async () => {
-        await broker.close()
-        await client.ensureDisconnected()
         await cassandraClient.shutdown()
-    })
-
-    afterAll(() => {
-        jest.restoreAllMocks()
     })
 
     const daysArray = [0, 1, 2, 3]
@@ -97,7 +71,7 @@ describe('DeleteExpiredCmd', () => {
                 name: 'DeleteExpiredCmd.test.js-' + Date.now(),
                 storageDays: days
             })
-            streamId = stream.id
+            const streamId = stream.id
 
             await fixtures(cassandraClient, streamId, 0)
             await fixtures(cassandraClient, streamId, 1)
