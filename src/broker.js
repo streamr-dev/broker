@@ -120,7 +120,7 @@ module.exports = async (config) => {
 
     // Initialize common utilities
     const volumeLogger = new VolumeLogger(
-        config.reporting.reportingIntervalSeconds,
+        config.reporting.intervalInSeconds,
         networkNode,
         storages,
         client,

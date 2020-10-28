@@ -76,18 +76,21 @@ const validateConfig = (config) => {
     if (config.reporting === undefined) {
         throw new MissingConfigError('reporting')
     }
-    if (config.reporting && (config.reporting.streamId !== undefined || config.reporting.apiKey !== undefined)) {
-        if (config.reporting.apiKey === undefined) {
+    if (config.reporting && config.reporting.streamr === undefined) {
+        throw new MissingConfigError('reporting.streamr')
+    }
+    if (config.reporting && config.reporting.streamr) {
+        if (config.reporting.streamr.apiKey === undefined) {
             throw new MissingConfigError('reporting.apiKey')
         }
-        if (config.reporting.streamId === undefined) {
+        if (config.reporting.streamr.streamId === undefined) {
             throw new MissingConfigError('reporting.streamId')
         }
     }
-    if (config.reporting && config.reporting.reportingIntervalSeconds === undefined) {
-        throw new MissingConfigError('reporting.reportingIntervalSeconds')
+    if (config.reporting && config.reporting.intervalInSeconds === undefined) {
+        throw new MissingConfigError('reporting.intervalInSeconds')
     }
-    if (config.sentry === undefined) {
+    if (config.reporting && config.reporting.sentry === undefined) {
         throw new MissingConfigError('sentry')
     }
     if (config.adapters === undefined) {
