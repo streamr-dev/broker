@@ -75,10 +75,6 @@ const validateConfig = (config) => {
     if (config.trackerRegistry && config.trackerRegistry.address === undefined) {
         throw new MissingConfigError('trackerRegistry.address')
     }
-    if (config.thresholdForFutureMessageSeconds === undefined) {
-        // eslint-disable-next-line no-param-reassign
-        config.thresholdForFutureMessageSeconds = 300
-    }
     if (config.ethereum === undefined) {
         throw new MissingConfigError('ethereum')
     }

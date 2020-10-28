@@ -138,7 +138,7 @@ module.exports = async (config) => {
         isSubscriber: (address, sId) => unauthenticatedClient.isStreamSubscriber(sId, address),
     })
     const streamFetcher = new StreamFetcher(config.streamrUrl)
-    const publisher = new Publisher(networkNode, streamMessageValidator, config.thresholdForFutureMessageSeconds, volumeLogger)
+    const publisher = new Publisher(networkNode, streamMessageValidator, volumeLogger)
     const subscriptionManager = new SubscriptionManager(networkNode)
 
     // Start up adapters one-by-one, storing their close functions for further use

@@ -42,7 +42,7 @@ describe('ping-pong test between broker and clients', () => {
             wsPort,
             networkNode,
             new StreamFetcher('http://localhost:8081/streamr-core'),
-            new Publisher(networkNode, volumeLogger),
+            new Publisher(networkNode, {}, volumeLogger),
             volumeLogger,
             new SubscriptionManager(networkNode)
         )
