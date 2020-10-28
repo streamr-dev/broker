@@ -1,6 +1,9 @@
 const MissingConfigError = require('../errors/MissingConfigError')
 
 const validateConfig = (config) => {
+    if (config.ethereumPrivateKey === undefined) {
+        throw new MissingConfigError('ethereumPrivateKey')
+    }
     if (config.network === undefined) {
         throw new MissingConfigError('network')
     }
@@ -74,15 +77,6 @@ const validateConfig = (config) => {
     }
     if (config.trackerRegistry && config.trackerRegistry.address === undefined) {
         throw new MissingConfigError('trackerRegistry.address')
-    }
-    if (config.ethereum === undefined) {
-        throw new MissingConfigError('ethereum')
-    }
-    if (config.ethereum.privateKey === undefined && config.ethereum.generateWallet === undefined) {
-        throw new MissingConfigError('ethereum.privateKey or ethereum.generateWallet must be defined.')
-    }
-    if (config.ethereum.privateKey && config.ethereum.generateWallet === true) {
-        throw new MissingConfigError('ethereum.privateKey and ethereum.generateWallet defined, define only one option.')
     }
     if (config.location === undefined) {
         throw new MissingConfigError('location')

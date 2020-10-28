@@ -3,6 +3,7 @@ const pino = require('pino')
 const StreamrClient = require('streamr-client')
 const publicIp = require('public-ip')
 const Sentry = require('@sentry/node')
+const ethers = require('ethers')
 
 const CURRENT_VERSION = require('../package.json').version
 
@@ -15,7 +16,6 @@ const SubscriptionManager = require('./SubscriptionManager')
 const MissingConfigError = require('./errors/MissingConfigError')
 const adapterRegistry = require('./adapterRegistry')
 const validateConfig = require('./helpers/validateConfig')
-const ethereumAuthenticate = require('./helpers/ethereumAuthenticate')
 
 const { Utils } = Protocol
 
@@ -27,6 +27,13 @@ module.exports = async (config) => {
     const storages = []
     const networkNodeName = config.network.name
     const { location } = config
+
+    // Ethereum wallet retrieval
+    const wallet = new ethers.Wallet(config.ethereumPrivateKey)
+    if (!wallet) {
+        throw new Error('Could not resolve Ethereum address from given config.ethereumPrivateKey')
+    }
+    const brokerAddress = wallet.address
 
     // Start cassandra storage
     if (config.cassandra) {
@@ -43,14 +50,6 @@ module.exports = async (config) => {
         }))
     } else {
         logger.info('Cassandra disabled')
-    }
-
-    // Ethereum authentication
-    const brokerAddress = ethereumAuthenticate.authenticateFromConfig(config.ethereum)
-    if (brokerAddress) {
-        logger.info(`Network node: ${networkNodeName}, id Ethereum address: ${brokerAddress}`)
-    } else {
-        throw new MissingConfigError('Invalid Ethereum authentication options')
     }
 
     // Form tracker list

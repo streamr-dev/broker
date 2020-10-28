@@ -46,6 +46,7 @@ function formConfig({
     }
 
     return {
+        ethereumPrivateKey: privateKey,
         network: {
             name,
             hostname: '127.0.0.1',
@@ -55,9 +56,6 @@ function formConfig({
                 `ws://127.0.0.1:${trackerPort}`
             ],
             isStorageNode: true
-        },
-        ethereum: {
-            privateKey
         },
         location: {
             latitude: 60.19,
