@@ -22,29 +22,35 @@ const validateConfig = (config) => {
     if (config.network.trackers === undefined && config.trackerRegistry === undefined) {
         throw new MissingConfigError('network.trackers or network.trackerRegistry must be defined')
     }
-    if (config.network.trackers && config.trackerRegistry) {
-        throw new Error('Not allowed to set both network.trackers and trackerRegistry.')
+    if (config.network.trackers && config.network.trackerRegistry) {
+        throw new Error('Not allowed to set both network.trackers and network.trackerRegistry.')
     }
     if (config.network.trackers && !Array.isArray(config.network.trackers)) {
         throw new MissingConfigError('network.trackers must be array')
+    }
+    if (config.network.trackerRegistry && config.network.trackerRegistry.jsonRpcProvider === undefined) {
+        throw new MissingConfigError('network.trackerRegistry.jsonRpcProvider')
+    }
+    if (config.network.trackerRegistry && config.network.trackerRegistry.address === undefined) {
+        throw new MissingConfigError('network.trackerRegistry.address')
     }
     if (config.network.isStorageNode === undefined) {
         throw new MissingConfigError('network.isStorageNode')
     }
     if (config.network.location === undefined) {
-        throw new MissingConfigError('location')
+        throw new MissingConfigError('network.location')
     }
     if (config.network.location && config.network.location.city === undefined) {
-        throw new MissingConfigError('location.city')
+        throw new MissingConfigError('network.location.city')
     }
     if (config.network.location && config.network.location.country === undefined) {
-        throw new MissingConfigError('location.country')
+        throw new MissingConfigError('network.location.country')
     }
     if (config.network.location && config.network.location.latitude === undefined) {
-        throw new MissingConfigError('location.latitude')
+        throw new MissingConfigError('network.location.latitude')
     }
     if (config.network.location && config.network.location.longitude === undefined) {
-        throw new MissingConfigError('location.longitude')
+        throw new MissingConfigError('network.location.longitude')
     }
     if (config.cassandra === undefined) {
         throw new MissingConfigError('cassandra')
@@ -67,9 +73,6 @@ const validateConfig = (config) => {
     if (config.streamrUrl === undefined) {
         throw new MissingConfigError('streamrUrl')
     }
-    if (config.adapters === undefined) {
-        throw new MissingConfigError('adapters')
-    }
     if (config.reporting === undefined) {
         throw new MissingConfigError('reporting')
     }
@@ -87,11 +90,8 @@ const validateConfig = (config) => {
     if (config.sentry === undefined) {
         throw new MissingConfigError('sentry')
     }
-    if (config.trackerRegistry && config.trackerRegistry.jsonRpcProvider === undefined) {
-        throw new MissingConfigError('trackerRegistry.jsonRpcProvider')
-    }
-    if (config.trackerRegistry && config.trackerRegistry.address === undefined) {
-        throw new MissingConfigError('trackerRegistry.address')
+    if (config.adapters === undefined) {
+        throw new MissingConfigError('adapters')
     }
 
     config.adapters.forEach(({ name }, index) => {
