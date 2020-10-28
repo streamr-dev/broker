@@ -31,6 +31,21 @@ const validateConfig = (config) => {
     if (config.network.isStorageNode === undefined) {
         throw new MissingConfigError('network.isStorageNode')
     }
+    if (config.network.location === undefined) {
+        throw new MissingConfigError('location')
+    }
+    if (config.network.location && config.network.location.city === undefined) {
+        throw new MissingConfigError('location.city')
+    }
+    if (config.network.location && config.network.location.country === undefined) {
+        throw new MissingConfigError('location.country')
+    }
+    if (config.network.location && config.network.location.latitude === undefined) {
+        throw new MissingConfigError('location.latitude')
+    }
+    if (config.network.location && config.network.location.longitude === undefined) {
+        throw new MissingConfigError('location.longitude')
+    }
     if (config.cassandra === undefined) {
         throw new MissingConfigError('cassandra')
     }
@@ -77,21 +92,6 @@ const validateConfig = (config) => {
     }
     if (config.trackerRegistry && config.trackerRegistry.address === undefined) {
         throw new MissingConfigError('trackerRegistry.address')
-    }
-    if (config.location === undefined) {
-        throw new MissingConfigError('location')
-    }
-    if (config.location && config.location.city === undefined) {
-        throw new MissingConfigError('location.city')
-    }
-    if (config.location && config.location.country === undefined) {
-        throw new MissingConfigError('location.country')
-    }
-    if (config.location && config.location.latitude === undefined) {
-        throw new MissingConfigError('location.latitude')
-    }
-    if (config.location && config.location.longitude === undefined) {
-        throw new MissingConfigError('location.longitude')
     }
 
     config.adapters.forEach(({ name }, index) => {

@@ -26,7 +26,6 @@ module.exports = async (config) => {
 
     const storages = []
     const networkNodeName = config.network.name
-    const { location } = config
 
     // Ethereum wallet retrieval
     const wallet = new ethers.Wallet(config.ethereumPrivateKey)
@@ -77,7 +76,7 @@ module.exports = async (config) => {
         trackers,
         storages,
         advertisedWsUrl,
-        location
+        location: config.network.location
     })
     networkNode.start()
 
@@ -161,12 +160,13 @@ module.exports = async (config) => {
     })
 
     logger.info(`Network node '${networkNodeName}' running on ${config.network.hostname}:${config.network.port}`)
+    logger.info(`Ethereum address ${brokerAddress}`)
     logger.info(`Configured with trackers: ${trackers.join(', ')}`)
+    logger.info(`Configured with Streamr: ${config.streamrUrl}`)
     logger.info(`Adapters: ${JSON.stringify(config.adapters.map((a) => a.name))}`)
     if (config.cassandra) {
         logger.info(`Configured with Cassandra: hosts=${config.cassandra.hosts} and keyspace=${config.cassandra.keyspace}`)
     }
-    logger.info(`Configured with Streamr: ${config.streamrUrl}`)
     if (advertisedWsUrl) {
         logger.info(`Advertising to tracker WS url: ${advertisedWsUrl}`)
     }
