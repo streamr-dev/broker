@@ -77,7 +77,7 @@ describe('websocket server', () => {
         }
 
         it('rejects connections without preferred versions given as query parameters', async () => {
-            await testRejection(`ws://127.0.0.1:12346/api/v1/ws`)
+            await testRejection('ws://127.0.0.1:12346/api/v1/ws')
         })
 
         it('rejects connections with unsupported ControlLayer version', async () => {
