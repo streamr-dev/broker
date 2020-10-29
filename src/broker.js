@@ -1,4 +1,4 @@
-const { startNetworkNode, startStorageNode, Protocol } = require('streamr-network')
+const { startNetworkNode, startStorageNode, Protocol, MetricsContext } = require('streamr-network')
 const pino = require('pino')
 const StreamrClient = require('streamr-client')
 const publicIp = require('public-ip')
@@ -24,8 +24,9 @@ module.exports = async (config) => {
 
     logger.info(`Starting broker version ${CURRENT_VERSION}`)
 
-    const storages = []
     const networkNodeName = config.network.name
+    const metricsContext = new MetricsContext(networkNodeName)
+    const storages = []
 
     // Ethereum wallet retrieval
     const wallet = new ethers.Wallet(config.ethereumPrivateKey)
@@ -37,7 +38,7 @@ module.exports = async (config) => {
     // Start cassandra storage
     if (config.cassandra) {
         logger.info(`Starting Cassandra with hosts ${config.cassandra.hosts} and keyspace ${config.cassandra.keyspace}`)
-        storages.push(await startCassandraStorage({
+        const cassandraStorage = await startCassandraStorage({
             contactPoints: [...config.cassandra.hosts],
             localDataCenter: config.cassandra.datacenter,
             keyspace: config.cassandra.keyspace,
@@ -46,7 +47,9 @@ module.exports = async (config) => {
             opts: {
                 useTtl: !config.network.isStorageNode
             }
-        }))
+        })
+        cassandraStorage.enableMetrics(metricsContext)
+        storages.push(cassandraStorage)
     } else {
         logger.info('Cassandra disabled')
     }
@@ -76,7 +79,8 @@ module.exports = async (config) => {
         trackers,
         storages,
         advertisedWsUrl,
-        location: config.network.location
+        location: config.network.location,
+        metricsContext
     })
     networkNode.start()
 
@@ -121,8 +125,7 @@ module.exports = async (config) => {
     // Initialize common utilities
     const volumeLogger = new VolumeLogger(
         config.reporting.intervalInSeconds,
-        networkNode,
-        storages,
+        metricsContext,
         client,
         streamId
     )
@@ -136,7 +139,7 @@ module.exports = async (config) => {
         isSubscriber: (address, sId) => unauthenticatedClient.isStreamSubscriber(sId, address),
     })
     const streamFetcher = new StreamFetcher(config.streamrUrl)
-    const publisher = new Publisher(networkNode, streamMessageValidator, volumeLogger)
+    const publisher = new Publisher(networkNode, streamMessageValidator, metricsContext)
     const subscriptionManager = new SubscriptionManager(networkNode)
 
     // Start up adapters one-by-one, storing their close functions for further use
@@ -146,8 +149,8 @@ module.exports = async (config) => {
                 networkNode,
                 publisher,
                 streamFetcher,
-                volumeLogger,
-                subscriptionManager
+                metricsContext,
+                subscriptionManager,
             })
         } catch (e) {
             if (e instanceof MissingConfigError) {

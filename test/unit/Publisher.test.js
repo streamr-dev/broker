@@ -1,5 +1,6 @@
 const sinon = require('sinon')
 const { StreamMessage, MessageID } = require('streamr-network').Protocol.MessageLayer
+const { MetricsContext } = require('streamr-network')
 
 const Publisher = require('../../src/Publisher')
 
@@ -24,7 +25,7 @@ describe('Publisher', () => {
         validator = {
             validate: sinon.stub().resolves()
         }
-        publisher = new Publisher(networkNode, validator)
+        publisher = new Publisher(networkNode, validator, new MetricsContext(null))
     })
 
     describe('validateAndPublish', () => {

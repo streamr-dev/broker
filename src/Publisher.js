@@ -1,4 +1,3 @@
-const VolumeLogger = require('./VolumeLogger')
 const FailedToPublishError = require('./errors/FailedToPublishError')
 
 const THRESHOLD_FOR_FUTURE_MESSAGES_IN_MS = 300 * 1000
@@ -8,20 +7,21 @@ const isTimestampTooFarInTheFuture = (timestamp) => {
 }
 
 module.exports = class Publisher {
-    constructor(networkNode, streamMessageValidator, volumeLogger = new VolumeLogger(0)) {
-        this.networkNode = networkNode
-        this.streamMessageValidator = streamMessageValidator
-        this.volumeLogger = volumeLogger
-
+    constructor(networkNode, streamMessageValidator, metricsContext) {
         if (!networkNode) {
             throw new Error('No networkNode defined!')
         }
         if (!streamMessageValidator) {
             throw new Error('No streamMessageValidator defined!')
         }
-        if (!volumeLogger) {
-            throw new Error('No volumeLogger defined!')
+        if (!metricsContext) {
+            throw new Error('No metricsContext defined!')
         }
+        this.networkNode = networkNode
+        this.streamMessageValidator = streamMessageValidator
+        this.metrics = metricsContext.create('broker/publisher')
+            .addRecordedMetric('bytes')
+            .addRecordedMetric('messages')
     }
 
     async validateAndPublish(streamMessage) {
@@ -38,7 +38,8 @@ module.exports = class Publisher {
         // This throws if content not valid JSON
         streamMessage.getContent(true)
 
-        this.volumeLogger.logInput(streamMessage.getContent(false).length)
+        this.metrics.record('bytes', streamMessage.getContent(false).length)
+        this.metrics.record('messages', 1)
         this.networkNode.publish(streamMessage)
     }
 }
