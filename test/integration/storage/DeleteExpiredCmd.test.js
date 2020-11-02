@@ -117,11 +117,11 @@ describe('DeleteExpiredCmd', () => {
         })
         const streamId = stream.id
 
-        const bucketId = await insertBucket(cassandraClient, streamId,Date.now() - 30 * DAY_IN_MS)
-        await insertData(cassandraClient, streamId, bucketId,Date.now() - 30 * DAY_IN_MS)
-        await insertData(cassandraClient, streamId, bucketId,Date.now() - 15 * DAY_IN_MS)
+        const bucketId = await insertBucket(cassandraClient, streamId, Date.now() - 30 * DAY_IN_MS)
+        await insertData(cassandraClient, streamId, bucketId, Date.now() - 30 * DAY_IN_MS)
+        await insertData(cassandraClient, streamId, bucketId, Date.now() - 15 * DAY_IN_MS)
         // prevents bucket from being deleted
-        await insertData(cassandraClient, streamId, bucketId,Date.now() - 3 * DAY_IN_MS)
+        await insertData(cassandraClient, streamId, bucketId, Date.now() - 3 * DAY_IN_MS)
 
         await deleteExpiredCmd.run()
         const counts = await checkDBCount(cassandraClient, streamId)
