@@ -11,7 +11,7 @@ const keyspace = 'streamr_dev_v2'
 const DAY_IN_MS = 1000 * 60 * 60 * 24
 
 const insertBucket = async (cassandraClient, streamId, dateCreate) => {
-    const bucketId = TimeUuid.fromDate(dateCreate).toString()
+    const bucketId = TimeUuid.fromDate(new Date(dateCreate)).toString()
     const query = 'INSERT INTO bucket (stream_id, partition, date_create, id, records, size)'
         + 'VALUES (?, 0, ?, ?, 1, 1)'
     await cassandraClient.execute(query, [streamId, dateCreate, bucketId], {
@@ -25,29 +25,31 @@ const insertData = async (cassandraClient, streamId, bucketId, ts) => {
         + '(stream_id, partition, bucket_id, ts, sequence_no, publisher_id, msg_chain_id, payload) '
         + 'VALUES (?, 0, ?, ?, 0, ?, ?, ?)'
     await cassandraClient.execute(insert, [
-        streamId, bucketId, ts, 'publisherId', 'msgChainId', Buffer.from('{}')
+        streamId, bucketId, new Date(ts), 'publisherId', 'msgChainId', Buffer.from('{}')
     ], {
         prepare: true
     })
 }
 
-const checkDBCount = async (cassandraClient, streamId, days) => {
+const checkDBCount = async (cassandraClient, streamId) => {
     const countBuckets = 'SELECT COUNT(*) FROM bucket WHERE stream_id = ? AND partition = 0 ALLOW FILTERING'
-    const result = await cassandraClient.execute(countBuckets, [streamId], {
+    const bucketResult = await cassandraClient.execute(countBuckets, [streamId], {
         prepare: true
     })
-    expect(result.first().count.low).toEqual(days)
-
     const countData = 'SELECT COUNT(*) FROM stream_data WHERE stream_id = ? AND partition = 0 ALLOW FILTERING'
-    const resultData = await cassandraClient.execute(countData, [streamId], {
+    const messageResult = await cassandraClient.execute(countData, [streamId], {
         prepare: true
     })
-    expect(resultData.first().count.low).toEqual(days)
+    return {
+        bucketCount: bucketResult.first().count.low,
+        messageCount: messageResult.first().count.low
+    }
 }
 
 describe('DeleteExpiredCmd', () => {
     let client
     let cassandraClient
+    let deleteExpiredCmd
 
     beforeEach(async () => {
         cassandraClient = new cassandra.Client({
@@ -60,6 +62,15 @@ describe('DeleteExpiredCmd', () => {
                 apiKey: 'tester1-api-key'
             },
             orderMessages: false,
+        })
+        deleteExpiredCmd = new DeleteExpiredCmd({
+            streamrBaseUrl: 'http://localhost:8081/streamr-core',
+            cassandraUsername: '',
+            cassandraPassword: '',
+            cassandraHosts: ['localhost'],
+            cassandraDatacenter: 'datacenter1',
+            cassandraKeyspace: 'streamr_dev_v2',
+            dryRun: false
         })
     })
 
@@ -78,27 +89,45 @@ describe('DeleteExpiredCmd', () => {
             })
             const streamId = stream.id
 
-            const bucketId1 = await insertBucket(cassandraClient, streamId, new Date(Date.now() - 0 * DAY_IN_MS))
-            const bucketId2 = await insertBucket(cassandraClient, streamId, new Date(Date.now() - 1 * DAY_IN_MS))
-            const bucketId3 = await insertBucket(cassandraClient, streamId, new Date(Date.now() - 2 * DAY_IN_MS))
-            const bucketId4 = await insertBucket(cassandraClient, streamId, new Date(Date.now() - 3 * DAY_IN_MS))
+            const bucketId1 = await insertBucket(cassandraClient, streamId, Date.now() - 0 * DAY_IN_MS)
+            const bucketId2 = await insertBucket(cassandraClient, streamId, Date.now() - 1 * DAY_IN_MS)
+            const bucketId3 = await insertBucket(cassandraClient, streamId, Date.now() - 2 * DAY_IN_MS)
+            const bucketId4 = await insertBucket(cassandraClient, streamId, Date.now() - 3 * DAY_IN_MS)
 
-            await insertData(cassandraClient, streamId, bucketId1, new Date(Date.now() - 0 * DAY_IN_MS))
-            await insertData(cassandraClient, streamId, bucketId2, new Date(Date.now() - 1 * DAY_IN_MS))
-            await insertData(cassandraClient, streamId, bucketId3, new Date(Date.now() - 2 * DAY_IN_MS))
-            await insertData(cassandraClient, streamId, bucketId4, new Date(Date.now() - 3 * DAY_IN_MS))
+            await insertData(cassandraClient, streamId, bucketId1, Date.now() - 0 * DAY_IN_MS)
+            await insertData(cassandraClient, streamId, bucketId2, Date.now() - 1 * DAY_IN_MS)
+            await insertData(cassandraClient, streamId, bucketId3, Date.now() - 2 * DAY_IN_MS)
+            await insertData(cassandraClient, streamId, bucketId4, Date.now() - 3 * DAY_IN_MS)
 
-            const deleteExpiredCmd = new DeleteExpiredCmd({
-                streamrBaseUrl: 'http://localhost:8081/streamr-core',
-                cassandraUsername: '',
-                cassandraPassword: '',
-                cassandraHosts: ['localhost'],
-                cassandraDatacenter: 'datacenter1',
-                cassandraKeyspace: 'streamr_dev_v2',
-                dryRun: false
-            })
             await deleteExpiredCmd.run()
-            await checkDBCount(cassandraClient, streamId, days)
+            const counts = await checkDBCount(cassandraClient, streamId, days)
+            expect(counts).toEqual({
+                bucketCount: days,
+                messageCount: days
+            })
         }, 10 * 1000)
+    })
+
+    test('max message timestamp of bucket is taken into consideration', async () => {
+        const id = 'sandbox/DeleteExpiredCmd.test.js-' + Date.now()
+        const stream = await client.createStream({
+            id,
+            name: id,
+            storageDays: 10
+        })
+        const streamId = stream.id
+
+        const bucketId = await insertBucket(cassandraClient, streamId,Date.now() - 30 * DAY_IN_MS)
+        await insertData(cassandraClient, streamId, bucketId,Date.now() - 30 * DAY_IN_MS)
+        await insertData(cassandraClient, streamId, bucketId,Date.now() - 15 * DAY_IN_MS)
+        // prevents bucket from being deleted
+        await insertData(cassandraClient, streamId, bucketId,Date.now() - 3 * DAY_IN_MS)
+
+        await deleteExpiredCmd.run()
+        const counts = await checkDBCount(cassandraClient, streamId)
+        expect(counts).toEqual({
+            bucketCount: 1,
+            messageCount: 3
+        })
     })
 })
