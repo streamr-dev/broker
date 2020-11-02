@@ -70,7 +70,7 @@ class DeleteExpiredCmd {
                     return {
                         streamId: stream.streamId,
                         partition: stream.partition,
-                        storageDays: parseInt(json.storageDays)
+                        storageDays: json.storageDays != null ? parseInt(json.storageDays): 365,
                     }
                 }).catch((err) => logger.error(err))
             })
