@@ -21,7 +21,10 @@
       }
     },
     "cassandra": {
-      "type": "object",
+      "type": [
+        "object",
+        "null"
+      ],
       "description": "Apache Cassandra configuration",
       "required": [
         "hosts",
@@ -58,7 +61,7 @@
     "ethereumPrivateKey": {
       "type": "string",
       "description": "Ethereum private key to establish broker identity",
-      "pattern": "^[a-f0-9]{64}$"
+      "pattern": "^0x[a-f0-9]{64}$"
     },
     "network": {
       "type": "object",
@@ -69,6 +72,7 @@
         "port",
         "advertisedWsUrl",
         "isStorageNode",
+        "trackers",
         "location"
       ],
       "additionalProperties": false,
@@ -93,11 +97,43 @@
             "string",
             "null"
           ],
-          "description": "Override WS URL to advertise to tracker and other nodes (useful when behind NAT)"
+          "description": "Override WebSocket URL to advertise to tracker and other nodes (useful when behind NAT)"
         },
         "isStorageNode": {
           "type": "boolean",
           "description": "Whether to identify as storage node or not"
+        },
+        "trackers": {
+          "oneOf": [
+            {
+              "type": "array",
+              "description": "List of tracker WebSocket URLs to connect to",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "type": "object",
+              "description": "Tracker registry smart contract to use for fetching tracker WebSocket URLs",
+              "required": [
+                "registryAddress",
+                "jsonRpcProvider"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "registryAddress": {
+                  "type": "string",
+                  "description": "Ethereum address of tracker registry smart contract",
+                  "pattern": "^0x[a-fA-F0-9]{40}$"
+                },
+                "jsonRpcProvider": {
+                  "type": "string",
+                  "description": "URL for JSON RPC Provider",
+                  "format": "uri"
+                }
+              }
+            }
+          ]
         },
         "location": {
           "description": "Location of node",
@@ -151,9 +187,47 @@
       "description": "Configuration for reporting, metrics gathering, error gathering etc.",
       "required": [
         "intervalInSeconds",
-        "streamr",
-        "sentry"
-      ]
+        "sentry",
+        "streamr"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "intervalInSeconds": {
+          "type": "integer",
+          "description": "Interval (in seconds) in which to collect and report metrics (0 = disable)",
+          "minimum": 0
+        },
+        "sentry": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "URL for Sentry monitoring and error tracking",
+            "format": "uri"
+        },
+        "streamr": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "Report metrics to Streamr stream",
+            "required": [
+              "streamId",
+              "apiKey"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "streamId": {
+                "type": "string",
+                "description": "Stream identifier"
+              },
+              "apiKey": {
+                "type": "string",
+                "description": "API key for publishing to Stream"
+              }
+            }
+        }
+      }
     },
     "streamrUrl": {
       "type": "string",
