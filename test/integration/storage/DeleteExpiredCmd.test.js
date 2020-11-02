@@ -8,21 +8,24 @@ const contactPoints = ['127.0.0.1']
 const localDataCenter = 'datacenter1'
 const keyspace = 'streamr_dev_v2'
 
-const fixtures = async (cassandraClient, streamId, daysAgo) => {
-    const timestampDaysAgo = Date.now() - 1000 * 60 * 60 * 24 * daysAgo
-    const dateDaysAgo = new Date(timestampDaysAgo)
-    const bucketId = TimeUuid.fromDate(dateDaysAgo).toString()
+const DAY_IN_MS = 1000 * 60 * 60 * 24
+
+const insertBucket = async (cassandraClient, streamId, dateCreate) => {
+    const bucketId = TimeUuid.fromDate(dateCreate).toString()
     const query = 'INSERT INTO bucket (stream_id, partition, date_create, id, records, size)'
-                  + 'VALUES (?, 0, ?, ?, 1, 1)'
-    await cassandraClient.execute(query, [streamId, dateDaysAgo, bucketId], {
+        + 'VALUES (?, 0, ?, ?, 1, 1)'
+    await cassandraClient.execute(query, [streamId, dateCreate, bucketId], {
         prepare: true
     })
+    return bucketId
+}
 
+const insertData = async (cassandraClient, streamId, bucketId, ts) => {
     const insert = 'INSERT INTO stream_data '
         + '(stream_id, partition, bucket_id, ts, sequence_no, publisher_id, msg_chain_id, payload) '
         + 'VALUES (?, 0, ?, ?, 0, ?, ?, ?)'
     await cassandraClient.execute(insert, [
-        streamId, bucketId, timestampDaysAgo, 'publisherId', 'chainId', Buffer.from('{}')
+        streamId, bucketId, ts, 'publisherId', 'msgChainId', Buffer.from('{}')
     ], {
         prepare: true
     })
@@ -75,10 +78,15 @@ describe('DeleteExpiredCmd', () => {
             })
             const streamId = stream.id
 
-            await fixtures(cassandraClient, streamId, 0)
-            await fixtures(cassandraClient, streamId, 1)
-            await fixtures(cassandraClient, streamId, 2)
-            await fixtures(cassandraClient, streamId, 3)
+            const bucketId1 = await insertBucket(cassandraClient, streamId, new Date(Date.now() - 0 * DAY_IN_MS))
+            const bucketId2 = await insertBucket(cassandraClient, streamId, new Date(Date.now() - 1 * DAY_IN_MS))
+            const bucketId3 = await insertBucket(cassandraClient, streamId, new Date(Date.now() - 2 * DAY_IN_MS))
+            const bucketId4 = await insertBucket(cassandraClient, streamId, new Date(Date.now() - 3 * DAY_IN_MS))
+
+            await insertData(cassandraClient, streamId, bucketId1, new Date(Date.now() - 0 * DAY_IN_MS))
+            await insertData(cassandraClient, streamId, bucketId2, new Date(Date.now() - 1 * DAY_IN_MS))
+            await insertData(cassandraClient, streamId, bucketId3, new Date(Date.now() - 2 * DAY_IN_MS))
+            await insertData(cassandraClient, streamId, bucketId4, new Date(Date.now() - 3 * DAY_IN_MS))
 
             const deleteExpiredCmd = new DeleteExpiredCmd({
                 streamrBaseUrl: 'http://localhost:8081/streamr-core',
