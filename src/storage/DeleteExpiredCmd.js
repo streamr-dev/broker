@@ -53,7 +53,9 @@ class DeleteExpiredCmd {
 
     async _getStreams() {
         const query = 'SELECT DISTINCT stream_id, partition FROM bucket'
-        const resultSet = await this.cassandraClient.execute(query)
+        const resultSet = await this.cassandraClient.execute(query, [], {
+            fetchSize: 100000
+        })
         return resultSet.rows.map((row) => ({
             streamId: row.stream_id,
             partition: row.partition
