@@ -258,11 +258,17 @@
               "minimum": 0
             },
             "certFileName": {
-              "type": "string",
+              "type": [
+                "string",
+                "null"
+              ],
               "description": "Path of certificate file to use for SSL"
             },
             "privateKeyFileName": {
-              "type": "string",
+              "type": [
+                "string",
+                "null"
+              ],
               "description": "Path of private key file to use for SSL"
             }
           }
@@ -284,11 +290,17 @@
               "description": "Port to start adapter on"
             },
             "certFileName": {
-              "type": "string",
+              "type": [
+                "string",
+                "null"
+              ],
               "description": "Path of certificate file to use for SSL"
             },
             "privateKeyFileName": {
-              "type": "string",
+              "type": [
+                "string",
+                "null"
+              ],
               "description": "Path of private key file to use for SSL"
             }
           }
