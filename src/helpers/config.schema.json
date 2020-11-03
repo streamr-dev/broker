@@ -87,9 +87,7 @@
           "description": "Hostname to start network node on"
         },
         "port": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 65353,
+          "$ref": "#/definitions/port",
           "description": "Port to start network node on"
         },
         "advertisedWsUrl": {
@@ -237,23 +235,94 @@
   },
   "definitions": {
     "adapter": {
-      "type": "object",
-      "description": "Configuration of a single foreign protocol adapter",
-      "required": [
-        "name"
-      ],
-      "additionalProperties": true,
-      "properties": {
-        "name": {
-          "type": "string",
-          "description": "Identifier of adapter",
-          "enum": [
-            "ws",
-            "http",
-            "mqtt"
-          ]
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "WebSocket adapter configuration",
+          "required": [
+            "name",
+            "port"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "const": "ws"
+            },
+            "port": {
+              "$ref": "#/definitions/port",
+              "description": "Port to start adapter on"
+            },
+            "pingInterval": {
+              "type": "integer",
+              "description": "How often to ping client connections (in milliseconds)",
+              "minimum": 0
+            },
+            "certFileName": {
+              "type": "string",
+              "description": "Path of certificate file to use for SSL"
+            },
+            "privateKeyFileName": {
+              "type": "string",
+              "description": "Path of private key file to use for SSL"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "description": "HTTP adapter configuration",
+          "required": [
+            "name",
+            "port"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "const": "http"
+            },
+            "port": {
+              "$ref": "#/definitions/port",
+              "description": "Port to start adapter on"
+            },
+            "certFileName": {
+              "type": "string",
+              "description": "Path of certificate file to use for SSL"
+            },
+            "privateKeyFileName": {
+              "type": "string",
+              "description": "Path of private key file to use for SSL"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "description": "MQTT adapter configuration",
+          "required": [
+            "name",
+            "port",
+            "streamsTimeout"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "const": "mqtt"
+            },
+            "port": {
+              "$ref": "#/definitions/port",
+              "description": "Port to start adapter on"
+            },
+            "streamsTimeout": {
+              "type": "integer",
+              "description": "MQTT connection timeout",
+              "minimum": 0
+            }
+          }
         }
-      }
+      ]
+    },
+    "port": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 65353
     }
   }
 }
