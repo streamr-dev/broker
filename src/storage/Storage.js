@@ -450,7 +450,9 @@ class Storage extends EventEmitter {
             prepare: true,
         })
 
-        if (buckets.rows.length !== 1) { return 0 }
+        if (buckets.rows.length !== 1) {
+            return 0
+        }
 
         const bucketId = buckets.rows[0].id
 
@@ -464,7 +466,9 @@ class Storage extends EventEmitter {
             prepare: true
         })
 
-        if (streams.rows.length !== 1) { return 0 }
+        if (streams.rows.length !== 1) {
+            return 0
+        }
 
         const { ts } = streams.rows[0]
 
@@ -480,7 +484,9 @@ class Storage extends EventEmitter {
             prepare: true,
         })
 
-        if (buckets.rows.length !== 1) { return 0 }
+        if (buckets.rows.length !== 1) {
+            return 0
+        }
 
         const bucketId = buckets.rows[0].id
 
@@ -494,14 +500,16 @@ class Storage extends EventEmitter {
             prepare: true
         })
 
-        if (streams.rows.length !== 1) { return 0 }
+        if (streams.rows.length !== 1) {
+            return 0
+        }
 
         const { ts } = streams.rows[0]
 
         return ts
     }
 
-    async getMessagesNumberInStream(streamId, partition) {
+    async getNumberOfMessagesInStream(streamId, partition) {
         const query = 'SELECT SUM(records) as count FROM bucket WHERE stream_id=? AND partition=?'
         const queryParams = [
             streamId,
@@ -512,13 +520,15 @@ class Storage extends EventEmitter {
             prepare: true
         })
 
-        if (res.rows.length !== 1) { return 0 }
+        if (res.rows.length !== 1) {
+            return 0
+        }
         const { count } = res.rows[0]
 
         return count
     }
 
-    async getMessagesBytesInStream(streamId, partition) {
+    async getTotalBytesInStream(streamId, partition) {
         const query = 'SELECT SUM(size) as count FROM bucket WHERE stream_id=? AND partition=?'
         const queryParams = [
             streamId,
@@ -529,7 +539,9 @@ class Storage extends EventEmitter {
             prepare: true
         })
 
-        if (res.rows.length !== 1) { return 0 }
+        if (res.rows.length !== 1) {
+            return 0
+        }
         const { count } = res.rows[0]
 
         return count

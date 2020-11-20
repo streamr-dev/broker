@@ -2,16 +2,10 @@ const express = require('express')
 
 module.exports = (cassandraStorage) => {
     const router = express.Router()
-
     let handler
     if (!cassandraStorage) {
         handler = async (req, res) => {
-            return res.status(200).send({
-                totalBytes: 0,
-                totalMessages: 0,
-                firstMessage: 0,
-                lastMessage: 0
-            })
+            return res.status(501).send('Not a storage node.')
         }
     } else {
         handler = async (req, res) => {
@@ -19,8 +13,8 @@ module.exports = (cassandraStorage) => {
             const partition = req.params.partition || 0
 
             const out = {
-                totalBytes: await cassandraStorage.getMessagesBytesInStream(streamId, partition),
-                totalMessages: await cassandraStorage.getMessagesNumberInStream(streamId, partition),
+                totalBytes: await cassandraStorage.getTotalBytesInStream(streamId, partition),
+                totalMessages: await cassandraStorage.getNumberOfMessagesInStream(streamId, partition),
                 firstMessage: await cassandraStorage.getFirstMessageTimestampInStream(streamId, partition),
                 lastMessage: await cassandraStorage.getLastMessageTimestampInStream(streamId, partition)
             }
