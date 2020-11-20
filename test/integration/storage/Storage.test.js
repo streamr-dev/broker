@@ -305,7 +305,7 @@ describe('Storage', () => {
         expect(ts.getTime()).toEqual(4000)
     })
 
-    test('getMessagesNumberInStream elemental test', async () => {
+    test('getNumberOfMessagesInStream elemental test', async () => {
         const msg1 = buildEncryptedMsg(streamId, 10, 2000, 3)
         const msg2 = buildMsg(streamId, 10, 3000, 2, 'publisher2')
         const msg3 = buildEncryptedMsg(streamId, 10, 4000, 0)
@@ -314,12 +314,12 @@ describe('Storage', () => {
         await storage.store(msg2)
         await storage.store(msg3)
 
-        const count = await storage.getMessagesNumberInStream(streamId, 10)
+        const count = await storage.getNumberOfMessagesInStream(streamId, 10)
 
         expect(count).toEqual(3)
     })
 
-    test('getMessagesBytesInStream elemental test', async () => {
+    test('getTotalBytesInStream elemental test', async () => {
         const msg1 = buildEncryptedMsg(streamId, 10, 2000, 3)
         const msg2 = buildMsg(streamId, 10, 3000, 2, 'publisher2')
         const msg3 = buildEncryptedMsg(streamId, 10, 4000, 0)
@@ -328,7 +328,7 @@ describe('Storage', () => {
         await storage.store(msg2)
         await storage.store(msg3)
 
-        const bytes = await storage.getMessagesBytesInStream(streamId, 10)
+        const bytes = await storage.getTotalBytesInStream(streamId, 10)
 
         expect(bytes).toEqual(333)
     })
