@@ -441,92 +441,98 @@ class Storage extends EventEmitter {
         })
     }
 
-    async getFirstMessageTimestampInStream(streamId, partition){
-      const bucketQuery = 'SELECT id FROM bucket WHERE stream_id=? AND partition =? ORDER BY date_create ASC LIMIT 1'
+    async getFirstMessageTimestampInStream(streamId, partition) {
+        const bucketQuery = 'SELECT id FROM bucket WHERE stream_id=? AND partition =? ORDER BY date_create ASC LIMIT 1'
 
-      const queryParams = [streamId, partition]
+        const queryParams = [streamId, partition]
 
-      const buckets = await this.cassandraClient.execute(bucketQuery, queryParams, {
-          prepare: true,
-      })
+        const buckets = await this.cassandraClient.execute(bucketQuery, queryParams, {
+            prepare: true,
+        })
 
-      if (buckets.rows.length !== 1) return 0
+        if (buckets.rows.length !== 1) { return 0 }
 
-      const bucketId = buckets.rows[0].id
+        const bucketId = buckets.rows[0].id
 
-      const query = 'SELECT ts FROM stream_data WHERE stream_id=? AND partition=? AND bucket_id=? ORDER BY ts ASC LIMIT 1'
+        const query = 'SELECT ts FROM stream_data WHERE stream_id=? AND partition=? AND bucket_id=? ORDER BY ts ASC LIMIT 1'
 
-      const streams = await this.cassandraClient.execute(query, [
-        streamId,
-        partition,
-        bucketId
-      ], {prepare: true})
+        const streams = await this.cassandraClient.execute(query, [
+            streamId,
+            partition,
+            bucketId
+        ], {
+            prepare: true
+        })
 
-      if (streams.rows.length !== 1) return 0
+        if (streams.rows.length !== 1) { return 0 }
 
-      const ts = streams.rows[0].ts
+        const { ts } = streams.rows[0]
 
-      return ts
-
+        return ts
     }
 
-    async getLastMessageTimestampInStream(streamId, partition){
-      const bucketQuery = 'SELECT id FROM bucket WHERE stream_id=? AND partition =? ORDER BY date_create DESC LIMIT 1'
+    async getLastMessageTimestampInStream(streamId, partition) {
+        const bucketQuery = 'SELECT id FROM bucket WHERE stream_id=? AND partition =? ORDER BY date_create DESC LIMIT 1'
 
-      const queryParams = [streamId, partition]
+        const queryParams = [streamId, partition]
 
-      const buckets = await this.cassandraClient.execute(bucketQuery, queryParams, {
-          prepare: true,
-      })
+        const buckets = await this.cassandraClient.execute(bucketQuery, queryParams, {
+            prepare: true,
+        })
 
-      if (buckets.rows.length !== 1) return 0
+        if (buckets.rows.length !== 1) { return 0 }
 
-      const bucketId = buckets.rows[0].id
+        const bucketId = buckets.rows[0].id
 
-      const query = 'SELECT ts FROM stream_data WHERE stream_id=? AND partition=? AND bucket_id=? ORDER BY ts DESC LIMIT 1'
+        const query = 'SELECT ts FROM stream_data WHERE stream_id=? AND partition=? AND bucket_id=? ORDER BY ts DESC LIMIT 1'
 
-      const streams = await this.cassandraClient.execute(query, [
-        streamId,
-        partition,
-        bucketId
-      ], {prepare: true})
+        const streams = await this.cassandraClient.execute(query, [
+            streamId,
+            partition,
+            bucketId
+        ], {
+            prepare: true
+        })
 
-      if (streams.rows.length !== 1) return 0
+        if (streams.rows.length !== 1) { return 0 }
 
-      const ts = streams.rows[0].ts
+        const { ts } = streams.rows[0]
 
-      return ts
-
+        return ts
     }
 
-    async getMessagesNumberInStream(streamId, partition){
-      const query = 'SELECT SUM(records) as count FROM bucket WHERE stream_id=? AND partition=?'
-      const queryParams = [
-        streamId,
-        partition
-      ]
+    async getMessagesNumberInStream(streamId, partition) {
+        const query = 'SELECT SUM(records) as count FROM bucket WHERE stream_id=? AND partition=?'
+        const queryParams = [
+            streamId,
+            partition
+        ]
 
-      const res = await this.cassandraClient.execute(query, queryParams, {prepare:true})
+        const res = await this.cassandraClient.execute(query, queryParams, {
+            prepare: true
+        })
 
-      if (res.rows.length !== 1) return 0
-      const count = res.rows[0].count
+        if (res.rows.length !== 1) { return 0 }
+        const { count } = res.rows[0]
 
-      return count
+        return count
     }
 
-    async getMessagesBytesInStream(streamId, partition){
-      const query = 'SELECT SUM(size) as count FROM bucket WHERE stream_id=? AND partition=?'
-      const queryParams = [
-        streamId,
-        partition
-      ]
+    async getMessagesBytesInStream(streamId, partition) {
+        const query = 'SELECT SUM(size) as count FROM bucket WHERE stream_id=? AND partition=?'
+        const queryParams = [
+            streamId,
+            partition
+        ]
 
-      const res = await this.cassandraClient.execute(query, queryParams, {prepare:true})
+        const res = await this.cassandraClient.execute(query, queryParams, {
+            prepare: true
+        })
 
-      if (res.rows.length !== 1) return 0
-      const count = res.rows[0].count
+        if (res.rows.length !== 1) { return 0 }
+        const { count } = res.rows[0]
 
-      return count
+        return count
     }
 }
 
