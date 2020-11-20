@@ -320,9 +320,9 @@ describe('Storage', () => {
     })
 
     test('getTotalBytesInStream elemental test', async () => {
-        const msg1 = buildEncryptedMsg(streamId, 10, 2000, 3)
+        const msg1 = buildMsg(streamId, 10, 2000, 3)
         const msg2 = buildMsg(streamId, 10, 3000, 2, 'publisher2')
-        const msg3 = buildEncryptedMsg(streamId, 10, 4000, 0)
+        const msg3 = buildMsg(streamId, 10, 4000, 0)
 
         await storage.store(msg1)
         await storage.store(msg2)
@@ -330,6 +330,6 @@ describe('Storage', () => {
 
         const bytes = await storage.getTotalBytesInStream(streamId, 10)
 
-        expect(bytes).toEqual(333)
+        expect(bytes).toEqual(283)
     })
 })
