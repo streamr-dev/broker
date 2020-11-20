@@ -22,7 +22,7 @@ describe('DataMetadataEndpoints', () => {
       app = express()
       app.use('/api/v1', dataMetadataEndpoint())
 
-      await testGetRequest('/api/v1/streams/0/metadata')
+      await testGetRequest('/api/v1/streams/0/metadata/partitions/0')
       .expect('Content-Type', /json/)
       .expect(200, {
         'totalBytes':0,

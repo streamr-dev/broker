@@ -276,4 +276,65 @@ describe('Storage', () => {
 
         expect(results.length).toEqual(1000)
     })
+
+
+    test('getFirstMessageInStream elemental test', async () => {
+      const msg1 = buildEncryptedMsg(streamId, 10, 2000, 3)
+      const msg2 = buildMsg(streamId, 10, 3000, 2, 'publisher2')
+      const msg3 = buildEncryptedMsg(streamId, 10, 4000, 0)
+
+      await storage.store(msg1)
+      await storage.store(msg2)
+      await storage.store(msg3)
+
+      const ts = await storage.getFirstMessageTimestampInStream(streamId, 10)
+
+      expect(ts.getTime()).toEqual(2000)
+
+    })
+
+    test('getLastMessageTimestampInStream elemental test', async () => {
+      const msg1 = buildEncryptedMsg(streamId, 10, 2000, 3)
+      const msg2 = buildMsg(streamId, 10, 3000, 2, 'publisher2')
+      const msg3 = buildEncryptedMsg(streamId, 10, 4000, 0)
+
+      await storage.store(msg1)
+      await storage.store(msg2)
+      await storage.store(msg3)
+
+      const ts = await storage.getLastMessageTimestampInStream(streamId, 10)
+
+      expect(ts.getTime()).toEqual(4000)
+
+    })
+
+    test('getMessagesNumberInStream elemental test', async () => {
+      const msg1 = buildEncryptedMsg(streamId, 10, 2000, 3)
+      const msg2 = buildMsg(streamId, 10, 3000, 2, 'publisher2')
+      const msg3 = buildEncryptedMsg(streamId, 10, 4000, 0)
+
+      await storage.store(msg1)
+      await storage.store(msg2)
+      await storage.store(msg3)
+
+      const count = await storage.getMessagesNumberInStream(streamId, 10)
+
+      expect(count).toEqual(3)
+
+    })
+
+    test('getMessagesBytesInStream elemental test', async () => {
+      const msg1 = buildEncryptedMsg(streamId, 10, 2000, 3)
+      const msg2 = buildMsg(streamId, 10, 3000, 2, 'publisher2')
+      const msg3 = buildEncryptedMsg(streamId, 10, 4000, 0)
+
+      await storage.store(msg1)
+      await storage.store(msg2)
+      await storage.store(msg3)
+
+      const bytes = await storage.getMessagesBytesInStream(streamId, 10)
+
+      expect(bytes).toEqual(333)
+
+    })
 })

@@ -35,10 +35,11 @@ module.exports = async (config) => {
     }
     const brokerAddress = wallet.address
 
+    let cassandraStorage
     // Start cassandra storage
     if (config.cassandra) {
         logger.info(`Starting Cassandra with hosts ${config.cassandra.hosts} and keyspace ${config.cassandra.keyspace}`)
-        const cassandraStorage = await startCassandraStorage({
+        cassandraStorage = await startCassandraStorage({
             contactPoints: [...config.cassandra.hosts],
             localDataCenter: config.cassandra.datacenter,
             keyspace: config.cassandra.keyspace,
@@ -145,6 +146,7 @@ module.exports = async (config) => {
     const publisher = new Publisher(networkNode, streamMessageValidator, metricsContext)
     const subscriptionManager = new SubscriptionManager(networkNode)
 
+
     // Start up adapters one-by-one, storing their close functions for further use
     const closeAdapterFns = config.adapters.map(({ name, ...adapterConfig }, index) => {
         try {
@@ -154,6 +156,7 @@ module.exports = async (config) => {
                 streamFetcher,
                 metricsContext,
                 subscriptionManager,
+                cassandraStorage
             })
         } catch (e) {
             if (e instanceof MissingConfigError) {
