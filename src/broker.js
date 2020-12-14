@@ -116,6 +116,7 @@ module.exports = async (config) => {
         streamId = config.reporting.streamr.streamId
         apiKey = config.reporting.streamr.apiKey
         logger.info(`Starting StreamrClient reporting with apiKey: ${apiKey} and streamId: ${streamId}`)
+
         client = new StreamrClient({
             auth: {
                 apiKey
@@ -126,13 +127,39 @@ module.exports = async (config) => {
         logger.info('StreamrClient reporting disabled')
     }
 
+    // set up stream-specific reporting metrics
+    client = new StreamrClient({
+       auth: {
+         privateKey: config.ethereumPrivateKey
+       },
+       //autoConnect: false
+    })
+
+    const metricsStream = await client.getOrCreateStream({
+      name: brokerAddress
+    })
+
+    await metricsStream.grantPermission('stream_get', null)
+    await metricsStream.grantPermission('stream_subscribe', null)
+    // Initialize common utilities
+    const newVolumeLogger = new VolumeLogger(
+        //config.reporting.intervalInSeconds,
+        1,
+        metricsContext,
+        client,
+        metricsStream.id// + '/streamr/node/metrics/sec'
+    )
+    console.log('broker addr', brokerAddress)
+    console.log('metricsStream', metricsStream)
+
+    /*
     // Initialize common utilities
     const volumeLogger = new VolumeLogger(
         config.reporting.intervalInSeconds,
         metricsContext,
         client,
         streamId
-    )
+    )*/
     // Validator only needs public information, so use unauthenticated client for that
     const unauthenticatedClient = new StreamrClient({
         restUrl: config.streamrUrl + '/api/v1',
