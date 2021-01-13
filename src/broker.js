@@ -127,39 +127,34 @@ module.exports = async (config) => {
         logger.info('StreamrClient reporting disabled')
     }
 
-    if (config.reporting.perNodeMetrics && config.reporting.perNodeMetrics.enabled){
-      // set up stream-specific reporting metrics
-      client = new StreamrClient({
-         auth: {
-           privateKey: config.ethereumPrivateKey
-         },
-         url: config.reporting.perNodeMetrics.wsUrl,//'ws://127.0.0.1:12351/api/v1/ws',
-         restUrl: config.reporting.perNodeMetrics.httpUrl//'http://localhost/api/v1'
-         //autoConnect: false
-      })
+    let volumeLogger
+    if (config.reporting.perNodeMetrics && config.reporting.perNodeMetrics.enabled) {
+        // set up stream-specific reporting metrics
+        client = new StreamrClient({
+            auth: {
+                privateKey: config.ethereumPrivateKey
+            },
+            url: config.reporting.perNodeMetrics.wsUrl,
+            restUrl: config.reporting.perNodeMetrics.httpUrl
+            // autoConnect: false
+        })
 
+        const metricsStream = await client.getOrCreateStream({
+            name: brokerAddress,
+            id: brokerAddress + '/streamr/node/metrics/sec'
+        })
 
-      const metricsStream = await client.getOrCreateStream({
-        name: brokerAddress,
-        id: brokerAddress + '/streamr/node/metrics/sec'
-      })
+        await metricsStream.grantPermission('stream_get', null)
+        await metricsStream.grantPermission('stream_subscribe', null)
 
-      await metricsStream.grantPermission('stream_get', null)
-      await metricsStream.grantPermission('stream_subscribe', null)
-
-      // Initialize common utilities
-      const newVolumeLogger = new VolumeLogger(
-          //config.reporting.intervalInSeconds,
-          1,
-          metricsContext,
-          client,
-          //encodeURIComponent(
+        // Initialize common utilities
+        volumeLogger = new VolumeLogger(
+            config.reporting.intervalInSeconds,
+            metricsContext,
+            client,
             metricsStream.id
-          //)// + '/streamr/node/metrics/sec'
-      )
-
+        )
     }
-
 
     /*
     // Initialize common utilities
@@ -168,7 +163,7 @@ module.exports = async (config) => {
         metricsContext,
         client,
         streamId
-    )*/
+    ) */
     // Validator only needs public information, so use unauthenticated client for that
     const unauthenticatedClient = new StreamrClient({
         restUrl: config.streamrUrl + '/api/v1',
