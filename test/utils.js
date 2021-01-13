@@ -20,7 +20,8 @@ function formConfig({
     enableCassandra = false,
     privateKeyFileName = null,
     certFileName = null,
-    streamrUrl = 'http://localhost:8081/streamr-core'
+    streamrUrl = 'http://localhost:8081/streamr-core',
+    reporting
 }) {
     const adapters = []
     if (httpPort) {
@@ -71,11 +72,7 @@ function formConfig({
             password: '',
             keyspace: 'streamr_dev_v2',
         } : null,
-        reporting: {
-            intervalInSeconds: 30,
-            sentry: null,
-            streamr: null
-        },
+        reporting,
         streamrUrl,
         adapters
     }
