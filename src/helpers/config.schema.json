@@ -243,10 +243,16 @@
               "type" : "boolean"
             },
             "wsUrl" : {
-              "type" : "string"
+              "type" : [
+                "string",
+                "null"
+              ]
             },
             "httpUrl": {
-              "type" : "string"
+              "type" : [
+                "string",
+                "null"
+              ]
             }
           }
         }
