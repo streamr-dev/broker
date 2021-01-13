@@ -62,8 +62,8 @@ describe('metricsStream', () => {
         client1.subscribe({
             stream: '0xC59b3658D22e0716726819a56e164ee6825e21C2/streamr/node/metrics/sec',
         }, (res) => {
-          expect(res.peerId).toEqual('broker1')
-          done()
+            expect(res.peerId).toEqual('broker1')
+            done()
         })
     }, 15 * 1000)
 })
