@@ -58,12 +58,12 @@ describe('metricsStream', () => {
         await broker1.close()
     })
 
-    it('should test the new metrics endpoint', async (done) => {
+    it('should test the new metrics endpoint', (done) => {
         client1.subscribe({
             stream: '0xC59b3658D22e0716726819a56e164ee6825e21C2/streamr/node/metrics/sec',
         }, (res) => {
-            console.log('received data??', res)
-            done()
+          expect(res.peerId).toEqual('broker1')
+          done()
         })
-    }, 10 * 1000)
+    }, 15 * 1000)
 })
