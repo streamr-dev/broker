@@ -155,12 +155,12 @@ module.exports = async (config) => {
             metricsStream.id
         )
     } else {
-      volumeLogger = new VolumeLogger(
-          config.reporting.intervalInSeconds,
-          metricsContext,
-          client,
-          streamId
-      )
+        volumeLogger = new VolumeLogger(
+            config.reporting.intervalInSeconds,
+            metricsContext,
+            client,
+            streamId
+        )
     }
 
     /*

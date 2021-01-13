@@ -21,7 +21,7 @@ function formConfig({
     privateKeyFileName = null,
     certFileName = null,
     streamrUrl = 'http://localhost:8081/streamr-core',
-    reporting = null
+    reporting = false
 }) {
     const adapters = []
     if (httpPort) {
@@ -45,19 +45,6 @@ function formConfig({
             port: mqttPort,
             streamsTimeout: 300000
         })
-    }
-
-    if (!reporting){
-      reporting = {
-        sentry: null,
-        streamr: null,
-        intervalInSeconds: 10,
-        perNodeMetrics: {
-            enabled: false,
-            wsUrl: null,
-            httpUrl: null
-        }
-      }
     }
 
     return {
@@ -85,7 +72,16 @@ function formConfig({
             password: '',
             keyspace: 'streamr_dev_v2',
         } : null,
-        reporting,
+        reporting: reporting || {
+            sentry: null,
+            streamr: null,
+            intervalInSeconds: 10,
+            perNodeMetrics: {
+                enabled: false,
+                wsUrl: null,
+                httpUrl: null
+            }
+        },
         streamrUrl,
         adapters
     }
