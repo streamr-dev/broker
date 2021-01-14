@@ -1,15 +1,14 @@
-FROM node:14 as build
+FROM node:14-buster as build
 WORKDIR /usr/src/broker
 COPY . .
 
+RUN apt-get update
+RUN apt-get install -y cmake
 RUN node --version
 RUN npm --version
 RUN npm ci --only=production
 
-FROM node:14-alpine
-
-# needed for uWebSockets.js
-RUN apk --update add --no-cache gcompat curl
+FROM node:14-buster
 
 COPY --from=build /usr/src/broker /usr/src/broker
 WORKDIR /usr/src/broker
