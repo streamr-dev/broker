@@ -13,14 +13,7 @@ const broker1Key = '0x241b3f241b110ff7b3e6d52e74fea922006a83e33ff938e6e3cba8a460
 describe('metricsStream', () => {
     let tracker
     let broker1
-    let broker2
-    let broker3
     let client1
-    let client2
-    let client3
-    // let client4
-    let freshStream
-    let freshStreamId
 
     beforeEach(async () => {
         tracker = await startTracker({
