@@ -6,7 +6,7 @@ const { startBroker, createClient } = require('../utils')
 
 const httpPort1 = 12741
 const wsPort1 = 12751
-const networkPort1 = 12361
+const networkPort1 = 12365
 const trackerPort = 12970
 const broker1Key = '0x241b3f241b110ff7b3e6d52e74fea922006a83e33ff938e6e3cba8a460c02513'
 
@@ -22,7 +22,7 @@ describe('metricsStream', () => {
     let freshStream
     let freshStreamId
 
-    beforeAll(async () => {
+    beforeEach(async () => {
         tracker = await startTracker({
             host: '127.0.0.1',
             port: trackerPort,
@@ -51,11 +51,12 @@ describe('metricsStream', () => {
         client1 = createClient(wsPort1)
     })
 
-    afterAll(async () => {
-        await tracker.stop()
-        await client1.ensureDisconnected()
-
-        await broker1.close()
+    afterEach(async () => {
+        await Promise.allSettled([
+            tracker.stop(),
+            client1.ensureDisconnected(),
+            broker1.close()
+        ])
     })
 
     it('should test the new metrics endpoint', (done) => {
