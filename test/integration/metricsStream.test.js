@@ -54,8 +54,8 @@ describe('metricsStream', () => {
     afterEach(async () => {
         await Promise.allSettled([
             tracker.stop(),
-            client1.ensureDisconnected(),
-            broker1.close()
+            broker1.close(),
+            client1.ensureDisconnected()
         ])
     })
 

@@ -177,5 +177,8 @@ module.exports = class VolumeLogger {
     close() {
         io.destroy()
         clearTimeout(this.timeout)
+        if (this.client) {
+            this.client.ensureDisconnected()
+        }
     }
 }
