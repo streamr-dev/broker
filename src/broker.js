@@ -163,14 +163,6 @@ module.exports = async (config) => {
         )
     }
 
-    /*
-    // Initialize common utilities
-    const volumeLogger = new VolumeLogger(
-        config.reporting.intervalInSeconds,
-        metricsContext,
-        client,
-        streamId
-    ) */
     // Validator only needs public information, so use unauthenticated client for that
     const unauthenticatedClient = new StreamrClient({
         restUrl: config.streamrUrl + '/api/v1',
