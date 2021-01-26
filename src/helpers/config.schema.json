@@ -262,6 +262,15 @@
       "type": "string",
       "description": "Base URL of Core (E&E) API to use",
       "format": "uri"
+    },
+    "storageConfig": {
+      "type": "object",
+      "properties": {
+        "refreshInterval": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false
     }
   },
   "definitions": {

@@ -68,7 +68,7 @@ module.exports = async (config) => {
         trackers = config.network.trackers
     }
 
-    const storageConfig = config.network.isStorageNode ? await StorageConfig.createInstance(brokerAddress, config.streamrUrl + '/api/v1') : undefined
+    const storageConfig = config.network.isStorageNode ? await StorageConfig.createInstance(brokerAddress, config.streamrUrl + '/api/v1', (config.storageConfig && config.storageConfig.refreshInterval)) : undefined
 
     // Start network node
     const startFn = config.network.isStorageNode ? startStorageNode : startNetworkNode
