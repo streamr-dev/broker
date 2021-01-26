@@ -34,6 +34,7 @@ describe('ping-pong test between broker and clients', () => {
             id: 'networkNode',
             trackers: [tracker.getAddress()],
         })
+        networkNode.start()
         metricsContext = new MetricsContext(null)
         websocketServer = new WebsocketServer(
             uWS.App(),
