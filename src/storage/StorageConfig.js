@@ -1,5 +1,7 @@
 const fetch = require('node-fetch')
 
+const logger = require('../helpers/logger')('streamr:storage:StorageConfig')
+
 /*
  * Connects to Core API and queries the configuration there.
  * Refreshes the config at regular intervals.
@@ -24,15 +26,24 @@ module.exports = class StorageConfig {
         this.nodeId = nodeId
         this.apiUrl = apiUrl
         this._poller = undefined
+        this._stopPoller = false
     }
 
     static async createInstance(nodeId, apiUrl, pollInterval = 10 * 60 * 1000) {
         const instance = new StorageConfig(nodeId, apiUrl)
-        await instance.refresh()
-        // eslint-disable-next-line require-atomic-updates, no-underscore-dangle
-        instance._poller = setInterval(() => {
-            instance.refresh()
-        }, pollInterval)
+        const poll = async () => {
+            try {
+                await instance.refresh()
+            } catch (e) {
+                logger.warn(`Unable to refresh storage config: ${e}`)
+            }
+            // eslint-disable-next-line no-underscore-dangle
+            if (!instance._stopPoller) {
+                // eslint-disable-next-line require-atomic-updates, no-underscore-dangle
+                instance._poller = setTimeout(poll, pollInterval)
+            }
+        }
+        await poll()
         return instance
     }
 
@@ -72,8 +83,9 @@ module.exports = class StorageConfig {
     }
 
     cleanup() {
+        this._stopPoller = true
         if (this._poller !== undefined) {
-            clearInterval(this._poller)
+            clearTimeout(this._poller)
         }
     }
 }
