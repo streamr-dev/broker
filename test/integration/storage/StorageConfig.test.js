@@ -11,12 +11,13 @@ const contactPoints = ['127.0.0.1']
 const localDataCenter = 'datacenter1'
 const keyspace = 'streamr_dev_v2'
 
-const HOST = '127.0.0.1'
-const API_URL = `http://${HOST}/api/v1`
-const WS_PORT = 12751
-const TRACKER_PORT = 17750
-const STORAGE_NODE_PORT = 17751
-const BROKER_PORT = 17752
+const NODE_HOST = '127.0.0.1'
+const STREAMR_URL = 'http://127.0.0.1'
+const API_URL = `${STREAMR_URL}/api/v1`
+const WS_PORT = 17770
+const TRACKER_PORT = 17771
+const STORAGE_NODE_PORT = 17772
+const BROKER_PORT = 17773
 
 const addStreamToStorageNode = async (streamId, storageNodeAddress, client) => {
     await fetch(`${API_URL}/streams/${encodeURIComponent(streamId)}/storageNodes`, {
@@ -57,7 +58,7 @@ describe('StorageConfig', () => {
 
     beforeEach(async () => {
         tracker = await startTracker({
-            host: HOST,
+            host: NODE_HOST,
             port: TRACKER_PORT,
             id: 'tracker'
         })
@@ -66,7 +67,7 @@ describe('StorageConfig', () => {
             privateKey: storageNodeAccount.privateKey,
             networkPort: STORAGE_NODE_PORT,
             trackerPort: TRACKER_PORT,
-            streamrUrl: `http://${HOST}`,
+            streamrUrl: STREAMR_URL,
             enableCassandra: true
         })
         broker = await startBroker({
@@ -75,7 +76,7 @@ describe('StorageConfig', () => {
             networkPort: BROKER_PORT,
             trackerPort: TRACKER_PORT,
             wsPort: WS_PORT,
-            streamrUrl: `http://${HOST}`,
+            streamrUrl: STREAMR_URL,
             enableCassandra: false
         })
         client = createClient(WS_PORT, {
