@@ -26,7 +26,7 @@ module.exports = class StorageConfig {
         this._poller = undefined
     }
 
-    static async createInstance(nodeId, apiUrl, pollInterval = 10 * 60 * 60 * 1000) {
+    static async createInstance(nodeId, apiUrl, pollInterval = 10 * 60 * 1000) {
         const instance = new StorageConfig(nodeId, apiUrl)
         await instance.refresh()
         // eslint-disable-next-line require-atomic-updates, no-underscore-dangle
