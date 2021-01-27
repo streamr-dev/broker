@@ -67,10 +67,6 @@ module.exports = class VolumeLogger {
 
         if (this.client instanceof StreamrClient) {
             let sec = 0
-            const secReports = []
-
-            // avgLatency = 0.8 * avgLatency + 0.2 * avgLatencyInInterval
-            const avgLatency = -1
 
             const throtheledAvg = (avg, avgInterval) => {
                 return 0.9 * avg + 0.2 * avgInterval
@@ -105,37 +101,24 @@ module.exports = class VolumeLogger {
             }
 
             setInterval(async () => {
-                // assuming this.client is set
                 sec += 1
 
                 const metricsReport = await this.metricsContext.report()
-                console.log(metricsReport.metrics.WsEndpoint)
-                console.log(metricsReport)
-                const keys = Object.keys(metricsReport.metrics)
-                for (let i = 0; i < keys.length; i++) {
-                    console.log(keys[i], metricsReport.metrics[keys[i]])
-                }
 
                 const secReport = {
-                    timestamp: Date.now(),
-                    eventsOutPerSecondMetric: metricsReport.eventsOutPerSecondMetric,
-                    eventsInPerSecondMetric: metricsReport.eventsInPerSecondMetric,
-                    kbInPerSecondMetric: metricsReport.kbInPerSecondMetric,
-                    kbOutPerSecondMetric: metricsReport.kbOutPerSecondMetric
+                    peerId: metricsReport.peerId,
+                    startTime: metricsReport.startTime,
+                    currentTime: metricsReport.currentTime,
+                    nodeLatency: metricsReport.node.latency.rate,
                 }
 
                 if (sec === 1) {
-                    minReport.timestamp = secReport.timestamp
-                    minReport.eventsOutPerSecondMetric = secReport.eventsOutPerSecondMetric
-                    minReport.eventsInPerSecondMetric = secReport.eventsInPerSecondMetric
-                    minReport.kbInPerSecondMetric = secReport.kbInPerSecondMetric
-                    minReport.kbOutPerSecondMetric = secReport.kbOutPerSecondMetric
+                    minReport.peerId = secReport.peerId
+                    minReport.startTime = secReport.startTime
+                    minReport.currentTime = secReport.currentTime
+                    minReport.nodeLatency = secReport.nodeLatency
                 } else {
-                    minReport.timestamp = throtheledAvg(minReport.timestamp, secReport.timestamp)
-                    minReport.eventsOutPerSecondMetric = throtheledAvg(minReport.eventsOutPerSecondMetric, secReport.eventsOutPerSecondMetric)
-                    minReport.eventsInPerSecondMetric = throtheledAvg(minReport.eventsInPerSecondMetric, secReport.eventsInPerSecondMetric)
-                    minReport.kbInPerSecondMetric = throtheledAvg(minReport.kbInPerSecondMetric, secReport.kbInPerSecondMetric)
-                    minReport.kbOutPerSecondMetric = throtheledAvg(minReport.kbOutPerSecondMetric, secReport.kbOutPerSecondMetric)
+                    minReport.nodeLatency = throtheledAvg(minReport.nodeLatency, secReport.nodeLatency)
                 }
 
                 this.client.publish(
@@ -170,19 +153,14 @@ module.exports = class VolumeLogger {
                     const messages = await getResend(this.streamIds.minuteStreamId, 60)
 
                     const hourReport = {
-                        timestamp: messages[0].timestamp,
-                        eventsOutPerSecondMetric: messages[0].eventsOutPerSecondMetric,
-                        eventsInPerSecondMetric: messages[0].eventsInPerSecondMetric,
-                        kbInPerSecondMetric: messages[0].kbInPerSecondMetric,
-                        kbOutPerSecondMetric: messages[0].kbOutPerSecondMetric,
+                        peerId: metricsReport.peerId,
+                        startTime: metricsReport.startTime,
+                        currentTime: metricsReport.currentTime,
+                        nodeLatency: metricsReport.node.latency.rate,
                     }
 
                     for (let i = 1; i < messages.length; i++) {
-                        hourReport.timestamp = throtheledAvg(hourReport.timestamp, messages[i].timestamp)
-                        hourReport.eventsOutPerSecondMetric = throtheledAvg(hourReport.eventsOutPerSecondMetric, messages[i].eventsOutPerSecondMetric)
-                        hourReport.eventsInPerSecondMetric = throtheledAvg(hourReport.eventsInPerSecondMetric, messages[i].eventsInPerSecondMetric)
-                        hourReport.kbInPerSecondMetric = throtheledAvg(hourReport.kbInPerSecondMetric, messages[i].kbInPerSecondMetric)
-                        hourReport.kbOutPerSecondMetric = throtheledAvg(hourReport.kbOutPerSecondMetric, messages[i].kbOutPerSecondMetric)
+                        hourReport.nodeLatency = throtheledAvg(hourReport.nodeLatency, messages[i].nodeLatency)
                     }
 
                     this.client.publish(
@@ -198,19 +176,14 @@ module.exports = class VolumeLogger {
                     const messages = await getResend(this.streamIds.hourStreamId, 24)
 
                     const dayReport = {
-                        timestamp: messages[0].timestamp,
-                        eventsOutPerSecondMetric: messages[0].eventsOutPerSecondMetric,
-                        eventsInPerSecondMetric: messages[0].eventsInPerSecondMetric,
-                        kbInPerSecondMetric: messages[0].kbInPerSecondMetric,
-                        kbOutPerSecondMetric: messages[0].kbOutPerSecondMetric,
+                        peerId: metricsReport.peerId,
+                        startTime: metricsReport.startTime,
+                        currentTime: metricsReport.currentTime,
+                        nodeLatency: metricsReport.node.latency.rate,
                     }
 
                     for (let i = 1; i < messages.length; i++) {
-                        dayReport.timestamp = throtheledAvg(dayReport.timestamp, messages[i].timestamp)
-                        dayReport.eventsOutPerSecondMetric = throtheledAvg(dayReport.eventsOutPerSecondMetric, messages[i].eventsOutPerSecondMetric)
-                        dayReport.eventsInPerSecondMetric = throtheledAvg(dayReport.eventsInPerSecondMetric, messages[i].eventsInPerSecondMetric)
-                        dayReport.kbInPerSecondMetric = throtheledAvg(dayReport.kbInPerSecondMetric, messages[i].kbInPerSecondMetric)
-                        dayReport.kbOutPerSecondMetric = throtheledAvg(dayReport.kbOutPerSecondMetric, messages[i].kbOutPerSecondMetric)
+                        dayReport.nodeLatency = throtheledAvg(dayReport.nodeLatency, messages[i].nodeLatency)
                     }
 
                     this.client.publish(
