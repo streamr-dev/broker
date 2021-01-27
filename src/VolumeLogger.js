@@ -109,7 +109,7 @@ module.exports = class VolumeLogger {
                     peerId: metricsReport.peerId,
                     startTime: metricsReport.startTime,
                     currentTime: metricsReport.currentTime,
-                    nodeLatency: metricsReport.node.latency.rate,
+                    nodeLatency: metricsReport.metrics.node.latency.rate,
                 }
 
                 if (sec === 1) {
@@ -156,7 +156,7 @@ module.exports = class VolumeLogger {
                         peerId: metricsReport.peerId,
                         startTime: metricsReport.startTime,
                         currentTime: metricsReport.currentTime,
-                        nodeLatency: metricsReport.node.latency.rate,
+                        nodeLatency: metricsReport.metrics.node.latency.rate,
                     }
 
                     for (let i = 1; i < messages.length; i++) {
@@ -179,7 +179,7 @@ module.exports = class VolumeLogger {
                         peerId: metricsReport.peerId,
                         startTime: metricsReport.startTime,
                         currentTime: metricsReport.currentTime,
-                        nodeLatency: metricsReport.node.latency.rate,
+                        nodeLatency: metricsReport.metrics.node.latency.rate,
                     }
 
                     for (let i = 1; i < messages.length; i++) {
