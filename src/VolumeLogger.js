@@ -109,7 +109,7 @@ module.exports = class VolumeLogger {
                 sec += 1
 
                 const metricsReport = await this.metricsContext.report()
-
+                console.log(metricsReport)
                 const secReport = {
                     timestamp: Date.now(),
                     eventsOutPerSecondMetric: metricsReport.eventsOutPerSecondMetric,
