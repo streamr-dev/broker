@@ -84,9 +84,14 @@ describe('broker: end-to-end', () => {
             name: 'broker.test.js-' + Date.now()
         })
         freshStreamId = freshStream.id
+        console.log('DEBUG broker.test freshStream: ' + JSON.stringify(freshStream) + ' ' + freshStreamId)
 
+        console.log('DEBUG grantpermission: stream_get')
         await freshStream.grantPermission('stream_get', 'tester2@streamr.com')
+        console.log('DEBUG grantpermission: stream_subscribe')
         await freshStream.grantPermission('stream_subscribe', 'tester2@streamr.com')
+
+        console.log('DEBUG grantpermissions done')
         // await freshStream.grantPermission('stream_get', ethereumAccount.address)
         // await freshStream.grantPermission('stream_subscribe', ethereumAccount.address)
         // await freshStream.grantPermission('stream_publish', ethereumAccount.address)
