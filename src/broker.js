@@ -137,7 +137,7 @@ module.exports = async (config) => {
             },
             url: config.reporting.perNodeMetrics.wsUrl,
             restUrl: config.reporting.perNodeMetrics.httpUrl
-            //autoConnect: false
+            // autoConnect: false
         })
 
         const createMetricsStream = async (sufix) => {
@@ -173,7 +173,6 @@ module.exports = async (config) => {
         )
 
         logger.info('volumeLogger created')
-
     } else {
         logger.info('PerStreamMetrics reporting disabled')
         volumeLogger = new VolumeLogger(
