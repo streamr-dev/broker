@@ -42,7 +42,6 @@ describe('metricsStream', () => {
         })
 
         client1 = createClient(wsPort1)
-
     })
 
     afterEach(async () => {
