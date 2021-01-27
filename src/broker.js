@@ -121,7 +121,7 @@ module.exports = async (config) => {
             auth: {
                 apiKey
             },
-            autoConnect: true
+            autoConnect: false
         })
     } else {
         logger.info('StreamrClient reporting disabled')
@@ -130,36 +130,59 @@ module.exports = async (config) => {
     let volumeLogger
     if (config.reporting.perNodeMetrics && config.reporting.perNodeMetrics.enabled) {
         // set up stream-specific reporting metrics
+        logger.info('PerStreamMetrics reporting enabled')
         client = new StreamrClient({
             auth: {
                 privateKey: config.ethereumPrivateKey
             },
             url: config.reporting.perNodeMetrics.wsUrl,
             restUrl: config.reporting.perNodeMetrics.httpUrl
-            // autoConnect: false
+            //autoConnect: false
         })
 
-        const metricsStream = await client.getOrCreateStream({
-            name: brokerAddress,
-            id: brokerAddress + '/streamr/node/metrics/sec'
-        })
+        const createMetricsStream = async (sufix) => {
+            // getOrCreateStream fails miserably
+            const metricsStream = await client.getOrCreateStream({
+                name: brokerAddress,
+                id: brokerAddress + '/streamr/node/metrics/' + sufix
+            })
 
-        await metricsStream.grantPermission('stream_get', null)
-        await metricsStream.grantPermission('stream_subscribe', null)
+            await metricsStream.grantPermission('stream_get', null)
+            await metricsStream.grantPermission('stream_subscribe', null)
+            return metricsStream.id
+        }
+
+        const metricsStreamId = streamId
+        const secStreamId = await createMetricsStream('sec')
+        const minStreamId = await createMetricsStream('min')
+        const hourStreamId = await createMetricsStream('hour')
+        const dayStreamId = await createMetricsStream('day')
 
         // Initialize common utilities
         volumeLogger = new VolumeLogger(
-            config.reporting.intervalInSeconds,
+            1,
             metricsContext,
             client,
-            metricsStream.id
+            {
+                metricsStreamId,
+                secStreamId,
+                minStreamId,
+                hourStreamId,
+                dayStreamId
+            }
         )
+
+        logger.info('volumeLogger created')
+
     } else {
+        logger.info('PerStreamMetrics reporting disabled')
         volumeLogger = new VolumeLogger(
             config.reporting.intervalInSeconds,
             metricsContext,
             client,
-            streamId
+            {
+                metricsStreamId: streamId
+            }
         )
     }
 

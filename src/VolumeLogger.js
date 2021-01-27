@@ -8,10 +8,16 @@ function formatNumber(n) {
 }
 
 module.exports = class VolumeLogger {
-    constructor(reportingIntervalSeconds = 60, metricsContext, client = undefined, streamId = undefined) {
+    constructor(
+        reportingIntervalSeconds = 60,
+        metricsContext,
+        client = undefined,
+        streamIds = undefined
+    ) {
+        logger.info('volumelogger created')
         this.metricsContext = metricsContext
         this.client = client
-        this.streamId = streamId
+        this.streamIds = streamIds
 
         this.brokerConnectionCountMetric = io.metric({
             name: 'brokerConnectionCountMetric'
@@ -59,6 +65,159 @@ module.exports = class VolumeLogger {
             name: 'messageQueueSize'
         })
 
+        if (this.client instanceof StreamrClient) {
+            let sec = 0
+            const secReports = []
+
+            // avgLatency = 0.8 * avgLatency + 0.2 * avgLatencyInInterval
+            const avgLatency = -1
+
+            const throtheledAvg = (avg, avgInterval) => {
+                return 0.9 * avg + 0.2 * avgInterval
+            }
+
+            const getResend = async (stream, last) => {
+                return new Promise((resolve, reject) => {
+                    const messages = []
+                    client.resend(
+                        {
+                            stream,
+                            resend: {
+                                last
+                            }
+                        },
+                        (message) => {
+                            messages.push(message)
+                            if (messages.length === last) {
+                                resolve(messages)
+                            }
+                        }
+                    )
+                })
+            }
+
+            const minReport = {
+                timestamp: -1,
+                eventsOutPerSecondMetric: -1,
+                eventsInPerSecondMetric: -1,
+                kbInPerSecondMetric: -1,
+                kbOutPerSecondMetric: -1
+            }
+
+            setInterval(async () => {
+                // assuming this.client is set
+                sec += 1
+
+                logger.info(sec)
+
+                const metricsReport = await this.metricsContext.report()
+                console.log(metricsReport)
+
+                const secReport = {
+                    timestamp: Date.now(),
+                    eventsOutPerSecondMetric: metricsReport.eventsOutPerSecondMetric,
+                    eventsInPerSecondMetric: metricsReport.eventsInPerSecondMetric,
+                    kbInPerSecondMetric: metricsReport.kbInPerSecondMetric,
+                    kbOutPerSecondMetric: metricsReport.kbOutPerSecondMetric
+                }
+
+                if (sec === 1) {
+                    minReport.timestamp = secReport.timestamp
+                    minReport.eventsOutPerSecondMetric = secReport.eventsOutPerSecondMetric
+                    minReport.eventsInPerSecondMetric = secReport.eventsInPerSecondMetric
+                    minReport.kbInPerSecondMetric = secReport.kbInPerSecondMetric
+                    minReport.kbOutPerSecondMetric = secReport.kbOutPerSecondMetric
+                } else {
+                    minReport.timestamp = throtheledAvg(minReport.timestamp, secReport.timestamp)
+                    minReport.eventsOutPerSecondMetric = throtheledAvg(minReport.eventsOutPerSecondMetric, secReport.eventsOutPerSecondMetric)
+                    minReport.eventsInPerSecondMetric = throtheledAvg(minReport.eventsInPerSecondMetric, secReport.eventsInPerSecondMetric)
+                    minReport.kbInPerSecondMetric = throtheledAvg(minReport.kbInPerSecondMetric, secReport.kbInPerSecondMetric)
+                    minReport.kbOutPerSecondMetric = throtheledAvg(minReport.kbOutPerSecondMetric, secReport.kbOutPerSecondMetric)
+                }
+
+                this.client.publish(
+                    this.streamIds.secStreamId,
+                    secReport
+                )
+
+                if (sec === 60) {
+                    sec = 0
+                    // minute elapsed, publish to minutes stream
+
+                    minReport.timestamp = 0
+                    minReport.eventsOutPerSecondMetric = 0
+                    minReport.eventsInPerSecondMetric = 0
+                    minReport.kbInPerSecondMetric = 0
+                    minReport.kbOutPerSecondMetric = 0
+
+                    this.client.publish(
+                        this.streamIds.minStreamId,
+                        minReport
+                    )
+                }
+
+                // get the last msg to check if it's been an hour
+
+                const lastHourReports = await getResend(this.streamIds.hourStreamId, 1)
+
+                const now = Date.now()
+
+                if ((lastHourReports[0].timestamp + (60 * 60 * 1000) - now) < 0) {
+                    // fetch the last 60 minute reports and get the averages
+                    const messages = await getResend(this.streamIds.minuteStreamId, 60)
+
+                    const hourReport = {
+                        timestamp: messages[0].timestamp,
+                        eventsOutPerSecondMetric: messages[0].eventsOutPerSecondMetric,
+                        eventsInPerSecondMetric: messages[0].eventsInPerSecondMetric,
+                        kbInPerSecondMetric: messages[0].kbInPerSecondMetric,
+                        kbOutPerSecondMetric: messages[0].kbOutPerSecondMetric,
+                    }
+
+                    for (let i = 1; i < messages.length; i++) {
+                        hourReport.timestamp = throtheledAvg(hourReport.timestamp, messages[i].timestamp)
+                        hourReport.eventsOutPerSecondMetric = throtheledAvg(hourReport.eventsOutPerSecondMetric, messages[i].eventsOutPerSecondMetric)
+                        hourReport.eventsInPerSecondMetric = throtheledAvg(hourReport.eventsInPerSecondMetric, messages[i].eventsInPerSecondMetric)
+                        hourReport.kbInPerSecondMetric = throtheledAvg(hourReport.kbInPerSecondMetric, messages[i].kbInPerSecondMetric)
+                        hourReport.kbOutPerSecondMetric = throtheledAvg(hourReport.kbOutPerSecondMetric, messages[i].kbOutPerSecondMetric)
+                    }
+
+                    this.client.publish(
+                        this.streamIds.hourStreamId,
+                        hourReport
+                    )
+                }
+                // do the same to inspect if a daily report is to be pushed
+                const lastDayReports = await getResend(this.streamIds.dayStreamId, 1)
+
+                if ((lastDayReports[0].timestamp + (24 * 60 * 60 * 1000) - now) < 0) {
+                    // fetch the last 60 minute reports and get the averages
+                    const messages = await getResend(this.streamIds.hourStreamId, 24)
+
+                    const dayReport = {
+                        timestamp: messages[0].timestamp,
+                        eventsOutPerSecondMetric: messages[0].eventsOutPerSecondMetric,
+                        eventsInPerSecondMetric: messages[0].eventsInPerSecondMetric,
+                        kbInPerSecondMetric: messages[0].kbInPerSecondMetric,
+                        kbOutPerSecondMetric: messages[0].kbOutPerSecondMetric,
+                    }
+
+                    for (let i = 1; i < messages.length; i++) {
+                        dayReport.timestamp = throtheledAvg(dayReport.timestamp, messages[i].timestamp)
+                        dayReport.eventsOutPerSecondMetric = throtheledAvg(dayReport.eventsOutPerSecondMetric, messages[i].eventsOutPerSecondMetric)
+                        dayReport.eventsInPerSecondMetric = throtheledAvg(dayReport.eventsInPerSecondMetric, messages[i].eventsInPerSecondMetric)
+                        dayReport.kbInPerSecondMetric = throtheledAvg(dayReport.kbInPerSecondMetric, messages[i].kbInPerSecondMetric)
+                        dayReport.kbOutPerSecondMetric = throtheledAvg(dayReport.kbOutPerSecondMetric, messages[i].kbOutPerSecondMetric)
+                    }
+
+                    this.client.publish(
+                        this.streamIds.dayStreamId,
+                        dayReport
+                    )
+                }
+            }, 1000)
+        }
+
         if (reportingIntervalSeconds > 0) {
             const reportingIntervalInMs = reportingIntervalSeconds * 1000
             const reportFn = async () => {
@@ -78,8 +237,8 @@ module.exports = class VolumeLogger {
 
         // Report metrics to Streamr stream
         if (this.client instanceof StreamrClient && this.streamId !== undefined) {
-            this.client.publish(this.streamId, report).catch((e) => {
-                logger.warn(`failed to publish metrics to ${this.streamId} because ${e}`)
+            this.client.publish(this.streamIds.metricsStreamId, report).catch((e) => {
+                logger.warn(`failed to publish metrics to ${this.streamIds.metricsStreamId} because ${e}`)
             })
         }
 

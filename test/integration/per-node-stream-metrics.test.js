@@ -4,10 +4,10 @@ const { wait, waitForCondition } = require('streamr-test-utils')
 
 const { startBroker, createClient } = require('../utils')
 
-const httpPort1 = 12741
-const wsPort1 = 12751
-const networkPort1 = 12365
-const trackerPort = 12970
+const httpPort1 = 47741
+const wsPort1 = 47751
+const networkPort1 = 47365
+const trackerPort = 47970
 const broker1Key = '0x241b3f241b110ff7b3e6d52e74fea922006a83e33ff938e6e3cba8a460c02513'
 
 describe('metricsStream', () => {
