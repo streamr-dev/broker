@@ -84,7 +84,7 @@ describe('broker: end-to-end', () => {
         try {
             freshStream = await client1.createStream({
                 name: 'broker.test.js-' + Date.now()
-            })    
+            })
         } catch (error) {
             console.log('DEBUG createStream failed!')
             console.log(error)
