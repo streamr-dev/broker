@@ -107,11 +107,8 @@ module.exports = class VolumeLogger {
             setInterval(async () => {
                 // assuming this.client is set
                 sec += 1
-
-                logger.info(sec)
-
+                
                 const metricsReport = await this.metricsContext.report()
-                console.log(metricsReport)
 
                 const secReport = {
                     timestamp: Date.now(),
