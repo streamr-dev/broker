@@ -77,31 +77,20 @@ describe('broker: end-to-end', () => {
         //     auth: {
         //         privateKey: ethereumAccount.privateKey // this client signs published messages
         //     }
-        // await client4.session.getSessionToken() // avoid race condition vs grantPermission. TODO: remove when fixed in EE
         // })
+        // await client4.session.getSessionToken() // avoid race condition vs grantPermission. TODO: remove when fixed in EE
 
-        console.log('DEBUG will create stream in beforeEach()')
-        try {
-            freshStream = await client1.createStream({
-                name: 'broker.test.js-' + Date.now()
-            })
-        } catch (error) {
-            console.log('DEBUG createStream failed!')
-            console.log(error)
-        }
+        freshStream = await client1.createStream({
+            name: 'broker.test.js-' + Date.now()
+        })
         freshStreamId = freshStream.id
-        console.log('DEBUG broker.test freshStream: ' + freshStreamId, freshStream)
 
-        console.log('DEBUG grantpermission: stream_get')
         await freshStream.grantPermission('stream_get', 'tester2@streamr.com')
-        console.log('DEBUG grantpermission: stream_subscribe')
         await freshStream.grantPermission('stream_subscribe', 'tester2@streamr.com')
-
-        console.log('DEBUG grantpermissions done')
         // await freshStream.grantPermission('stream_get', ethereumAccount.address)
         // await freshStream.grantPermission('stream_subscribe', ethereumAccount.address)
         // await freshStream.grantPermission('stream_publish', ethereumAccount.address)
-    }, 10 * 1000)
+    }, 30 * 1000)
 
     afterAll(async () => {
         await tracker.stop()
