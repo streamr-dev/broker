@@ -112,6 +112,7 @@ module.exports = class StreamFetcher {
         }
 
         const url = `${this.streamResourceUrl}/${encodeURIComponent(streamId)}/permissions/me`
+        console.log('DEBUG in StreamFetcher_checkPermission: ' + streamId + ' ' + (typeof streamId) + ' ' + url)
         const headers = formHeaders(apiKey, sessionToken)
 
         const response = await fetchWithErrorLogging(url, {
