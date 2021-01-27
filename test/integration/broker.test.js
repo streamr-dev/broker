@@ -77,12 +77,18 @@ describe('broker: end-to-end', () => {
         //     auth: {
         //         privateKey: ethereumAccount.privateKey // this client signs published messages
         //     }
-        // })
         // await client4.session.getSessionToken() // avoid race condition vs grantPermission. TODO: remove when fixed in EE
+        // })
 
-        freshStream = await client1.createStream({
-            name: 'broker.test.js-' + Date.now()
-        })
+        console.log('DEBUG will create stream in beforeEach()')
+        try {
+            freshStream = await client1.createStream({
+                name: 'broker.test.js-' + Date.now()
+            })    
+        } catch (error) {
+            console.log('DEBUG createStream failed!')
+            console.log(error)
+        }
         freshStreamId = freshStream.id
         console.log('DEBUG broker.test freshStream: ' + JSON.stringify(freshStream) + ' ' + freshStreamId)
 
