@@ -110,6 +110,12 @@ module.exports = class VolumeLogger {
 
                 const metricsReport = await this.metricsContext.report()
                 console.log(metricsReport.metrics.WsEndpoint)
+                console.log(metricsReport)
+                const keys = Object.keys(metricsReport.metrics)
+                for (let i = 0; i < keys.length; i++) {
+                    console.log(keys[i], metricsReport.metrics[keys[i]])
+                }
+
                 const secReport = {
                     timestamp: Date.now(),
                     eventsOutPerSecondMetric: metricsReport.eventsOutPerSecondMetric,
