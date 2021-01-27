@@ -90,7 +90,7 @@ describe('broker: end-to-end', () => {
             console.log(error)
         }
         freshStreamId = freshStream.id
-        console.log('DEBUG broker.test freshStream: ' + JSON.stringify(freshStream) + ' ' + freshStreamId)
+        console.log('DEBUG broker.test freshStream: ' + freshStreamId, freshStream)
 
         console.log('DEBUG grantpermission: stream_get')
         await freshStream.grantPermission('stream_get', 'tester2@streamr.com')
