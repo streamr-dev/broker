@@ -25,7 +25,7 @@ module.exports = class EventBus {
         const stream = await client.getOrCreateStream({
             id: streamId
         })
-        const coreApiAccount = new ethers.Wallet('0x0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF') // TODO: private key from config file
+        const coreApiAccount = new ethers.Wallet('0x0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF').address // TODO: private key from config file
         await stream.grantPermission('stream_get', null),
         await stream.grantPermission('stream_subscribe', null),
         await stream.grantPermission('stream_publish', coreApiAccount)
