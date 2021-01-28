@@ -19,18 +19,19 @@ const WS_URL = 'ws://localhost/api/v1/ws'
 const API_URL = 'http://localhost/api/v1'
 
 const createClient = (privateKey) => {
-	return new StreamrClient({
-		auth: { privateKey },
-		url: WS_URL,
-		restUrl: API_URL
-	});
-};
+    return new StreamrClient({
+        auth: {
+            privateKey
+        },
+        url: WS_URL,
+        restUrl: API_URL
+    })
+}
 
 const main = async () => {
-
     // 1. User calls Core API to add a stream to storage node:
     const userClient = await createClient(userPrivateKey)
-    newStream = await userClient.createStream()
+    const newStream = await userClient.createStream()
     console.log('User created stream: ' + newStream.id)
     await fetch(`${API_URL}/streams/${encodeURIComponent(newStream.id)}/storageNodes`, {
         body: JSON.stringify({
@@ -43,7 +44,7 @@ const main = async () => {
         },
         method: 'POST'
     })
-    console.log('User added the stream to storage node: ' + storageNodeAccount.address)    
+    console.log('User added the stream to storage node: ' + storageNodeAccount.address)
 
     // 2. User listens to the eventBus stream and sees when that stream has been added
     userClient.subscribe(eventBusStreamId, (message) => {
@@ -55,11 +56,11 @@ const main = async () => {
     // 3. Core API receives the "add storage node" API requests and stores the a new row to the DB (as usually)
     // - and it also notifies the storage node by writing to the storage node's eventBus stream
     const message = {
-        command: 'requestStorageConfigRefresh'        
+        command: 'requestStorageConfigRefresh'
     }
     const coreApiClient = await createClient(coreApiPrivateKey)
-    coreApiClient.publish(eventBusStreamId, message);
-    console.log('Core API requested the storage node to refresh the config: ' + eventBusStreamId + ' ' + JSON.stringify(message));
+    coreApiClient.publish(eventBusStreamId, message)
+    console.log('Core API requested the storage node to refresh the config: ' + eventBusStreamId + ' ' + JSON.stringify(message))
 }
 
 main()

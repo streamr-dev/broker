@@ -83,7 +83,7 @@ module.exports = class StorageConfig {
                 if (this._eventBus !== undefined) {
                     this._eventBus.publish({
                         event: 'storageConfigRefreshCompleted',
-                        streamParts: streamKeys  // could send as objects, not as strings
+                        streamParts: streamKeys // could send as objects, not as strings
                     })
                 }
                 return undefined
