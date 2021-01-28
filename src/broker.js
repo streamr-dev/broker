@@ -17,6 +17,7 @@ const MissingConfigError = require('./errors/MissingConfigError')
 const adapterRegistry = require('./adapterRegistry')
 const validateConfig = require('./helpers/validateConfig')
 const StorageConfig = require('./storage/StorageConfig')
+const EventBus = require('./EventBus')
 
 const { Utils } = Protocol
 
@@ -213,6 +214,11 @@ module.exports = async (config) => {
         logger.info(`Advertising to tracker WS url: ${advertisedWsUrl}`)
     }
 
+    const eventBus = await EventBus.createInstance(wallet)
+    if (storageConfig !== undefined) {
+        storageConfig.setEventBus(eventBus)
+    }
+
     return {
         getNeighbors: () => networkNode.getNeighbors(),
         getStreams: () => networkNode.getStreams(),
@@ -222,7 +228,8 @@ module.exports = async (config) => {
             ...closeAdapterFns.map((close) => close()),
             ...storages.map((storage) => storage.close()),
             volumeLogger.close(),
-            (storageConfig !== undefined) ? storageConfig.cleanup() : undefined
+            (storageConfig !== undefined) ? storageConfig.cleanup() : undefined,
+            eventBus.stop()
         ])
     }
 }

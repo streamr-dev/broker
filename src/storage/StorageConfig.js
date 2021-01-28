@@ -68,6 +68,7 @@ module.exports = class StorageConfig {
     }
 
     refresh() {
+        console.log('DEBUG StorageNode.refresh() start')
         return fetch(`${this.apiUrl}/storageNodes/${this.nodeId}/streams`)
             .then((res) => res.json())
             .then((json) => {
@@ -78,8 +79,24 @@ module.exports = class StorageConfig {
                     }
                 })
                 this._setStreams(streamKeys)
+                console.log('DEBUG StorageNode.refresh() completed')
+                if (this._eventBus !== undefined) {
+                    this._eventBus.publish({
+                        event: 'storageConfigRefreshCompleted',
+                        streamParts: streamKeys  // could send as objects, not as strings
+                    })
+                }
                 return undefined
             })
+    }
+
+    setEventBus(eventBus) {
+        this._eventBus = eventBus
+        eventBus.subscribe((message) => {
+            if (message.command === 'requestStorageConfigRefresh') {
+                this.refresh()
+            }
+        })
     }
 
     cleanup() {
