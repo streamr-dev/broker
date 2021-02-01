@@ -7,18 +7,22 @@ const isTimestampTooFarInTheFuture = (timestamp) => {
 }
 
 module.exports = class Publisher {
-    constructor(networkNode, streamMessageValidator, metricsContext) {
+    constructor(networkNode, streamMessageValidator, subscriptionManager, metricsContext) {
         if (!networkNode) {
             throw new Error('No networkNode defined!')
         }
         if (!streamMessageValidator) {
             throw new Error('No streamMessageValidator defined!')
         }
+        if (!subscriptionManager) {
+            throw new Error('No subscriptionManager defined!')
+        }
         if (!metricsContext) {
             throw new Error('No metricsContext defined!')
         }
         this.networkNode = networkNode
         this.streamMessageValidator = streamMessageValidator
+        this.subscriptionManager = subscriptionManager
         this.metrics = metricsContext.create('broker/publisher')
             .addRecordedMetric('bytes')
             .addRecordedMetric('messages')
@@ -41,5 +45,6 @@ module.exports = class Publisher {
         this.metrics.record('bytes', streamMessage.getContent(false).length)
         this.metrics.record('messages', 1)
         this.networkNode.publish(streamMessage)
+        this.subscriptionManager.recordPublish(streamMessage.getStreamId(), streamMessage.getStreamPartition())
     }
 }
