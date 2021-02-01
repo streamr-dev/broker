@@ -57,7 +57,7 @@ describe('messages from disconnecting client', () => {
         client2 = createClient(wsPort2)
 
         freshStream = await client1.createStream({
-            name: 'SubscriptionManager.test.js-' + Date.now()
+            name: 'messages-from-disconnecting-client.test.js-' + Date.now()
         })
         await freshStream.grantPermission('stream_get', null)
         await freshStream.grantPermission('stream_subscribe', null)
