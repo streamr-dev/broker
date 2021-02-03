@@ -1,6 +1,7 @@
 const { startTracker } = require('streamr-network')
 const fetch = require('node-fetch')
 const { wait, waitForCondition } = require('streamr-test-utils')
+const MockDate = require('mockdate')
 
 const { startBroker, createClient } = require('../utils')
 
@@ -52,13 +53,93 @@ describe('metricsStream', () => {
         ])
     })
 
-    it('should test the new metrics endpoint', (done) => {
+    it('should retrieve the last `sec` metrics', (done) => {
+        MockDate.set('1971-01-01')
         client1.subscribe({
             stream: '0xC59b3658D22e0716726819a56e164ee6825e21C2/streamr/node/metrics/sec',
         }, (res) => {
-            console.log('res', res)
             expect(res.peerId).toEqual('broker1')
+
+            expect(res.nodeLatency).toBeGreaterThanOrEqual(0)
+            expect(res.wsMsgInSpeed).toBeGreaterThanOrEqual(0)
+            expect(res.wsMsgOutSpeed).toBeGreaterThanOrEqual(0)
+            expect(res.webRtcMsgInSpeed).toBeGreaterThanOrEqual(0)
+            expect(res.webRtcMsgOutSpeed).toBeGreaterThanOrEqual(0)
+
+            // MockDate.reset()
+
             done()
         })
-    }, 15 * 1000)
+    })
+
+    it('should retrieve the last `min` metrics', (done) => {
+        client1.subscribe({
+            stream: '0xC59b3658D22e0716726819a56e164ee6825e21C2/streamr/node/metrics/min',
+        }, (res) => {
+            expect(res.peerId).toEqual('broker1')
+
+            expect(res.startTime).toBeGreaterThanOrEqual(0)
+            expect(res.currentTime).toBeGreaterThanOrEqual(0)
+            expect(res.timestamp).toBeGreaterThanOrEqual(0)
+            expect(res.nodeLatency).toBeGreaterThanOrEqual(0)
+            expect(res.wsMsgInSpeed).toBeGreaterThanOrEqual(0)
+            expect(res.wsMsgOutSpeed).toBeGreaterThanOrEqual(0)
+            expect(res.webRtcMsgInSpeed).toBeGreaterThanOrEqual(0)
+            expect(res.webRtcMsgOutSpeed).toBeGreaterThanOrEqual(0)
+
+            done()
+        })
+    })
+
+    it('should retrieve the last `hour` metrics', (done) => {
+        client1.subscribe({
+            stream: '0xC59b3658D22e0716726819a56e164ee6825e21C2/streamr/node/metrics/hour',
+        }, (res) => {
+            expect(res.peerId).toEqual('broker1')
+
+            expect(res.startTime).toBeGreaterThanOrEqual(0)
+            expect(res.currentTime).toBeGreaterThanOrEqual(0)
+            expect(res.timestamp).toBeGreaterThanOrEqual(0)
+            expect(res.nodeLatency).toBeGreaterThanOrEqual(0)
+            expect(res.wsMsgInSpeed).toBeGreaterThanOrEqual(0)
+            expect(res.wsMsgOutSpeed).toBeGreaterThanOrEqual(0)
+            expect(res.webRtcMsgInSpeed).toBeGreaterThanOrEqual(0)
+            expect(res.webRtcMsgOutSpeed).toBeGreaterThanOrEqual(0)
+            done()
+        })
+    })
+
+    /* won't work?
+    Error: Already connecting!
+          at Connection.connect (/home/bearni/streamr/broker/node_modules/streamr-client/dist/webpack:/StreamrClient/src/Connection.js:32:19)
+          at Connection.<anonymous> (/home/bearni/streamr/broker/node_modules/streamr-client/dist/webpack:/StreamrClient/src/Connection.js:41:62)
+          at Connection.emit (/home/bearni/streamr/broker/node_modules/eventemitter3/index.js:201:33)
+          at Connection.updateState (/home/bearni/streamr/broker/node_modules/streamr-client/dist/webpack:/StreamrClient/src/Connection.js:27:14)
+          at EventEmitter.<anonymous> (/home/bearni/streamr/broker/node_modules/streamr-client/dist/webpack:/StreamrClient/src/Connection.js:83:18)
+          at EventEmitter.emit (/home/bearni/streamr/broker/node_modules/eventemitter3/index.js:201:33)
+          at WebSocket.socket.onclose (/home/bearni/streamr/broker/node_modules/streamr-client/dist/webpack:/StreamrClient/src/Connection.js:54:56)
+          at WebSocket.onClose (/home/bearni/streamr/broker/node_modules/ws/lib/event-target.js:136:16)
+          at WebSocket.emit (events.js:315:20)
+          at WebSocket.EventEmitter.emit (domain.js:467:12)
+
+    */
+    /*
+    it('should retrieve the last `day` metrics', (done) => {
+        client1.subscribe({
+            stream: '0xC59b3658D22e0716726819a56e164ee6825e21C2/streamr/node/metrics/day',
+        }, (res) => {
+            expect(res.peerId).toEqual('broker1')
+
+            expect(res.startTime).toBeGreaterThanOrEqual(0)
+            expect(res.currentTime).toBeGreaterThanOrEqual(0)
+            expect(res.timestamp).toBeGreaterThanOrEqual(0)
+            expect(res.nodeLatency).toBeGreaterThanOrEqual(0)
+            expect(res.wsMsgInSpeed).toBeGreaterThanOrEqual(0)
+            expect(res.wsMsgOutSpeed).toBeGreaterThanOrEqual(0)
+            expect(res.webRtcMsgInSpeed).toBeGreaterThanOrEqual(0)
+            expect(res.webRtcMsgOutSpeed).toBeGreaterThanOrEqual(0)
+            done()
+        })
+    }, 10 * 1000)
+    */
 })
