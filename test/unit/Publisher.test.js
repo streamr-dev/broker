@@ -16,6 +16,7 @@ function formMessage(timestamp) {
 describe('Publisher', () => {
     let networkNode
     let validator
+    let subscriptionManager
     let publisher
 
     beforeEach(() => {
@@ -25,7 +26,10 @@ describe('Publisher', () => {
         validator = {
             validate: sinon.stub().resolves()
         }
-        publisher = new Publisher(networkNode, validator, new MetricsContext(null))
+        subscriptionManager = {
+            recordPublish: () => {}
+        }
+        publisher = new Publisher(networkNode, validator, subscriptionManager, new MetricsContext(null))
     })
 
     describe('validateAndPublish', () => {

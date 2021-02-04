@@ -66,14 +66,15 @@ describe('resend cancellation', () => {
                 }
             ]
         })
+        const subscriptionManager = new SubscriptionManager(networkNode)
         websocketServer = new WebsocketServer(
             ws.App(),
             wsPort,
             networkNode,
             new StreamFetcher('http://localhost:8081/streamr-core'),
-            new Publisher(networkNode, {}, metricsContext),
+            new Publisher(networkNode, {}, subscriptionManager, metricsContext),
             metricsContext,
-            new SubscriptionManager(networkNode)
+            subscriptionManager
         )
         client = createClient(wsPort)
         freshStream = await client.createStream({

@@ -35,15 +35,16 @@ describe('ping-pong test between broker and clients', () => {
             trackers: [tracker.getAddress()]
         })
 
+        const subscriptionManager = new SubscriptionManager(networkNode)
         metricsContext = new MetricsContext(null)
         websocketServer = new WebsocketServer(
             uWS.App(),
             wsPort,
             networkNode,
             new StreamFetcher('http://localhost:8081/streamr-core'),
-            new Publisher(networkNode, {}, metricsContext),
+            new Publisher(networkNode, {}, subscriptionManager, metricsContext),
             metricsContext,
-            new SubscriptionManager(networkNode)
+            subscriptionManager
         )
 
         client1 = createClient(wsPort)
