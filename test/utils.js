@@ -21,6 +21,7 @@ function formConfig({
     privateKeyFileName = null,
     certFileName = null,
     streamrUrl = 'http://localhost:8081/streamr-core',
+    streamrAddress = '0xFCAd0B19bB29D4674531d6f115237E16AfCE377c',
     reporting = false
 }) {
     const adapters = []
@@ -84,6 +85,7 @@ function formConfig({
             }
         },
         streamrUrl,
+        streamrAddress,
         adapters
     }
 }

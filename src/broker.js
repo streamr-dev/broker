@@ -36,6 +36,8 @@ module.exports = async (config) => {
     }
     const brokerAddress = wallet.address
 
+    const storageConfig = config.network.isStorageNode ? await StorageConfig.createInstance(brokerAddress, config.streamrUrl + '/api/v1', (config.storageConfig && config.storageConfig.refreshInterval)) : null
+
     let cassandraStorage
     // Start cassandra storage
     if (config.cassandra) {
@@ -48,7 +50,8 @@ module.exports = async (config) => {
             password: config.cassandra.password,
             opts: {
                 useTtl: !config.network.isStorageNode
-            }
+            },
+            storageConfig
         })
         cassandraStorage.enableMetrics(metricsContext)
         storages.push(cassandraStorage)
@@ -68,8 +71,6 @@ module.exports = async (config) => {
         trackers = config.network.trackers
     }
 
-    const storageConfig = config.network.isStorageNode ? await StorageConfig.createInstance(brokerAddress, config.streamrUrl + '/api/v1', (config.storageConfig && config.storageConfig.refreshInterval)) : undefined
-
     // Start network node
     const startFn = config.network.isStorageNode ? startStorageNode : startNetworkNode
     const advertisedWsUrl = config.network.advertisedWsUrl !== 'auto'
@@ -88,6 +89,10 @@ module.exports = async (config) => {
         metricsContext
     })
     networkNode.start()
+
+    if ((storageConfig !== null) && (config.streamrAddress !== null)) {
+        storageConfig.startAssignmentEventListener(config.streamrAddress, networkNode)
+    }
 
     // Set up sentry logging
     if (config.reporting.sentry) {

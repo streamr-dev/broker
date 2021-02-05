@@ -18,10 +18,18 @@ const getKeyFromStream = (streamId, streamPartition) => {
     return `${streamId}::${streamPartition}`
 }
 
+const getKeysFromStream = (streamId, partitions) => {
+    const keys = new Set()
+    for (let i = 0; i < partitions; i++) {
+        keys.add(getKeyFromStream(streamId, i))
+    }
+    return keys
+}
+
 module.exports = class StorageConfig {
     // use createInstance method instead: it fetches the up-to-date config from API
     constructor(nodeId, apiUrl) {
-        this.streams = new Set()
+        this.streamKeys = new Set()
         this.listeners = []
         this.nodeId = nodeId
         this.apiUrl = apiUrl
@@ -47,8 +55,13 @@ module.exports = class StorageConfig {
         return instance
     }
 
+    hasStream(stream) {
+        const key = getKeyFromStream(stream.id, stream.partition)
+        return this.streamKeys.has(key)
+    }
+
     getStreams() {
-        return Array.from(this.streams.values()).map((key) => getStreamFromKey(key))
+        return Array.from(this.streamKeys.values()).map((key) => getStreamFromKey(key))
     }
 
     addChangeListener(listener) {
@@ -56,14 +69,25 @@ module.exports = class StorageConfig {
     }
 
     _setStreams(streamKeys) {
-        const oldKeys = this.streams
-        const newKeys = new Set(streamKeys)
+        const oldKeys = this.streamKeys
+        const newKeys = streamKeys
         const added = new Set([...newKeys].filter((x) => !oldKeys.has(x)))
         const removed = new Set([...oldKeys].filter((x) => !newKeys.has(x)))
-        this.streams = newKeys
+        this._addStreams(added)
+        this._removeStreams(removed)
+    }
+
+    _addStreams(streamKeys) {
+        this.streamKeys = new Set([...this.streamKeys, ...streamKeys])
         this.listeners.forEach((listener) => {
-            added.forEach((key) => listener.onStreamAdded(getStreamFromKey(key)))
-            removed.forEach((key) => listener.onStreamRemoved(getStreamFromKey(key)))
+            streamKeys.forEach((key) => listener.onStreamAdded(getStreamFromKey(key)))
+        })
+    }
+
+    _removeStreams(streamKeys) {
+        this.streamKeys = new Set([...this.streamKeys].filter((x) => !streamKeys.has(x)))
+        this.listeners.forEach((listener) => {
+            streamKeys.forEach((key) => listener.onStreamRemoved(getStreamFromKey(key)))
         })
     }
 
@@ -71,15 +95,29 @@ module.exports = class StorageConfig {
         return fetch(`${this.apiUrl}/storageNodes/${this.nodeId}/streams`)
             .then((res) => res.json())
             .then((json) => {
-                const streamKeys = []
+                let streamKeys = new Set()
                 json.forEach((stream) => {
-                    for (let i = 0; i < stream.partitions; i++) {
-                        streamKeys.push(getKeyFromStream(stream.id, i))
-                    }
+                    streamKeys = new Set([...streamKeys, ...getKeysFromStream(stream.id, stream.partitions)])
                 })
                 this._setStreams(streamKeys)
                 return undefined
             })
+    }
+
+    startAssignmentEventListener(streamrAddress, networkNode) {
+        const assignmentStreamId = streamrAddress + '/storage-node-assignments'
+        networkNode.addMessageListener((msg) => {
+            if (msg.messageId.streamId === assignmentStreamId) {
+                const content = msg.getParsedContent()
+                const keys = new Set(getKeysFromStream(content.streamId, content.partitions))
+                if (content.event === 'STREAM_ADDED') {
+                    this._addStreams(keys)
+                } else if (content.event === 'STREAM_REMOVED') {
+                    this._removeStreams(keys)
+                }
+            }
+        })
+        networkNode.subscribe(assignmentStreamId, 0)
     }
 
     cleanup() {
