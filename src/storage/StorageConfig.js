@@ -73,11 +73,16 @@ module.exports = class StorageConfig {
         const newKeys = streamKeys
         const added = new Set([...newKeys].filter((x) => !oldKeys.has(x)))
         const removed = new Set([...oldKeys].filter((x) => !newKeys.has(x)))
-        this._addStreams(added)
-        this._removeStreams(removed)
+        if (added.size > 0) {
+            this._addStreams(added)
+        }
+        if (removed.size > 0) {
+            this._removeStreams(removed)
+        }
     }
 
     _addStreams(streamKeys) {
+        logger.info('Add stream to storage config: ' + Array.from(streamKeys).join())
         this.streamKeys = new Set([...this.streamKeys, ...streamKeys])
         this.listeners.forEach((listener) => {
             streamKeys.forEach((key) => listener.onStreamAdded(getStreamFromKey(key)))
@@ -85,6 +90,7 @@ module.exports = class StorageConfig {
     }
 
     _removeStreams(streamKeys) {
+        logger.info('Remove stream to storage config: ' + Array.from(streamKeys).join())
         this.streamKeys = new Set([...this.streamKeys].filter((x) => !streamKeys.has(x)))
         this.listeners.forEach((listener) => {
             streamKeys.forEach((key) => listener.onStreamRemoved(getStreamFromKey(key)))
@@ -109,7 +115,7 @@ module.exports = class StorageConfig {
         networkNode.addMessageListener((msg) => {
             if (msg.messageId.streamId === assignmentStreamId) {
                 const content = msg.getParsedContent()
-                const keys = new Set(getKeysFromStream(content.streamId, content.partitions))
+                const keys = new Set(getKeysFromStream(content.stream.id, content.stream.partitions))
                 if (content.event === 'STREAM_ADDED') {
                     this._addStreams(keys)
                 } else if (content.event === 'STREAM_REMOVED') {
