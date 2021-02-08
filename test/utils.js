@@ -1,5 +1,6 @@
 const StreamrClient = require('streamr-client')
 const mqtt = require('async-mqtt')
+const fetch = require('node-fetch')
 
 const createBroker = require('../src/broker')
 
@@ -8,6 +9,9 @@ const DEFAULT_CLIENT_OPTIONS = {
         apiKey: 'tester1-api-key'
     }
 }
+
+const STREAMR_URL = 'http://127.0.0.1'
+const API_URL = `${STREAMR_URL}/api/v1`
 
 function formConfig({
     name,
@@ -115,10 +119,25 @@ function createMqttClient(mqttPort = 9000, host = 'localhost', apiKey = 'tester1
     })
 }
 
+const addStreamToStorageNode = async (streamId, storageNodeAddress, client) => {
+    await fetch(`${API_URL}/streams/${encodeURIComponent(streamId)}/storageNodes`, {
+        body: JSON.stringify({
+            address: storageNodeAddress
+        }),
+        headers: {
+            // eslint-disable-next-line quote-props
+            'Authorization': 'Bearer ' + await client.session.getSessionToken(),
+            'Content-Type': 'application/json',
+        },
+        method: 'POST'
+    })
+}
+
 module.exports = {
     formConfig,
     startBroker,
     createClient,
     createMqttClient,
     getWsUrl,
+    addStreamToStorageNode
 }
