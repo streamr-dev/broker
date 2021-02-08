@@ -1,6 +1,7 @@
 const { startTracker } = require('streamr-network')
 const cassandra = require('cassandra-driver')
 const ethers = require('ethers')
+const fetch = require('node-fetch')
 const { waitForCondition } = require('streamr-test-utils')
 const { StreamMessage } = require('streamr-network').Protocol.MessageLayer
 
@@ -13,10 +14,17 @@ const keyspace = 'streamr_dev_v2'
 const NODE_HOST = '127.0.0.1'
 const STREAMR_URL = 'http://127.0.0.1'
 const API_URL = `${STREAMR_URL}/api/v1`
-const WS_PORT = 17770
-const TRACKER_PORT = 17771
-const STORAGE_NODE_PORT = 17772
-const BROKER_PORT = 17773
+const HTTP_PORT = 17770
+const WS_PORT = 17771
+const TRACKER_PORT = 17772
+const STORAGE_NODE_PORT = 17773
+const BROKER_PORT = 17774
+
+const isPersistent = async (streamId, partition = 0) => {
+    const response = await fetch(`http://${NODE_HOST}:${HTTP_PORT}/api/v1/streams/${encodeURIComponent(streamId)}/storage/partitions/${partition}`)
+    const json = await response.json()
+    return json.persistent
+}
 
 describe('StorageConfig', () => {
     let cassandraClient
@@ -52,6 +60,7 @@ describe('StorageConfig', () => {
             privateKey: storageNodeAccount.privateKey,
             networkPort: STORAGE_NODE_PORT,
             trackerPort: TRACKER_PORT,
+            httpPort: HTTP_PORT,
             streamrUrl: STREAMR_URL,
             enableCassandra: true
         })
@@ -81,7 +90,7 @@ describe('StorageConfig', () => {
             id: publisherAccount.address + '/StorageConfigTest/' + Date.now()
         })
         await addStreamToStorageNode(stream.id, storageNodeAccount.address, client)
-        await storageNode.refreshStorageConfig()
+        await waitForCondition(() => isPersistent(stream.id))
         const publishMessage = await client.publish(stream.id, {
             foo: 'bar'
         })

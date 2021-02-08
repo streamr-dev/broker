@@ -222,7 +222,6 @@ module.exports = async (config) => {
     return {
         getNeighbors: () => networkNode.getNeighbors(),
         getStreams: () => networkNode.getStreams(),
-        refreshStorageConfig: () => storageConfig.refresh(),
         close: () => Promise.all([
             networkNode.stop(),
             ...closeAdapterFns.map((close) => close()),
