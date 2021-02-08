@@ -194,7 +194,8 @@ module.exports = async (config) => {
                 streamFetcher,
                 metricsContext,
                 subscriptionManager,
-                cassandraStorage
+                cassandraStorage,
+                storageConfig
             })
         } catch (e) {
             if (e instanceof MissingConfigError) {
