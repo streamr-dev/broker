@@ -227,7 +227,7 @@ module.exports = async (config) => {
             ...closeAdapterFns.map((close) => close()),
             ...storages.map((storage) => storage.close()),
             volumeLogger.close(),
-            (storageConfig !== undefined) ? storageConfig.cleanup() : undefined
+            (storageConfig !== null) ? storageConfig.cleanup() : undefined
         ])
     }
 }
