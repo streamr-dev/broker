@@ -109,57 +109,64 @@ module.exports = async (config) => {
     }
 
     // Set up reporting to Streamr stream
-    let client
-    let streamId
-    let apiKey
-    if (config.reporting.streamr) {
-        streamId = config.reporting.streamr.streamId
-        apiKey = config.reporting.streamr.apiKey
-        logger.info(`Starting StreamrClient reporting with apiKey: ${apiKey} and streamId: ${streamId}`)
+    const client = new StreamrClient({
+        auth: {
+            privateKey: config.ethereumPrivateKey,
+        },
+        // autoConnect: true,
+        url: config.reporting.perNodeMetrics.wsUrl || null,
+        restUrl: config.reporting.perNodeMetrics.httpUrl || null
+    })
 
-        client = new StreamrClient({
-            auth: {
-                apiKey
-            },
-            autoConnect: true
-        })
-    } else {
-        logger.info('StreamrClient reporting disabled')
+    const streamIds = {
+        metricsStreamId: null,
+        secStreamId: null,
+        minStreamId: null,
+        hourStreamId: null,
+        dayStreamId: null
     }
 
-    let volumeLogger
-    if (config.reporting.perNodeMetrics && config.reporting.perNodeMetrics.enabled) {
-        // set up stream-specific reporting metrics
-        client = new StreamrClient({
-            auth: {
-                privateKey: config.ethereumPrivateKey
-            },
-            url: config.reporting.perNodeMetrics.wsUrl,
-            restUrl: config.reporting.perNodeMetrics.httpUrl
-            // autoConnect: false
-        })
-
+    const createMetricsStream = async (id) => {
         const metricsStream = await client.getOrCreateStream({
-            name: brokerAddress,
-            id: brokerAddress + '/streamr/node/metrics/sec'
+            name: brokerAddress + '/' + id,
+            id
         })
 
         await metricsStream.grantPermission('stream_get', null)
         await metricsStream.grantPermission('stream_subscribe', null)
+        return metricsStream.id
+    }
 
-        // Initialize common utilities
-        volumeLogger = new VolumeLogger(
-            config.reporting.intervalInSeconds,
-            metricsContext,
-            client,
-            metricsStream.id
-        )
+    if (config.reporting.streamr) {
+        let { streamId } = config.reporting.streamr
+        if (!streamId) {
+            streamId = '/streamr/node/metrics'
+        }
+        streamIds.metricsStreamId = await createMetricsStream(streamId)
+        logger.info(`Starting StreamrClient reporting with streamId: ${streamId}`)
     } else {
+        logger.info('StreamrClient reporting disabled')
+    }
+
+    if (config.reporting.perNodeMetrics && config.reporting.perNodeMetrics.enabled) {
+        streamIds.secStreamId = await createMetricsStream(brokerAddress + '/streamr/node/metrics/sec')
+        streamIds.minStreamId = await createMetricsStream(brokerAddress + '/streamr/node/metrics/min')
+        streamIds.hourStreamId = await createMetricsStream(brokerAddress + '/streamr/node/metrics/hour')
+        streamIds.dayStreamId = await createMetricsStream(brokerAddress + '/streamr/node/metrics/day')
+        logger.info('Starting perNodeMetrics')
+    } else {
+        logger.info('perNodeMetrics reporting disabled')
+    }
+
+    let volumeLogger
+
+    if (client) {
+        // turn the volume logger on as long as the client is initialized
         volumeLogger = new VolumeLogger(
             config.reporting.intervalInSeconds,
             metricsContext,
             client,
-            streamId
+            streamIds
         )
     }
 

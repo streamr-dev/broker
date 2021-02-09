@@ -29,7 +29,9 @@ describe('metricsStream', () => {
             wsPort: wsPort1,
             reporting: {
                 sentry: null,
-                streamr: null,
+                streamr: {
+                    streamId: '/streamr/node/metrics'
+                },
                 intervalInSeconds: 10,
                 perNodeMetrics: {
                     enabled: true,
@@ -50,6 +52,15 @@ describe('metricsStream', () => {
         ])
     })
 
+    it('should ensure the legacy metrics endpoint still works properly', (done) => {
+        client1.subscribe({
+            stream: '0xC59b3658D22e0716726819a56e164ee6825e21C2/streamr/node/metrics',
+        }, (res) => {
+            expect(res.peerId).toEqual('broker1')
+            done()
+        })
+    })
+
     it('should test the new metrics endpoint', (done) => {
         client1.subscribe({
             stream: '0xC59b3658D22e0716726819a56e164ee6825e21C2/streamr/node/metrics/sec',
@@ -57,5 +68,5 @@ describe('metricsStream', () => {
             expect(res.peerId).toEqual('broker1')
             done()
         })
-    }, 15 * 1000)
+    })
 })
