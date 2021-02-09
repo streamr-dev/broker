@@ -36,7 +36,12 @@ module.exports = async (config) => {
     }
     const brokerAddress = wallet.address
 
-    const storageConfig = config.network.isStorageNode ? await StorageConfig.createInstance(brokerAddress, config.streamrUrl + '/api/v1', (config.storageConfig && config.storageConfig.refreshInterval)) : null
+    const createStorageConfig = async () => {
+        const pollInterval = (config.storageConfig && config.storageConfig.refreshInterval) || 10 * 60 * 1000
+        return StorageConfig.createInstance(brokerAddress, config.streamrUrl + '/api/v1', pollInterval)
+    }
+
+    const storageConfig = config.network.isStorageNode ? await createStorageConfig() : null
 
     let cassandraStorage
     // Start cassandra storage
