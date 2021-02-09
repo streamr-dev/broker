@@ -55,7 +55,7 @@ module.exports = class StorageConfig {
             this._poller = setTimeout(() => this._poll(pollInterval), pollInterval)
         }
     }
-    
+
     hasStream(stream) {
         const key = getKeyFromStream(stream.id, stream.partition)
         return this.streamKeys.has(key)
