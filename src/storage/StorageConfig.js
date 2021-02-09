@@ -29,22 +29,23 @@ module.exports = class StorageConfig {
         this._stopPoller = false
     }
 
-    static async createInstance(nodeId, apiUrl, pollInterval = 10 * 60 * 1000) {
+    static async createInstance(nodeId, apiUrl, pollInterval) {
         const instance = new StorageConfig(nodeId, apiUrl)
-        const poll = async () => {
-            try {
-                await instance.refresh()
-            } catch (e) {
-                logger.warn(`Unable to refresh storage config: ${e}`)
-            }
-            // eslint-disable-next-line no-underscore-dangle
-            if (!instance._stopPoller) {
-                // eslint-disable-next-line require-atomic-updates, no-underscore-dangle
-                instance._poller = setTimeout(poll, pollInterval)
-            }
-        }
-        await poll()
+        // eslint-disable-next-line no-underscore-dangle
+        await instance._poll(pollInterval)
         return instance
+    }
+
+    async _poll(pollInterval) {
+        try {
+            await this.refresh()
+        } catch (e) {
+            logger.warn(`Unable to refresh storage config: ${e}`)
+        }
+        if (!this._stopPoller) {
+            // eslint-disable-next-line require-atomic-updates
+            this._poller = setTimeout(() => this._poll(pollInterval), pollInterval)
+        }
     }
 
     getStreams() {
@@ -53,18 +54,6 @@ module.exports = class StorageConfig {
 
     addChangeListener(listener) {
         this.listeners.push(listener)
-    }
-
-    _setStreams(streamKeys) {
-        const oldKeys = this.streams
-        const newKeys = new Set(streamKeys)
-        const added = new Set([...newKeys].filter((x) => !oldKeys.has(x)))
-        const removed = new Set([...oldKeys].filter((x) => !newKeys.has(x)))
-        this.streams = newKeys
-        this.listeners.forEach((listener) => {
-            added.forEach((key) => listener.onStreamAdded(getStreamFromKey(key)))
-            removed.forEach((key) => listener.onStreamRemoved(getStreamFromKey(key)))
-        })
     }
 
     refresh() {
@@ -80,6 +69,18 @@ module.exports = class StorageConfig {
                 this._setStreams(streamKeys)
                 return undefined
             })
+    }
+
+    _setStreams(streamKeys) {
+        const oldKeys = this.streams
+        const newKeys = new Set(streamKeys)
+        const added = new Set([...newKeys].filter((x) => !oldKeys.has(x)))
+        const removed = new Set([...oldKeys].filter((x) => !newKeys.has(x)))
+        this.streams = newKeys
+        this.listeners.forEach((listener) => {
+            added.forEach((key) => listener.onStreamAdded(getStreamFromKey(key)))
+            removed.forEach((key) => listener.onStreamRemoved(getStreamFromKey(key)))
+        })
     }
 
     cleanup() {
