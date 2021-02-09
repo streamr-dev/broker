@@ -70,7 +70,7 @@ module.exports = async (config) => {
 
     const createStorageConfig = async () => {
         const pollInterval = (config.storageConfig && config.storageConfig.refreshInterval) || 10 * 60 * 1000
-        return await StorageConfig.createInstance(brokerAddress, config.streamrUrl + '/api/v1', pollInterval)
+        return StorageConfig.createInstance(brokerAddress, config.streamrUrl + '/api/v1', pollInterval)
     }
 
     const storageConfig = config.network.isStorageNode ? await createStorageConfig() : undefined
