@@ -23,12 +23,18 @@ describe('StorageConfigEndpoints', () => {
     it('stream not in storage config', async () => {
         const app = express()
         app.use('/api/v1', storageConfigEndpoints(storageConfig))
-        await createRequest('non-existing', 456, app).expect(200)
+        await createRequest('non-existing', 456, app).expect(404)
+    })
+
+    it('invalid partition', async () => {
+        const app = express()
+        app.use('/api/v1', storageConfigEndpoints(storageConfig))
+        await createRequest('foo', 'bar', app).expect(400, 'Partition is not a number: bar')
     })
 
     it('not storage node', async () => {
         const app = express()
         app.use('/api/v1', storageConfigEndpoints(null))
-        await createRequest('foobar', 0, app).expect(501)
+        await createRequest('foobar', 0, app).expect(501, 'Not a storage node')
     })
 })
