@@ -93,7 +93,6 @@ describe('ping-pong test between broker and clients', () => {
         await waitForCondition(() => pings === 3)
 
         expect(pings).toEqual(3)
-
         expect(websocketServer.connections.size).toEqual(3)
         await waitForCondition(() => connections.every((connection) => (connection.respondedPong === true)))
         connections.forEach((connection) => {

@@ -37,24 +37,25 @@ module.exports = class StorageConfig {
         this._stopPoller = false
     }
 
-    static async createInstance(nodeId, apiUrl, pollInterval = 10 * 60 * 1000) {
+    static async createInstance(nodeId, apiUrl, pollInterval) {
         const instance = new StorageConfig(nodeId, apiUrl)
-        const poll = async () => {
-            try {
-                await instance.refresh()
-            } catch (e) {
-                logger.warn(`Unable to refresh storage config: ${e}`)
-            }
-            // eslint-disable-next-line no-underscore-dangle
-            if (!instance._stopPoller) {
-                // eslint-disable-next-line require-atomic-updates, no-underscore-dangle
-                instance._poller = setTimeout(poll, pollInterval)
-            }
-        }
-        await poll()
+        // eslint-disable-next-line no-underscore-dangle
+        await instance._poll(pollInterval)
         return instance
     }
 
+    async _poll(pollInterval) {
+        try {
+            await this.refresh()
+        } catch (e) {
+            logger.warn(`Unable to refresh storage config: ${e}`)
+        }
+        if (!this._stopPoller) {
+            // eslint-disable-next-line require-atomic-updates
+            this._poller = setTimeout(() => this._poll(pollInterval), pollInterval)
+        }
+    }
+    
     hasStream(stream) {
         const key = getKeyFromStream(stream.id, stream.partition)
         return this.streamKeys.has(key)
@@ -66,6 +67,19 @@ module.exports = class StorageConfig {
 
     addChangeListener(listener) {
         this.listeners.push(listener)
+    }
+
+    refresh() {
+        return fetch(`${this.apiUrl}/storageNodes/${this.nodeId}/streams`)
+            .then((res) => res.json())
+            .then((json) => {
+                let streamKeys = new Set()
+                json.forEach((stream) => {
+                    streamKeys = new Set([...streamKeys, ...getKeysFromStream(stream.id, stream.partitions)])
+                })
+                this._setStreams(streamKeys)
+                return undefined
+            })
     }
 
     _setStreams(streamKeys) {
@@ -95,19 +109,6 @@ module.exports = class StorageConfig {
         this.listeners.forEach((listener) => {
             streamKeys.forEach((key) => listener.onStreamRemoved(getStreamFromKey(key)))
         })
-    }
-
-    refresh() {
-        return fetch(`${this.apiUrl}/storageNodes/${this.nodeId}/streams`)
-            .then((res) => res.json())
-            .then((json) => {
-                let streamKeys = new Set()
-                json.forEach((stream) => {
-                    streamKeys = new Set([...streamKeys, ...getKeysFromStream(stream.id, stream.partitions)])
-                })
-                this._setStreams(streamKeys)
-                return undefined
-            })
     }
 
     startAssignmentEventListener(streamrAddress, networkNode) {
