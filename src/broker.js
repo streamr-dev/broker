@@ -113,7 +113,7 @@ module.exports = async (config) => {
         auth: {
             privateKey: config.ethereumPrivateKey,
         },
-        // autoConnect: true,
+        autoConnect: true,
         url: config.reporting.perNodeMetrics.wsUrl || null,
         restUrl: config.reporting.perNodeMetrics.httpUrl || null
     })
@@ -126,10 +126,10 @@ module.exports = async (config) => {
         dayStreamId: null
     }
 
-    const createMetricsStream = async (id) => {
+    const createMetricsStream = async (path) => {
         const metricsStream = await client.getOrCreateStream({
-            name: brokerAddress + '/' + id,
-            id
+            name: brokerAddress + path,
+            id: brokerAddress + path
         })
 
         await metricsStream.grantPermission('stream_get', null)
@@ -137,22 +137,21 @@ module.exports = async (config) => {
         return metricsStream.id
     }
 
-    if (config.reporting.streamr) {
-        let { streamId } = config.reporting.streamr
-        if (!streamId) {
-            streamId = '/streamr/node/metrics'
-        }
+    if (config.reporting.streamr && config.reporting.streamr.streamId) {
+        let streamId = config.reporting.streamr.streamId
+        
         streamIds.metricsStreamId = await createMetricsStream(streamId)
+
         logger.info(`Starting StreamrClient reporting with streamId: ${streamId}`)
     } else {
         logger.info('StreamrClient reporting disabled')
     }
 
     if (config.reporting.perNodeMetrics && config.reporting.perNodeMetrics.enabled) {
-        streamIds.secStreamId = await createMetricsStream(brokerAddress + '/streamr/node/metrics/sec')
-        streamIds.minStreamId = await createMetricsStream(brokerAddress + '/streamr/node/metrics/min')
-        streamIds.hourStreamId = await createMetricsStream(brokerAddress + '/streamr/node/metrics/hour')
-        streamIds.dayStreamId = await createMetricsStream(brokerAddress + '/streamr/node/metrics/day')
+        streamIds.secStreamId = await createMetricsStream('/streamr/node/metrics/sec')
+        streamIds.minStreamId = await createMetricsStream('/streamr/node/metrics/min')
+        streamIds.hourStreamId = await createMetricsStream('/streamr/node/metrics/hour')
+        streamIds.dayStreamId = await createMetricsStream('/streamr/node/metrics/day')
         logger.info('Starting perNodeMetrics')
     } else {
         logger.info('perNodeMetrics reporting disabled')
