@@ -119,23 +119,23 @@ module.exports = async (config) => {
         dayStreamId: null
     }
     if (config.reporting.streamr || (config.reporting.perNodeMetrics && config.reporting.perNodeMetrics.enabled)) {
-        if (config.ethereumPrivateKey) {
-            client = new StreamrClient({
-                auth: {
-                    privateKey: config.ethereumPrivateKey,
-                },
-                url: config.reporting.perNodeMetrics.wsUrl || null,
-                restUrl: config.reporting.perNodeMetrics.httpUrl || null
-            })
-        } else {
-            // required for broker.test.js to pass still
-            client = new StreamrClient({
-                auth: {
-                    apiKey: config.reporting.streamr.apiKey
-                },
-                autoConnect: true
-            })
-        }
+        // if (config.ethereumPrivateKey) {
+        client = new StreamrClient({
+            auth: {
+                privateKey: config.ethereumPrivateKey,
+            },
+            url: config.reporting.perNodeMetrics.wsUrl || null,
+            restUrl: config.reporting.perNodeMetrics.httpUrl || null
+        })
+        // } else {
+        // required for broker.test.js to pass still
+        // client = new StreamrClient({
+        // auth: {
+        // apiKey: config.reporting.streamr.apiKey
+        // },
+        // autoConnect: true
+        // })
+        // }
 
         const createMetricsStream = async (path) => {
             const metricsStream = await client.getOrCreateStream({
