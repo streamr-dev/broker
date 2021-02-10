@@ -52,6 +52,9 @@ describe('metricsStream', () => {
         ])
     })
     it('should ensure the legacy metrics endpoint still works properly', (done) => {
+        /* setTimeout(() => {
+            done()
+        }, 5000) */
         client1.subscribe({
             stream: '0xC59b3658D22e0716726819a56e164ee6825e21C2/streamr/node/metrics',
         }, (res) => {
