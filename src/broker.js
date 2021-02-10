@@ -128,7 +128,7 @@ module.exports = async (config) => {
                 restUrl: config.reporting.perNodeMetrics.httpUrl || null
             })
         } else {
-            // legacy mode
+            // required for broker.test.js to pass still
             client = new StreamrClient({
                 auth: {
                     apiKey: config.reporting.streamr.apiKey
@@ -152,7 +152,7 @@ module.exports = async (config) => {
             const { streamId } = config.reporting.streamr
 
             // await createMetricsStream(streamId)
-            streamIds.metricsStreamId = brokerAddress + streamId//
+            streamIds.metricsStreamId = brokerAddress + streamId
 
             logger.info(`Starting StreamrClient reporting with streamId: ${streamId}`)
         } else {
