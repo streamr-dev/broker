@@ -138,8 +138,8 @@ module.exports = async (config) => {
     }
 
     if (config.reporting.streamr && config.reporting.streamr.streamId) {
-        let streamId = config.reporting.streamr.streamId
-        
+        const { streamId } = config.reporting.streamr
+
         streamIds.metricsStreamId = await createMetricsStream(streamId)
 
         logger.info(`Starting StreamrClient reporting with streamId: ${streamId}`)
