@@ -59,7 +59,10 @@ module.exports = class VolumeLogger {
             name: 'messageQueueSize'
         })
 
+        logger.info('IntervalInSeconds: ' + reportingIntervalSeconds)
+        logger.info(this.streamIds)
         if (reportingIntervalSeconds > 0) {
+            logger.info('starting legacy metrics reporting interval')
             const reportingIntervalInMs = reportingIntervalSeconds * 1000
             const reportFn = async () => {
                 try {

@@ -168,7 +168,10 @@ module.exports = async (config) => {
         } else {
             logger.info('perNodeMetrics reporting disabled')
         }
+    } else {
+        logger.info('StreamrClient and perNodeMetrics disabled')
     }
+
     const volumeLogger = new VolumeLogger(
         config.reporting.intervalInSeconds,
         metricsContext,

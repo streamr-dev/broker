@@ -58,5 +58,5 @@ describe('metricsStream', () => {
             expect(res.peerId).toEqual('broker1')
             done()
         })
-    })
+    }, 15 * 1000)
 })
