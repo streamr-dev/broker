@@ -1,6 +1,6 @@
 {
   "name": "streamr-broker",
-  "version": "18.1.8",
+  "version": "18.1.9",
   "description": "A full-featured broker node implementation for the Streamr Network.",
   "repository": {
     "type": "git",
@@ -45,7 +45,7 @@
     "pump": "^3.0.0",
     "qs": "^6.9.6",
     "streamr-client": "^4.1.6",
-    "streamr-network": "^23.0.24",
+    "streamr-network": "^23.0.26",
     "uuid": "^8.3.2",
     "uWebSockets.js": "github:uNetworking/uWebSockets.js#v18.14.0",
     "ws": "^7.4.2"
