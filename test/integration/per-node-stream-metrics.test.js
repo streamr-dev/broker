@@ -12,8 +12,17 @@ describe('metricsStream', () => {
     let tracker
     let broker1
     let client1
+    let legacyStream
 
     beforeEach(async () => {
+        client1 = createClient(wsPort1)
+
+        legacyStream = await client1.getOrCreateStream({
+            name: 'per-node-stream-metrics.test.js-legacyStream'
+        })
+        await legacyStream.grantPermission('stream_get', null)
+        await legacyStream.grantPermission('stream_publish', '0xc59b3658d22e0716726819a56e164ee6825e21c2')
+
         tracker = await startTracker({
             host: '127.0.0.1',
             port: trackerPort,
@@ -30,7 +39,7 @@ describe('metricsStream', () => {
             reporting: {
                 sentry: null,
                 streamr: {
-                    streamId: '/streamr/node/metrics'
+                    streamId: legacyStream.id
                 },
                 intervalInSeconds: 1,
                 perNodeMetrics: {
@@ -40,8 +49,6 @@ describe('metricsStream', () => {
                 }
             }
         })
-
-        client1 = createClient(wsPort1)
     })
 
     afterEach(async () => {
@@ -53,7 +60,7 @@ describe('metricsStream', () => {
     })
     it('should ensure the legacy metrics endpoint still works properly', (done) => {
         client1.subscribe({
-            stream: '0xC59b3658D22e0716726819a56e164ee6825e21C2/streamr/node/metrics',
+            stream: legacyStream.id,
         }, (res) => {
             expect(res.peerId).toEqual('broker1')
             done()
