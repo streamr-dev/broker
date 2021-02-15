@@ -119,7 +119,6 @@ module.exports = async (config) => {
         dayStreamId: null
     }
     if (config.reporting.streamr || (config.reporting.perNodeMetrics && config.reporting.perNodeMetrics.enabled)) {
-        // if (config.ethereumPrivateKey) {
         client = new StreamrClient({
             auth: {
                 privateKey: config.ethereumPrivateKey,
@@ -127,15 +126,6 @@ module.exports = async (config) => {
             url: config.reporting.perNodeMetrics.wsUrl || null,
             restUrl: config.reporting.perNodeMetrics.httpUrl || null
         })
-        // } else {
-        // required for broker.test.js to pass still
-        // client = new StreamrClient({
-        // auth: {
-        // apiKey: config.reporting.streamr.apiKey
-        // },
-        // autoConnect: true
-        // })
-        // }
 
         const createMetricsStream = async (path) => {
             const metricsStream = await client.getOrCreateStream({
@@ -160,11 +150,11 @@ module.exports = async (config) => {
         }
 
         if (config.reporting.perNodeMetrics && config.reporting.perNodeMetrics.enabled) {
-            streamIds.secStreamId = await createMetricsStream('/streamr/node/metrics/sec')
-            streamIds.minStreamId = await createMetricsStream('/streamr/node/metrics/min')
-            streamIds.hourStreamId = await createMetricsStream('/streamr/node/metrics/hour')
-            streamIds.dayStreamId = await createMetricsStream('/streamr/node/metrics/day')
-            logger.info('Starting perNodeMetrics')
+            // streamIds.secStreamId = await createMetricsStream('/streamr/node/metrics/sec')
+            // streamIds.minStreamId = await createMetricsStream('/streamr/node/metrics/min')
+            // streamIds.hourStreamId = await createMetricsStream('/streamr/node/metrics/hour')
+            // streamIds.dayStreamId = await createMetricsStream('/streamr/node/metrics/day')
+            logger.info('Starting perNodeMetrics -- Not implemented yet')
         } else {
             logger.info('perNodeMetrics reporting disabled')
         }
