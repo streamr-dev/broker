@@ -97,16 +97,13 @@ module.exports = class VolumeLogger {
 
             const minReport = {
                 peerId: '',
-                startTime: -1,
-                currentTime: -1,
-                timestamp: -1,
-                nodeLatency: -1,
-
-                wsMsgInSpeed: -1,
-                wsMsgOutSpeed: -1,
-
-                webRtcMsgInSpeed: -1,
-                webRtcMsgOutSpeed: -1,
+                broker: {
+                    messagesToNetworkPerSec: -1,
+                    bytesToNetworkPerSec: -1
+                },
+                network: {
+                    avgLatencyMs: -1
+                }
             }
 
             setInterval(async () => {
@@ -118,44 +115,50 @@ module.exports = class VolumeLogger {
 
                 const secReport = {
                     peerId: metricsReport.peerId,
+
                     startTime: metricsReport.startTime,
                     currentTime: metricsReport.currentTime,
                     timestamp: metricsReport.currentTime,
-                    nodeLatency: metricsReport.metrics.node.latency.rate,
-
-                    wsMsgInSpeed: metricsReport.metrics.WsEndpoint.msgInSpeed.rate,
-                    wsMsgOutSpeed: metricsReport.metrics.WsEndpoint.msgOutSpeed.rate,
-
-                    webRtcMsgInSpeed: metricsReport.metrics.WebRtcEndpoint.msgInSpeed.rate,
-                    webRtcMsgOutSpeed: metricsReport.metrics.WebRtcEndpoint.msgOutSpeed.rate,
+                    
+                    broker: {
+                        messagesToNetworkPerSec: metricsReport.broker.messages.rate || metricsReport.publisher.messages.rate,
+                        bytesToNetworkPerSec: metricsReport.broker.bytes.rate || metricsReport.publisher.bytes.rate
+                    },
+                    network:{
+                        avgLatencyMs: metricsReport.node.latency.rate
+                    }
                 }
 
                 const hourReport = {
                     peerId: metricsReport.peerId,
+
                     startTime: metricsReport.startTime,
                     currentTime: metricsReport.currentTime,
                     timestamp: metricsReport.currentTime,
-                    nodeLatency: metricsReport.metrics.node.latency.rate,
-
-                    wsMsgInSpeed: metricsReport.metrics.WsEndpoint.msgInSpeed.rate,
-                    wsMsgOutSpeed: metricsReport.metrics.WsEndpoint.msgOutSpeed.rate,
-
-                    webRtcMsgInSpeed: metricsReport.metrics.WebRtcEndpoint.msgInSpeed.rate,
-                    webRtcMsgOutSpeed: metricsReport.metrics.WebRtcEndpoint.msgOutSpeed.rate,
+                    
+                    broker: {
+                        messagesToNetworkPerSec: metricsReport.broker.messages.rate || metricsReport.publisher.messages.rate,
+                        bytesToNetworkPerSec: metricsReport.broker.bytes.rate || metricsReport.publisher.bytes.rate
+                    },
+                    network:{
+                        avgLatencyMs: metricsReport.node.latency.rate
+                    }
                 }
 
                 const dayReport = {
                     peerId: metricsReport.peerId,
+
                     startTime: metricsReport.startTime,
                     currentTime: metricsReport.currentTime,
                     timestamp: metricsReport.currentTime,
-                    nodeLatency: metricsReport.metrics.node.latency.rate,
-
-                    wsMsgInSpeed: metricsReport.metrics.WsEndpoint.msgInSpeed.rate,
-                    wsMsgOutSpeed: metricsReport.metrics.WsEndpoint.msgOutSpeed.rate,
-
-                    webRtcMsgInSpeed: metricsReport.metrics.WebRtcEndpoint.msgInSpeed.rate,
-                    webRtcMsgOutSpeed: metricsReport.metrics.WebRtcEndpoint.msgOutSpeed.rate,
+                    
+                    broker: {
+                        messagesToNetworkPerSec: metricsReport.broker.messages.rate || metricsReport.publisher.messages.rate,
+                        bytesToNetworkPerSec: metricsReport.broker.bytes.rate || metricsReport.publisher.bytes.rate
+                    },
+                    network:{
+                        avgLatencyMs: metricsReport.node.latency.rate
+                    }
                 }
 
                 if (sec === 1) {
@@ -163,18 +166,15 @@ module.exports = class VolumeLogger {
                     minReport.startTime = secReport.startTime
                     minReport.currentTime = secReport.currentTime
                     minReport.timestamp = 0
-                    minReport.nodeLatency = secReport.nodeLatency
-                    minReport.wsMsgInSpeed = secReport.wsMsgInSpeed
-                    minReport.wsMsgOutSpeed = secReport.wsMsgOutSpeed
-                    minReport.webRtcMsgInSpeed = secReport.webRtcMsgInSpeed
-                    minReport.webRtcMsgOutSpeed = secReport.webRtcMsgOutSpeed
-                } else {
-                    minReport.nodeLatency = throtheledAvg(minReport.nodeLatency, secReport.nodeLatency)
 
-                    minReport.wsMsgInSpeed = throtheledAvg(minReport.wsMsgInSpeed, secReport.wsMsgInSpeed)
-                    minReport.wsMsgOutSpeed = throtheledAvg(minReport.wsMsgOutSpeed, secReport.wsMsgOutSpeed)
-                    minReport.webRtcMsgInSpeed = throtheledAvg(minReport.webRtcMsgInSpeed, secReport.webRtcMsgInSpeed)
-                    minReport.webRtcMsgOutSpeed = throtheledAvg(minReport.webRtcMsgOutSpeed, secReport.webRtcMsgOutSpeed)
+                    minReport.broker.messagesToNetworkPerSec = secReport.broker.messagesToNetworkPerSec
+                    minReport.broker.bytesToNetworkPerSec = secReport.broker.bytesToNetworkPerSec
+                    minReport.network.avgLatencyMs = secReport.network.avgLatencyMs
+                } else {
+                    minReport.broker.messagesToNetworkPerSec = throteledAvg(minReport.broker.messagesToNetworkPerSec, secReport.broker.messagesToNetworkPerSec)
+                    minReport.broker.bytesToNetworkPerSec = throteledAvg(minReport.broker.bytesToNetworkPerSec, secReport.broker.bytesToNetworkPerSec)
+                    minReport.network.avgLatencyMs = throteledAvg(minReport.network.avgLatencyMs, secReport.network.avgLatencyMs)
+
                 }
 
                 this.client.publish(
@@ -191,58 +191,57 @@ module.exports = class VolumeLogger {
                         this.streamIds.minStreamId,
                         minReport
                     )
-                }
+                    
+                    // let's check, once a minute, if it's time to run hour and/or daily reports 
 
-                // get the last msg to check if it's been an hour
+                    // get the last msg to check if it's been an hour
 
-                const lastHourReports = await getResend(this.streamIds.hourStreamId, 1)
+                    const lastHourReports = await getResend(this.streamIds.hourStreamId, 1)
 
-                if (lastHourReports.length === 0) {
-                    this.client.publish(
-                        this.streamIds.hourStreamId,
-                        hourReport
-                    )
-                } else if ((lastHourReports[0].timestamp + (60 * 60 * 1000) - now) < 0) {
-                    // fetch the last 60 minute reports and get the averages
-                    const messages = await getResend(this.streamIds.minuteStreamId, 60)
+                    if (lastHourReports.length === 0) {
+                        this.client.publish(
+                            this.streamIds.hourStreamId,
+                            hourReport
+                        )
+                    } else if ((lastHourReports[0].timestamp + (60 * 60 * 1000) - now) < 0) {
+                        // fetch the last 60 minute reports and get the averages
+                        const messages = await getResend(this.streamIds.minuteStreamId, 60)
 
-                    for (let i = 1; i < messages.length; i++) {
-                        hourReport.nodeLatency = throtheledAvg(hourReport.nodeLatency, messages[i].nodeLatency)
-                        hourReport.wsMsgInSpeed = throtheledAvg(hourReport.wsMsgInSpeed, messages[i].wsMsgInSpeed)
-                        hourReport.wsMsgOutSpeed = throtheledAvg(hourReport.wsMsgOutSpeed, messages[i].wsMsgOutSpeed)
-                        hourReport.webRtcMsgInSpeed = throtheledAvg(hourReport.webRtcMsgInSpeed, messages[i].webRtcMsgInSpeed)
-                        hourReport.webRtcMsgOutSpeed = throtheledAvg(hourReport.webRtcMsgOutSpeed, messages[i].webRtcMsgOutSpeed)
+                        for (let i = 1; i < messages.length; i++) {
+                            hourReport.broker.messagesToNetworkPerSec = throteledAvg(hourReport.broker.messagesToNetworkPerSec, messages[i].broker.messagesToNetworkPerSec)
+                            hourReport.broker.bytesToNetworkPerSec = throteledAvg(hourReport.broker.bytesToNetworkPerSec, messages[i].broker.bytesToNetworkPerSec)
+                            hourReport.network.avgLatencyMs = throteledAvg(hourReport.network.avgLatencyMs, messages[i].network.avgLatencyMs)
+                        }
+
+                        this.client.publish(
+                            this.streamIds.hourStreamId,
+                            hourReport
+                        )
                     }
 
-                    this.client.publish(
-                        this.streamIds.hourStreamId,
-                        hourReport
-                    )
-                }
+                    // do the same to inspect if a daily report is to be pushed
+                    const lastDayReports = await getResend(this.streamIds.dayStreamId, 1)
+                    if (lastDayReports.length === 0) {
+                        this.client.publish(
+                            this.streamIds.hourStreamId,
+                            dayReport
+                        )
+                    } else if ((lastDayReports[0].timestamp + (24 * 60 * 60 * 1000) - now) < 0) {
+                        // fetch the last 60 minute reports and get the averages
+                        const messages = await getResend(this.streamIds.hourStreamId, 24)
 
-                // do the same to inspect if a daily report is to be pushed
-                const lastDayReports = await getResend(this.streamIds.dayStreamId, 1)
-                if (lastDayReports.length === 0) {
-                    this.client.publish(
-                        this.streamIds.hourStreamId,
-                        dayReport
-                    )
-                } else if ((lastDayReports[0].timestamp + (24 * 60 * 60 * 1000) - now) < 0) {
-                    // fetch the last 60 minute reports and get the averages
-                    const messages = await getResend(this.streamIds.hourStreamId, 24)
+                        for (let i = 1; i < messages.length; i++) {
+                            dayReport.broker.messagesToNetworkPerSec = throteledAvg(dayReport.broker.messagesToNetworkPerSec, messages[i].broker.messagesToNetworkPerSec)
+                            dayReport.broker.bytesToNetworkPerSec = throteledAvg(dayReport.broker.bytesToNetworkPerSec, messages[i].broker.bytesToNetworkPerSec)
+                            dayReport.network.avgLatencyMs = throteledAvg(dayReport.network.avgLatencyMs, messages[i].network.avgLatencyMs)
+                        
+                        }
 
-                    for (let i = 1; i < messages.length; i++) {
-                        dayReport.nodeLatency = throtheledAvg(dayReport.nodeLatency, messages[i].nodeLatency)
-                        dayReport.wsMsgInSpeed = throtheledAvg(dayReport.wsMsgInSpeed, messages[i].wsMsgInSpeed)
-                        dayReport.wsMsgOutSpeed = throtheledAvg(dayReport.wsMsgOutSpeed, messages[i].wsMsgOutSpeed)
-                        dayReport.webRtcMsgInSpeed = throtheledAvg(dayReport.webRtcMsgInSpeed, messages[i].webRtcMsgInSpeed)
-                        dayReport.webRtcMsgOutSpeed = throtheledAvg(dayReport.webRtcMsgOutSpeed, messages[i].webRtcMsgOutSpeed)
+                        this.client.publish(
+                            this.streamIds.dayStreamId,
+                            dayReport
+                        )
                     }
-
-                    this.client.publish(
-                        this.streamIds.dayStreamId,
-                        dayReport
-                    )
                 }
             }, 1000)
         }

@@ -123,6 +123,7 @@ module.exports = async (config) => {
             auth: {
                 privateKey: config.ethereumPrivateKey,
             },
+            autoconnect: true,
             url: config.reporting.perNodeMetrics ? (config.reporting.perNodeMetrics.wsUrl || null) : null,
             restUrl: config.reporting.perNodeMetrics ? (config.reporting.perNodeMetrics.httpUrl || null) : null
         })
