@@ -69,7 +69,7 @@ describe('metricsStream', () => {
             done()
         })
     })
-/*
+    /*
     it('should retrieve the last `sec` metrics', (done) => {
         MockDate.set('1971-01-01')
         client1.subscribe({
