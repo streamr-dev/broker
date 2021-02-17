@@ -123,13 +123,13 @@ module.exports = async (config) => {
             auth: {
                 privateKey: config.ethereumPrivateKey,
             },
-            url: config.reporting.perNodeMetrics.wsUrl || null,
-            restUrl: config.reporting.perNodeMetrics.httpUrl || null
+            url: config.reporting.perNodeMetrics ? (config.reporting.perNodeMetrics.wsUrl || null) : null,
+            restUrl: config.reporting.perNodeMetrics ? (config.reporting.perNodeMetrics.httpUrl || null) : null
         })
 
         const createMetricsStream = async (path) => {
             const metricsStream = await client.getOrCreateStream({
-                name: brokerAddress + path,
+                name: `Metrics ${path} for broker ${brokerAddress}`,
                 id: brokerAddress + path
             })
 
