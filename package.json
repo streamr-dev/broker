@@ -1,6 +1,6 @@
 {
   "name": "streamr-broker",
-  "version": "18.1.6",
+  "version": "18.1.9",
   "description": "A full-featured broker node implementation for the Streamr Network.",
   "repository": {
     "type": "git",
@@ -44,10 +44,10 @@
     "public-ip": "^4.0.3",
     "pump": "^3.0.0",
     "qs": "^6.9.6",
-    "streamr-client": "^4.1.6",
-    "streamr-network": "^23.0.24",
-    "uWebSockets.js": "github:uNetworking/uWebSockets.js#v18.14.0",
+    "streamr-client": "5.0.0-beta.6",
+    "streamr-network": "^23.0.26",
     "uuid": "^8.3.2",
+    "uWebSockets.js": "github:uNetworking/uWebSockets.js#v18.14.0",
     "ws": "^7.4.2"
   },
   "devDependencies": {
@@ -60,6 +60,7 @@
     "eslint-plugin-promise": "^4.2.1",
     "into-stream": "^6.0.0",
     "jest": "^26.6.3",
+    "jest-circus": "^26.6.3",
     "mockdate": "^3.0.2",
     "sinon": "^9.2.4",
     "stream-to-array": "^2.3.0",
