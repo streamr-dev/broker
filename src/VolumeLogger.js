@@ -119,12 +119,12 @@ module.exports = class VolumeLogger {
                     startTime: metricsReport.startTime,
                     currentTime: metricsReport.currentTime,
                     timestamp: metricsReport.currentTime,
-                    
+
                     broker: {
                         messagesToNetworkPerSec: metricsReport.broker.messages.rate || metricsReport.publisher.messages.rate,
                         bytesToNetworkPerSec: metricsReport.broker.bytes.rate || metricsReport.publisher.bytes.rate
                     },
-                    network:{
+                    network: {
                         avgLatencyMs: metricsReport.node.latency.rate
                     }
                 }
@@ -135,12 +135,12 @@ module.exports = class VolumeLogger {
                     startTime: metricsReport.startTime,
                     currentTime: metricsReport.currentTime,
                     timestamp: metricsReport.currentTime,
-                    
+
                     broker: {
                         messagesToNetworkPerSec: metricsReport.broker.messages.rate || metricsReport.publisher.messages.rate,
                         bytesToNetworkPerSec: metricsReport.broker.bytes.rate || metricsReport.publisher.bytes.rate
                     },
-                    network:{
+                    network: {
                         avgLatencyMs: metricsReport.node.latency.rate
                     }
                 }
@@ -151,12 +151,12 @@ module.exports = class VolumeLogger {
                     startTime: metricsReport.startTime,
                     currentTime: metricsReport.currentTime,
                     timestamp: metricsReport.currentTime,
-                    
+
                     broker: {
                         messagesToNetworkPerSec: metricsReport.broker.messages.rate || metricsReport.publisher.messages.rate,
                         bytesToNetworkPerSec: metricsReport.broker.bytes.rate || metricsReport.publisher.bytes.rate
                     },
-                    network:{
+                    network: {
                         avgLatencyMs: metricsReport.node.latency.rate
                     }
                 }
@@ -171,10 +171,9 @@ module.exports = class VolumeLogger {
                     minReport.broker.bytesToNetworkPerSec = secReport.broker.bytesToNetworkPerSec
                     minReport.network.avgLatencyMs = secReport.network.avgLatencyMs
                 } else {
-                    minReport.broker.messagesToNetworkPerSec = throteledAvg(minReport.broker.messagesToNetworkPerSec, secReport.broker.messagesToNetworkPerSec)
-                    minReport.broker.bytesToNetworkPerSec = throteledAvg(minReport.broker.bytesToNetworkPerSec, secReport.broker.bytesToNetworkPerSec)
-                    minReport.network.avgLatencyMs = throteledAvg(minReport.network.avgLatencyMs, secReport.network.avgLatencyMs)
-
+                    minReport.broker.messagesToNetworkPerSec = throtheledAvg(minReport.broker.messagesToNetworkPerSec, secReport.broker.messagesToNetworkPerSec)
+                    minReport.broker.bytesToNetworkPerSec = throtheledAvg(minReport.broker.bytesToNetworkPerSec, secReport.broker.bytesToNetworkPerSec)
+                    minReport.network.avgLatencyMs = throtheledAvg(minReport.network.avgLatencyMs, secReport.network.avgLatencyMs)
                 }
 
                 this.client.publish(
@@ -191,8 +190,8 @@ module.exports = class VolumeLogger {
                         this.streamIds.minStreamId,
                         minReport
                     )
-                    
-                    // let's check, once a minute, if it's time to run hour and/or daily reports 
+
+                    // let's check, once a minute, if it's time to run hour and/or daily reports
 
                     // get the last msg to check if it's been an hour
 
@@ -208,9 +207,9 @@ module.exports = class VolumeLogger {
                         const messages = await getResend(this.streamIds.minuteStreamId, 60)
 
                         for (let i = 1; i < messages.length; i++) {
-                            hourReport.broker.messagesToNetworkPerSec = throteledAvg(hourReport.broker.messagesToNetworkPerSec, messages[i].broker.messagesToNetworkPerSec)
-                            hourReport.broker.bytesToNetworkPerSec = throteledAvg(hourReport.broker.bytesToNetworkPerSec, messages[i].broker.bytesToNetworkPerSec)
-                            hourReport.network.avgLatencyMs = throteledAvg(hourReport.network.avgLatencyMs, messages[i].network.avgLatencyMs)
+                            hourReport.broker.messagesToNetworkPerSec = throtheledAvg(hourReport.broker.messagesToNetworkPerSec, messages[i].broker.messagesToNetworkPerSec)
+                            hourReport.broker.bytesToNetworkPerSec = throtheledAvg(hourReport.broker.bytesToNetworkPerSec, messages[i].broker.bytesToNetworkPerSec)
+                            hourReport.network.avgLatencyMs = throtheledAvg(hourReport.network.avgLatencyMs, messages[i].network.avgLatencyMs)
                         }
 
                         this.client.publish(
@@ -231,10 +230,9 @@ module.exports = class VolumeLogger {
                         const messages = await getResend(this.streamIds.hourStreamId, 24)
 
                         for (let i = 1; i < messages.length; i++) {
-                            dayReport.broker.messagesToNetworkPerSec = throteledAvg(dayReport.broker.messagesToNetworkPerSec, messages[i].broker.messagesToNetworkPerSec)
-                            dayReport.broker.bytesToNetworkPerSec = throteledAvg(dayReport.broker.bytesToNetworkPerSec, messages[i].broker.bytesToNetworkPerSec)
-                            dayReport.network.avgLatencyMs = throteledAvg(dayReport.network.avgLatencyMs, messages[i].network.avgLatencyMs)
-                        
+                            dayReport.broker.messagesToNetworkPerSec = throtheledAvg(dayReport.broker.messagesToNetworkPerSec, messages[i].broker.messagesToNetworkPerSec)
+                            dayReport.broker.bytesToNetworkPerSec = throtheledAvg(dayReport.broker.bytesToNetworkPerSec, messages[i].broker.bytesToNetworkPerSec)
+                            dayReport.network.avgLatencyMs = throtheledAvg(dayReport.network.avgLatencyMs, messages[i].network.avgLatencyMs)
                         }
 
                         this.client.publish(
