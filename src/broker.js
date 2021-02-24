@@ -128,6 +128,7 @@ module.exports = async (config) => {
             restUrl: config.reporting.perNodeMetrics ? (config.reporting.perNodeMetrics.httpUrl || null) : null
         })
 
+
         const createMetricsStream = async (path) => {
             const metricsStream = await client.getOrCreateStream({
                 name: `Metrics ${path} for broker ${brokerAddress}`,
@@ -154,7 +155,7 @@ module.exports = async (config) => {
             streamIds.minStreamId = await createMetricsStream('/streamr/node/metrics/min')
             streamIds.hourStreamId = await createMetricsStream('/streamr/node/metrics/hour')
             streamIds.dayStreamId = await createMetricsStream('/streamr/node/metrics/day')
-            logger.info('Starting perNodeMetrics -- Not implemented yet')
+            logger.info('Starting perNodeMetrics')
         } else {
             logger.info('perNodeMetrics reporting disabled')
         }

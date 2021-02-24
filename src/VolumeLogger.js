@@ -121,11 +121,11 @@ module.exports = class VolumeLogger {
                     timestamp: metricsReport.currentTime,
 
                     broker: {
-                        messagesToNetworkPerSec: metricsReport.broker.messages.rate || metricsReport.publisher.messages.rate,
-                        bytesToNetworkPerSec: metricsReport.broker.bytes.rate || metricsReport.publisher.bytes.rate
+                        messagesToNetworkPerSec: metricsReport.metrics['broker/publisher'].messages.rate,
+                        bytesToNetworkPerSec: metricsReport.metrics['broker/publisher'].bytes.rate
                     },
                     network: {
-                        avgLatencyMs: metricsReport.node.latency.rate
+                        avgLatencyMs: metricsReport.metrics.node.latency.rate
                     }
                 }
 
@@ -137,11 +137,11 @@ module.exports = class VolumeLogger {
                     timestamp: metricsReport.currentTime,
 
                     broker: {
-                        messagesToNetworkPerSec: metricsReport.broker.messages.rate || metricsReport.publisher.messages.rate,
-                        bytesToNetworkPerSec: metricsReport.broker.bytes.rate || metricsReport.publisher.bytes.rate
+                        messagesToNetworkPerSec: metricsReport.metrics['broker/publisher'].messages.rate,
+                        bytesToNetworkPerSec: metricsReport.metrics['broker/publisher'].bytes.rate
                     },
                     network: {
-                        avgLatencyMs: metricsReport.node.latency.rate
+                        avgLatencyMs: metricsReport.metrics.node.latency.rate
                     }
                 }
 
@@ -153,11 +153,11 @@ module.exports = class VolumeLogger {
                     timestamp: metricsReport.currentTime,
 
                     broker: {
-                        messagesToNetworkPerSec: metricsReport.broker.messages.rate || metricsReport.publisher.messages.rate,
-                        bytesToNetworkPerSec: metricsReport.broker.bytes.rate || metricsReport.publisher.bytes.rate
+                        messagesToNetworkPerSec: metricsReport.metrics['broker/publisher'].messages.rate,
+                        bytesToNetworkPerSec: metricsReport.metrics['broker/publisher'].bytes.rate
                     },
                     network: {
-                        avgLatencyMs: metricsReport.node.latency.rate
+                        avgLatencyMs: metricsReport.metrics.node.latency.rate
                     }
                 }
 
@@ -269,8 +269,8 @@ module.exports = class VolumeLogger {
             })
         }
 
-        const inPerSecond = report.metrics['broker/publisher'].messages.rate
-        const kbInPerSecond = report.metrics['broker/publisher'].bytes.rate / 1000
+        const inPerSecond = report.metrics.metrics['broker/publisher'].messages.rate
+        const kbInPerSecond = report.metrics.metrics['broker/publisher'].bytes.rate / 1000
         const outPerSecond = (report.metrics['broker/ws'] ? report.metrics['broker/ws'].outMessages.rate : 0)
             + (report.metrics['broker/mqtt'] ? report.metrics['broker/mqtt'].outMessages.rate : 0)
             + (report.metrics['broker/http'] ? report.metrics['broker/http'].outMessages.rate : 0)

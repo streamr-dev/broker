@@ -69,12 +69,13 @@ describe('metricsStream', () => {
             done()
         })
     })
-    /*
+    
     it('should retrieve the last `sec` metrics', (done) => {
         MockDate.set('1971-01-01')
         client1.subscribe({
             stream: '0xC59b3658D22e0716726819a56e164ee6825e21C2/streamr/node/metrics/sec',
         }, (res) => {
+            console.log(res)
             expect(res.peerId).toEqual('broker1')
 
             expect(res.nodeLatency).toBeGreaterThanOrEqual(0)
@@ -88,7 +89,7 @@ describe('metricsStream', () => {
             done()
         })
     })
-
+/*
     it('should retrieve the last `min` metrics', (done) => {
         client1.subscribe({
             stream: '0xC59b3658D22e0716726819a56e164ee6825e21C2/streamr/node/metrics/min',
