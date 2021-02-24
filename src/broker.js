@@ -128,7 +128,6 @@ module.exports = async (config) => {
             restUrl: config.reporting.perNodeMetrics ? (config.reporting.perNodeMetrics.httpUrl || null) : null
         })
 
-
         const createMetricsStream = async (path) => {
             const metricsStream = await client.getOrCreateStream({
                 name: `Metrics ${path} for broker ${brokerAddress}`,
