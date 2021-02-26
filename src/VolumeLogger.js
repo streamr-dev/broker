@@ -59,7 +59,7 @@ module.exports = class VolumeLogger {
             name: 'messageQueueSize'
         })
 
-        this.stopped = false 
+        this.stopped = false
 
         if (this.client instanceof StreamrClient) {
             let sec = 0
@@ -69,10 +69,10 @@ module.exports = class VolumeLogger {
             }
 
             const securePublish = async (stream, data) => {
-                if (this.stopped){
-                    return 
+                if (this.stopped) {
+                    return
                 }
-                return this.client.publish(stream, data)
+                this.client.publish(stream, data)
             }
 
             const getResend = async (stream, last, timeout = 1000) => {
@@ -85,25 +85,26 @@ module.exports = class VolumeLogger {
 
                     let timeoutId = startTimeout()
                     const messages = []
-                    if (this.stopped){
-                        return resolve(messages)
+                    if (this.stopped) {
+                        resolve(messages)
+                    } else {
+                        this.client.resend(
+                            {
+                                stream,
+                                resend: {
+                                    last
+                                }
+                            },
+                            (message) => {
+                                messages.push(message)
+                                clearTimeout(timeoutId)
+                                timeoutId = startTimeout()
+                                if (messages.length === last) {
+                                    resolve(messages)
+                                }
+                            }
+                        )
                     }
-                    this.client.resend(
-                        {
-                            stream,
-                            resend: {
-                                last
-                            }
-                        },
-                        (message) => {
-                            messages.push(message)
-                            clearTimeout(timeoutId)
-                            timeoutId = startTimeout()
-                            if (messages.length === last) {
-                                resolve(messages)
-                            }
-                        }
-                    )
                 })
             }
 
@@ -337,7 +338,7 @@ module.exports = class VolumeLogger {
                             )
                         }
                     }
-                } catch (e){
+                } catch (e) {
                     logger.warn(`Error reporting metrics stream ${e}`)
                 }
 
