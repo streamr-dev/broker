@@ -150,6 +150,7 @@ module.exports = async (config) => {
         }
 
         if (config.reporting.perNodeMetrics && config.reporting.perNodeMetrics.enabled) {
+            // await client.ensureConnected()
             streamIds.secStreamId = await createMetricsStream('/streamr/node/metrics/sec')
             streamIds.minStreamId = await createMetricsStream('/streamr/node/metrics/min')
             streamIds.hourStreamId = await createMetricsStream('/streamr/node/metrics/hour')

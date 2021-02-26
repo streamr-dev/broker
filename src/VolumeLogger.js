@@ -119,7 +119,7 @@ module.exports = class VolumeLogger {
                 timestamp: 0
             }
 
-            setInterval(async () => {
+            this.metricsReportInterval = setInterval(async () => {
                 sec += 1
 
                 const metricsReport = await this.metricsContext.report()
@@ -351,8 +351,8 @@ module.exports = class VolumeLogger {
             })
         }
 
-        const inPerSecond = report.metrics.metrics['broker/publisher'].messages.rate
-        const kbInPerSecond = report.metrics.metrics['broker/publisher'].bytes.rate / 1000
+        const inPerSecond = report.metrics['broker/publisher'].messages.rate
+        const kbInPerSecond = report.metrics['broker/publisher'].bytes.rate / 1000
         const outPerSecond = (report.metrics['broker/ws'] ? report.metrics['broker/ws'].outMessages.rate : 0)
             + (report.metrics['broker/mqtt'] ? report.metrics['broker/mqtt'].outMessages.rate : 0)
             + (report.metrics['broker/http'] ? report.metrics['broker/http'].outMessages.rate : 0)
@@ -447,6 +447,7 @@ module.exports = class VolumeLogger {
     close() {
         io.destroy()
         clearTimeout(this.timeout)
+        clearInterval(this.metricsReportInterval)
         if (this.client) {
             this.client.ensureDisconnected()
         }
