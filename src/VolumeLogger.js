@@ -76,7 +76,7 @@ module.exports = class VolumeLogger {
 
                     let timeoutId = startTimeout()
                     const messages = []
-                    client.resend(
+                    this.client.resend(
                         {
                             stream,
                             resend: {
@@ -96,14 +96,27 @@ module.exports = class VolumeLogger {
             }
 
             const minReport = {
-                peerId: '',
+                peerName: '',
                 broker: {
-                    messagesToNetworkPerSec: -1,
-                    bytesToNetworkPerSec: -1
+                    messagesToNetworkPerSec: 0,
+                    bytesToNetworkPerSec: 0,
+                    messagesFromNetworkPerSec: 0,
+                    bytesFromNetworkPerSec: 0,
                 },
                 network: {
-                    avgLatencyMs: -1
-                }
+                    avgLatencyMs: 0,
+                    bytesToPeersPerSec: 0,
+                    bytesFromPeersPerSec: 0,
+                    connections: 0,
+                },
+                storage: {
+                    bytesWrittenPerSec: 0,
+                    bytesReadPerSec: 0,
+                },
+
+                startTime: 0,
+                currentTime: 0,
+                timestamp: 0
             }
 
             setInterval(async () => {
@@ -114,66 +127,112 @@ module.exports = class VolumeLogger {
                 // console.log(metricsReport.metrics)//.WsEndpoint.msgSpeed)
 
                 const secReport = {
-                    peerId: metricsReport.peerId,
+                    // peerId: brokerAddress,
+                    peerName: metricsReport.peerId,
+                    broker: {
+                        messagesToNetworkPerSec: metricsReport.metrics['broker/publisher'].messages.rate,
+                        bytesToNetworkPerSec: metricsReport.metrics['broker/publisher'].bytes.rate,
+                        messagesFromNetworkPerSec: 0,
+                        bytesFromNetworkPerSec: 0,
+                    },
+                    network: {
+                        avgLatencyMs: metricsReport.metrics.node.latency.rate,
+                        bytesToPeersPerSec: metricsReport.metrics.WebRtcEndpoint.outSpeed.rate || 0,
+                        bytesFromPeersPerSec: metricsReport.metrics.WebRtcEndpoint.inSpeed.rate || 0,
+                        connections: metricsReport.metrics.WebRtcEndpoint.connections || 0
+                    },
+                    storage: {
+                        bytesWrittenPerSec: (metricsReport.metrics['broker/cassandra']) ? metricsReport.metrics['broker/cassandra'].writeBytes : 0,
+                        bytesReadPerSec: (metricsReport.metrics['broker/cassandra']) ? metricsReport.metrics['broker/cassandra'].readBytes : 0,
+                    },
 
                     startTime: metricsReport.startTime,
                     currentTime: metricsReport.currentTime,
                     timestamp: metricsReport.currentTime,
 
-                    broker: {
-                        messagesToNetworkPerSec: metricsReport.metrics['broker/publisher'].messages.rate,
-                        bytesToNetworkPerSec: metricsReport.metrics['broker/publisher'].bytes.rate
-                    },
-                    network: {
-                        avgLatencyMs: metricsReport.metrics.node.latency.rate
-                    }
                 }
 
                 const hourReport = {
-                    peerId: metricsReport.peerId,
+                    // peerId: brokerAddress,
+                    peerName: metricsReport.peerId,
+                    broker: {
+                        messagesToNetworkPerSec: metricsReport.metrics['broker/publisher'].messages.rate,
+                        bytesToNetworkPerSec: metricsReport.metrics['broker/publisher'].bytes.rate,
+                        messagesFromNetworkPerSec: 0,
+                        bytesFromNetworkPerSec: 0,
+                    },
+                    network: {
+                        avgLatencyMs: metricsReport.metrics.node.latency.rate,
+                        bytesToPeersPerSec: metricsReport.metrics.WebRtcEndpoint.outSpeed.rate || 0,
+                        bytesFromPeersPerSec: metricsReport.metrics.WebRtcEndpoint.inSpeed.rate || 0,
+                        connections: metricsReport.metrics.WebRtcEndpoint.connections || 0
+                    },
+                    storage: {
+                        bytesWrittenPerSec: (metricsReport.metrics['broker/cassandra']) ? metricsReport.metrics['broker/cassandra'].writeBytes : 0,
+                        bytesReadPerSec: (metricsReport.metrics['broker/cassandra']) ? metricsReport.metrics['broker/cassandra'].readBytes : 0,
+                    },
 
                     startTime: metricsReport.startTime,
                     currentTime: metricsReport.currentTime,
                     timestamp: metricsReport.currentTime,
-
-                    broker: {
-                        messagesToNetworkPerSec: metricsReport.metrics['broker/publisher'].messages.rate,
-                        bytesToNetworkPerSec: metricsReport.metrics['broker/publisher'].bytes.rate
-                    },
-                    network: {
-                        avgLatencyMs: metricsReport.metrics.node.latency.rate
-                    }
                 }
 
                 const dayReport = {
-                    peerId: metricsReport.peerId,
+                    // peerId: brokerAddress,
+                    peerName: metricsReport.peerId,
+                    broker: {
+                        messagesToNetworkPerSec: metricsReport.metrics['broker/publisher'].messages.rate,
+                        bytesToNetworkPerSec: metricsReport.metrics['broker/publisher'].bytes.rate,
+                        messagesFromNetworkPerSec: 0,
+                        bytesFromNetworkPerSec: 0,
+                    },
+                    network: {
+                        avgLatencyMs: metricsReport.metrics.node.latency.rate,
+                        bytesToPeersPerSec: metricsReport.metrics.WebRtcEndpoint.outSpeed.rate || 0,
+                        bytesFromPeersPerSec: metricsReport.metrics.WebRtcEndpoint.inSpeed.rate || 0,
+                        connections: metricsReport.metrics.WebRtcEndpoint.connections || 0
+                    },
+                    storage: {
+                        bytesWrittenPerSec: (metricsReport.metrics['broker/cassandra']) ? metricsReport.metrics['broker/cassandra'].writeBytes : 0,
+                        bytesReadPerSec: (metricsReport.metrics['broker/cassandra']) ? metricsReport.metrics['broker/cassandra'].readBytes : 0,
+                    },
 
                     startTime: metricsReport.startTime,
                     currentTime: metricsReport.currentTime,
                     timestamp: metricsReport.currentTime,
-
-                    broker: {
-                        messagesToNetworkPerSec: metricsReport.metrics['broker/publisher'].messages.rate,
-                        bytesToNetworkPerSec: metricsReport.metrics['broker/publisher'].bytes.rate
-                    },
-                    network: {
-                        avgLatencyMs: metricsReport.metrics.node.latency.rate
-                    }
                 }
 
                 if (sec === 1) {
-                    minReport.peerId = secReport.peerId
+                    minReport.peerName = secReport.peerName
                     minReport.startTime = secReport.startTime
                     minReport.currentTime = secReport.currentTime
                     minReport.timestamp = 0
 
                     minReport.broker.messagesToNetworkPerSec = secReport.broker.messagesToNetworkPerSec
                     minReport.broker.bytesToNetworkPerSec = secReport.broker.bytesToNetworkPerSec
+
                     minReport.network.avgLatencyMs = secReport.network.avgLatencyMs
+                    minReport.network.bytesToPeersPerSec = secReport.network.bytesToPeersPerSec
+                    minReport.network.bytesFromPeersPerSec = secReport.network.bytesFromPeersPerSec
+                    minReport.network.connections = secReport.network.connections
+
+                    if (metricsReport.metrics['broker/cassandra']) {
+                        minReport.storage.bytesWrittenPerSec = secReport.storage.bytesWrittenPerSec
+                        minReport.storage.bytesReadPerSec = secReport.storage.bytesReadPerSec
+                    }
                 } else {
                     minReport.broker.messagesToNetworkPerSec = throtheledAvg(minReport.broker.messagesToNetworkPerSec, secReport.broker.messagesToNetworkPerSec)
                     minReport.broker.bytesToNetworkPerSec = throtheledAvg(minReport.broker.bytesToNetworkPerSec, secReport.broker.bytesToNetworkPerSec)
+
                     minReport.network.avgLatencyMs = throtheledAvg(minReport.network.avgLatencyMs, secReport.network.avgLatencyMs)
+                    minReport.network.bytesToPeersPerSec = throtheledAvg(minReport.network.bytesToPeersPerSec, secReport.network.bytesToPeersPerSec)
+                    minReport.network.bytesFromPeersPerSec = throtheledAvg(minReport.network.bytesFromPeersPerSec, secReport.network.bytesFromPeersPerSec)
+                    minReport.network.connections = throtheledAvg(minReport.network.connections, secReport.network.connections)
+
+                    if (metricsReport.metrics['broker/cassandra']) {
+                        minReport.storage.bytesWrittenPerSec = throtheledAvg(minReport.storage.bytesWrittenPerSec, secReport.storage.bytesWrittenPerSec)
+                        minReport.storage.bytesReadPerSec = throtheledAvg(minReport.storage.bytesReadPerSec, secReport.storage.bytesReadPerSec)
+                    }
                 }
 
                 this.client.publish(
@@ -186,6 +245,7 @@ module.exports = class VolumeLogger {
                 if (sec === 60 || (minReport.timestamp + (60 * 1000) - now) < 0) {
                     minReport.timestamp = secReport.currentTime
                     sec = 0
+
                     this.client.publish(
                         this.streamIds.minStreamId,
                         minReport
@@ -210,6 +270,19 @@ module.exports = class VolumeLogger {
                             hourReport.broker.messagesToNetworkPerSec = throtheledAvg(hourReport.broker.messagesToNetworkPerSec, messages[i].broker.messagesToNetworkPerSec)
                             hourReport.broker.bytesToNetworkPerSec = throtheledAvg(hourReport.broker.bytesToNetworkPerSec, messages[i].broker.bytesToNetworkPerSec)
                             hourReport.network.avgLatencyMs = throtheledAvg(hourReport.network.avgLatencyMs, messages[i].network.avgLatencyMs)
+
+                            hourReport.broker.messagesToNetworkPerSec = throtheledAvg(hourReport.broker.messagesToNetworkPerSec, messages[i].broker.messagesToNetworkPerSec)
+                            hourReport.broker.bytesToNetworkPerSec = throtheledAvg(hourReport.broker.bytesToNetworkPerSec, messages[i].broker.bytesToNetworkPerSec)
+
+                            hourReport.network.avgLatencyMs = throtheledAvg(hourReport.network.avgLatencyMs, messages[i].network.avgLatencyMs)
+                            hourReport.network.bytesToPeersPerSec = throtheledAvg(hourReport.network.bytesToPeersPerSec, messages[i].network.bytesToPeersPerSec)
+                            hourReport.network.bytesFromPeersPerSec = throtheledAvg(hourReport.network.bytesFromPeersPerSec, messages[i].network.bytesFromPeersPerSec)
+                            hourReport.network.connections = throtheledAvg(hourReport.network.connections, messages[i].network.connections)
+
+                            if (metricsReport.metrics['broker/cassandra']) {
+                                hourReport.storage.bytesWrittenPerSec = throtheledAvg(hourReport.storage.bytesWrittenPerSec, messages[i].storage.bytesWrittenPerSec)
+                                hourReport.storage.bytesReadPerSec = throtheledAvg(hourReport.storage.bytesReadPerSec, messages[i].storage.bytesReadPerSec)
+                            }
                         }
 
                         this.client.publish(
@@ -232,7 +305,16 @@ module.exports = class VolumeLogger {
                         for (let i = 1; i < messages.length; i++) {
                             dayReport.broker.messagesToNetworkPerSec = throtheledAvg(dayReport.broker.messagesToNetworkPerSec, messages[i].broker.messagesToNetworkPerSec)
                             dayReport.broker.bytesToNetworkPerSec = throtheledAvg(dayReport.broker.bytesToNetworkPerSec, messages[i].broker.bytesToNetworkPerSec)
+
                             dayReport.network.avgLatencyMs = throtheledAvg(dayReport.network.avgLatencyMs, messages[i].network.avgLatencyMs)
+                            dayReport.network.bytesToPeersPerSec = throtheledAvg(dayReport.network.bytesToPeersPerSec, messages[i].network.bytesToPeersPerSec)
+                            dayReport.network.bytesFromPeersPerSec = throtheledAvg(dayReport.network.bytesFromPeersPerSec, messages[i].network.bytesFromPeersPerSec)
+                            dayReport.network.connections = throtheledAvg(dayReport.network.connections, messages[i].network.connections)
+
+                            if (metricsReport.metrics['broker/cassandra']) {
+                                dayReport.storage.bytesWrittenPerSec = throtheledAvg(dayReport.storage.bytesWrittenPerSec, messages[i].storage.bytesWrittenPerSec)
+                                dayReport.storage.bytesReadPerSec = throtheledAvg(dayReport.storage.bytesReadPerSec, messages[i].storage.bytesReadPerSec)
+                            }
                         }
 
                         this.client.publish(
