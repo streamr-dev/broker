@@ -28,7 +28,7 @@ jobs:
       - run: npm run eslint
       - run: npm run build --if-present
       - run: npm run test-unit
-      -name: Start Streamr Docker Stack
+      - name: Start Streamr Docker Stack
         uses: streamr-dev/streamr-docker-dev-action@v1.0.0-alpha.3
         with:
           services-to-start: "engine-and-editor cassandra nginx"
