@@ -136,9 +136,13 @@ module.exports = class StreamMetrics {
                         }
                     },
                     (message) => {
-                        messages.push(message)
-                        clearTimeout(timeoutId)
-                        timeoutId = startTimeout()
+                        if (this.stopped) {
+                            resolve(messages)
+                        } else {
+                            messages.push(message)
+                            clearTimeout(timeoutId)
+                            timeoutId = startTimeout()
+                        }
                     }
                 )
                     .then((eventEmitter) => {
