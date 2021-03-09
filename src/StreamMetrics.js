@@ -1,14 +1,58 @@
+const logger = require('./helpers/logger')('streamr:broker')
+
+const throttledAvg = (avg, avgInterval) => {
+    return (0.8 * avg) + (0.2 * avgInterval)
+}
+
 module.exports = class StreamMetrics {
     constructor(
-        client, 
-        peerId,
+        client,
+        metricsContext,
+        brokerAddress,
         interval, // sec/min/hour/day
-    ){
+    ) {
+        const self = this
+
+        this.stopped = false
+        this.started = false
+
+        this.path = '/streamr/node/metrics/' + interval
+
+        this.client = client
+        this.metricsContext = metricsContext
+
+        this.brokerAddress = brokerAddress
         this.interval = interval
-        this.client = client 
+
+        switch (this.interval) {
+            case 'sec':
+                this.reportMiliseconds = 1000
+                break
+            case 'min':
+                this.legacyPath = '/streamr/node/metrics/sec'
+                this.legacyInterval = 60
+                this.reportMiliseconds = 60 * 1000
+                break
+            case 'hour':
+                this.legacyPath = '/streamr/node/metrics/min'
+                this.legacyInterval = 60
+                this.reportMiliseconds = 60 * 60 * 1000
+
+                break
+            case 'day':
+                this.legacyPath = '/streamr/node/metrics/hour'
+                this.legacyInterval = 24
+                this.reportMiliseconds = 24 * 60 * 60 * 1000
+                break
+            default:
+                this.reportMiliseconds = 0
+        }
+
+        logger.info(`Started StreamMetrics for interval ${this.interval} running every ${this.reportMiliseconds / 1000}s`)
 
         this.report = {
-            peerName: peerId,
+            peerName: '',
+            peerId: '',
             broker: {
                 messagesToNetworkPerSec: 0,
                 bytesToNetworkPerSec: 0,
@@ -31,23 +75,48 @@ module.exports = class StreamMetrics {
             timestamp: 0
         }
 
-        this.metricsReportTimeout = setTimeout(metricsReportFn, 1000)
-
+        this.createMetricsStream()
+            .then((streamId) => {
+                self.streamId = streamId
+                return self.createMetricsStream(self.legacyPath)
+            })
+            .then((legacyStreamId) => {
+                self.legacyStreamId = legacyStreamId
+                return self.runReport()
+            })
+            .then(() => {
+                self.metricsReportTimeout = setTimeout(() => {
+                    self.runReport()
+                }, self.reportMiliseconds)
+            })
+            .catch((e) => {
+                logger.error(e)
+            })
     }
 
-    async throtheledAvg (avg, avgInterval) {
-        return 0.9 * avg + 0.2 * avgInterval
+    async createMetricsStream(_path) {
+        const path = _path || this.path
+        const metricsStream = await this.client.getOrCreateStream({
+            name: `Metrics ${path} for broker ${this.brokerAddress}`,
+            id: this.brokerAddress + path
+        })
+
+        await metricsStream.grantPermission('stream_get', null)
+        await metricsStream.grantPermission('stream_subscribe', null)
+        return metricsStream.id
     }
 
-    async securePublish (stream, data){
-        if (this.stopped) {
-            return
+    publishReport() {
+        if (!this.stopped) {
+            this.client.publish(this.streamId, this.report)
         }
-        this.client.publish(stream, data)
     }
 
-    async getResend (stream, last, timeout = 1000) {
+    getResend(stream, last, timeout = 1000) {
         return new Promise((resolve, reject) => {
+            if (this.stopped) {
+                resolve([])
+            }
             const startTimeout = () => {
                 return setTimeout(() => {
                     resolve([])
@@ -70,225 +139,140 @@ module.exports = class StreamMetrics {
                         messages.push(message)
                         clearTimeout(timeoutId)
                         timeoutId = startTimeout()
-                        if (messages.length === last) {
-                            resolve(messages)
-                        }
                     }
                 )
+                    .then((eventEmitter) => {
+                        eventEmitter.once('resent', () => {
+                            resolve(messages)
+                        })
+
+                        eventEmitter.once('no_resend', () => {
+                            resolve(messages)
+                        })
+                    })
+                    .catch(reject)
             }
         })
     }
 
+    stop() {
+        logger.info(`Stopped StreamMetrics for ${this.interval}`)
+        this.stopped = true
+    }
 
-    async publishReport(preventPublish = false){
+    async runReport(preventPublish = false) {
         try {
-            sec += 1
-
-            const metricsReport = await this.metricsContext.report()
-            // console.log(metricsReport)
-            // console.log(metricsReport.metrics)//.WsEndpoint.msgSpeed)
-
-            const secReport = {
-                // peerId: brokerAddress,
-                peerName: metricsReport.peerId,
-                broker: {
-                    messagesToNetworkPerSec: metricsReport.metrics['broker/publisher'].messages.rate,
-                    bytesToNetworkPerSec: metricsReport.metrics['broker/publisher'].bytes.rate,
-                    messagesFromNetworkPerSec: 0,
-                    bytesFromNetworkPerSec: 0,
-                },
-                network: {
-                    avgLatencyMs: metricsReport.metrics.node.latency.rate,
-                    bytesToPeersPerSec: metricsReport.metrics.WebRtcEndpoint.outSpeed.rate || 0,
-                    bytesFromPeersPerSec: metricsReport.metrics.WebRtcEndpoint.inSpeed.rate || 0,
-                    connections: metricsReport.metrics.WebRtcEndpoint.connections || 0
-                },
-                storage: {
-                    bytesWrittenPerSec: (metricsReport.metrics['broker/cassandra']) ? metricsReport.metrics['broker/cassandra'].writeBytes : 0,
-                    bytesReadPerSec: (metricsReport.metrics['broker/cassandra']) ? metricsReport.metrics['broker/cassandra'].readBytes : 0,
-                },
-
-                startTime: metricsReport.startTime,
-                currentTime: metricsReport.currentTime,
-                timestamp: metricsReport.currentTime,
-
+            if (this.stopped) {
+                return
             }
+            const metricsReport = await this.metricsContext.report(true)
 
-            const hourReport = {
-                // peerId: brokerAddress,
-                peerName: metricsReport.peerId,
-                broker: {
-                    messagesToNetworkPerSec: metricsReport.metrics['broker/publisher'].messages.rate,
-                    bytesToNetworkPerSec: metricsReport.metrics['broker/publisher'].bytes.rate,
-                    messagesFromNetworkPerSec: 0,
-                    bytesFromNetworkPerSec: 0,
-                },
-                network: {
-                    avgLatencyMs: metricsReport.metrics.node.latency.rate,
-                    bytesToPeersPerSec: metricsReport.metrics.WebRtcEndpoint.outSpeed.rate || 0,
-                    bytesFromPeersPerSec: metricsReport.metrics.WebRtcEndpoint.inSpeed.rate || 0,
-                    connections: metricsReport.metrics.WebRtcEndpoint.connections || 0
-                },
-                storage: {
-                    bytesWrittenPerSec: (metricsReport.metrics['broker/cassandra']) ? metricsReport.metrics['broker/cassandra'].writeBytes : 0,
-                    bytesReadPerSec: (metricsReport.metrics['broker/cassandra']) ? metricsReport.metrics['broker/cassandra'].readBytes : 0,
-                },
+            this.report.peerName = metricsReport.peerId
+            this.report.peerId = metricsReport.peerName || metricsReport.peerId
 
-                startTime: metricsReport.startTime,
-                currentTime: metricsReport.currentTime,
-                timestamp: metricsReport.currentTime,
-            }
+            if (this.interval === 'sec') {
+                if (this.report.timestamp === 0) {
+                    // first iteration, assign values
 
-            const dayReport = {
-                // peerId: brokerAddress,
-                peerName: metricsReport.peerId,
-                broker: {
-                    messagesToNetworkPerSec: metricsReport.metrics['broker/publisher'].messages.rate,
-                    bytesToNetworkPerSec: metricsReport.metrics['broker/publisher'].bytes.rate,
-                    messagesFromNetworkPerSec: 0,
-                    bytesFromNetworkPerSec: 0,
-                },
-                network: {
-                    avgLatencyMs: metricsReport.metrics.node.latency.rate,
-                    bytesToPeersPerSec: metricsReport.metrics.WebRtcEndpoint.outSpeed.rate || 0,
-                    bytesFromPeersPerSec: metricsReport.metrics.WebRtcEndpoint.inSpeed.rate || 0,
-                    connections: metricsReport.metrics.WebRtcEndpoint.connections || 0
-                },
-                storage: {
-                    bytesWrittenPerSec: (metricsReport.metrics['broker/cassandra']) ? metricsReport.metrics['broker/cassandra'].writeBytes : 0,
-                    bytesReadPerSec: (metricsReport.metrics['broker/cassandra']) ? metricsReport.metrics['broker/cassandra'].readBytes : 0,
-                },
+                    this.report.broker.messagesToNetworkPerSec = metricsReport.metrics['broker/publisher'].messages.rate
+                    this.report.broker.bytesToNetworkPerSec = metricsReport.metrics['broker/publisher'].bytes.rate
+                    this.report.broker.messagesFromNetworkPerSec = 0
+                    this.report.broker.bytesFromNetworkPerSec = 0
 
-                startTime: metricsReport.startTime,
-                currentTime: metricsReport.currentTime,
-                timestamp: metricsReport.currentTime,
-            }
+                    this.report.network.avgLatencyMs = metricsReport.metrics.node.latency.rate
+                    this.report.network.bytesToPeersPerSec = metricsReport.metrics.WebRtcEndpoint.outSpeed.rate || 0
+                    this.report.network.bytesFromPeersPerSec = metricsReport.metrics.WebRtcEndpoint.inSpeed.rate || 0
+                    this.report.network.connections = metricsReport.metrics.WebRtcEndpoint.connections || 0
 
-            if (sec === 1) {
-                minReport.peerName = secReport.peerName
-                minReport.startTime = secReport.startTime
-                minReport.currentTime = secReport.currentTime
-                minReport.timestamp = 0
+                    this.report.storage.bytesWrittenPerSec = (metricsReport.metrics['broker/cassandra']) ? metricsReport.metrics['broker/cassandra'].writeBytes : 0
+                    this.report.storage.bytesReadPerSec = (metricsReport.metrics['broker/cassandra']) ? metricsReport.metrics['broker/cassandra'].readBytes : 0
 
-                minReport.broker.messagesToNetworkPerSec = secReport.broker.messagesToNetworkPerSec
-                minReport.broker.bytesToNetworkPerSec = secReport.broker.bytesToNetworkPerSec
+                    this.report.startTime = metricsReport.startTime
+                    this.report.currentTime = metricsReport.currentTime
+                    this.report.timestamp = metricsReport.currentTime
+                } else {
+                    // calculate averaged values
+                    this.report.broker.messagesToNetworkPerSec = throttledAvg(this.report.broker.messagesToNetworkPerSec, metricsReport.metrics['broker/publisher'].messages.rate)
+                    this.report.broker.bytesToNetworkPerSec = throttledAvg(this.report.broker.bytesToNetworkPerSec, metricsReport.metrics['broker/publisher'].bytes.rate)
 
-                minReport.network.avgLatencyMs = secReport.network.avgLatencyMs
-                minReport.network.bytesToPeersPerSec = secReport.network.bytesToPeersPerSec
-                minReport.network.bytesFromPeersPerSec = secReport.network.bytesFromPeersPerSec
-                minReport.network.connections = secReport.network.connections
+                    this.report.network.avgLatencyMs = throttledAvg(this.report.network.avgLatencyMs, metricsReport.metrics.node.latency.rate)
+                    this.report.network.bytesToPeersPerSec = throttledAvg(this.report.network.bytesToPeersPerSec, metricsReport.metrics.WebRtcEndpoint.outSpeed.rate || 0)
+                    this.report.network.bytesFromPeersPerSec = throttledAvg(this.report.network.bytesFromPeersPerSec, metricsReport.metrics.WebRtcEndpoint.inSpeed.rate || 0)
+                    this.report.network.connections = throttledAvg(this.report.network.connections, metricsReport.metrics.WebRtcEndpoint.connections || 0)
 
-                if (metricsReport.metrics['broker/cassandra']) {
-                    minReport.storage.bytesWrittenPerSec = secReport.storage.bytesWrittenPerSec
-                    minReport.storage.bytesReadPerSec = secReport.storage.bytesReadPerSec
+                    if (metricsReport.metrics['broker/cassandra']) {
+                        this.report.storage.bytesWrittenPerSec = throttledAvg(this.report.storage.bytesWrittenPerSec, (metricsReport.metrics['broker/cassandra']) ? metricsReport.metrics['broker/cassandra'].writeBytes : 0)
+                        this.report.storage.bytesReadPerSec = throttledAvg(this.report.storage.bytesReadPerSec, (metricsReport.metrics['broker/cassandra']) ? metricsReport.metrics['broker/cassandra'].readBytes : 0)
+                    }
+
+                    this.report.currentTime = metricsReport.currentTime
+                    this.report.timestamp = metricsReport.currentTime
                 }
+
+                await this.publishReport()
             } else {
-                minReport.broker.messagesToNetworkPerSec = throtheledAvg(minReport.broker.messagesToNetworkPerSec, secReport.broker.messagesToNetworkPerSec)
-                minReport.broker.bytesToNetworkPerSec = throtheledAvg(minReport.broker.bytesToNetworkPerSec, secReport.broker.bytesToNetworkPerSec)
+                const now = Date.now()
+                // calculations for min/hour/day
+                if (this.report.timestamp === 0) {
+                    // first iteration
+                    const lastMessages = await this.getResend(this.legacyStreamId, 1)
 
-                minReport.network.avgLatencyMs = throtheledAvg(minReport.network.avgLatencyMs, secReport.network.avgLatencyMs)
-                minReport.network.bytesToPeersPerSec = throtheledAvg(minReport.network.bytesToPeersPerSec, secReport.network.bytesToPeersPerSec)
-                minReport.network.bytesFromPeersPerSec = throtheledAvg(minReport.network.bytesFromPeersPerSec, secReport.network.bytesFromPeersPerSec)
-                minReport.network.connections = throtheledAvg(minReport.network.connections, secReport.network.connections)
+                    if (lastMessages.length === 0) {
+                        await this.publishReport()
+                    } else {
+                        const messages = await this.getResend(this.streamIds.minuteStreamId, this.legacyInterval)
 
-                if (metricsReport.metrics['broker/cassandra']) {
-                    minReport.storage.bytesWrittenPerSec = throtheledAvg(minReport.storage.bytesWrittenPerSec, secReport.storage.bytesWrittenPerSec)
-                    minReport.storage.bytesReadPerSec = throtheledAvg(minReport.storage.bytesReadPerSec, secReport.storage.bytesReadPerSec)
-                }
-            }
+                        for (let i = 1; i < messages.length; i++) {
+                            this.report.broker.messagesToNetworkPerSec += messages[i].broker.messagesToNetworkPerSec
+                            this.report.broker.bytesToNetworkPerSec += messages[i].broker.bytesToNetworkPerSec
+                            this.report.network.avgLatencyMs += messages[i].network.avgLatencyMs
 
-            securePublish(
-                this.streamIds.secStreamId,
-                secReport
-            )
+                            this.report.broker.messagesToNetworkPerSec += messages[i].broker.messagesToNetworkPerSec
+                            this.report.broker.bytesToNetworkPerSec += messages[i].broker.bytesToNetworkPerSec
 
-            const now = Date.now()
+                            this.report.network.avgLatencyMs += messages[i].network.avgLatencyMs
+                            this.report.network.bytesToPeersPerSec += messages[i].network.bytesToPeersPerSec
+                            this.report.network.bytesFromPeersPerSec += messages[i].network.bytesFromPeersPerSec
+                            this.report.network.connections += messages[i].network.connections
 
-            if (sec === 60 || (minReport.timestamp + (60 * 1000) - now) < 0) {
-                minReport.timestamp = secReport.currentTime
-                sec = 0
+                            if (metricsReport.metrics['broker/cassandra']) {
+                                this.report.storage.bytesWrittenPerSec += messages[i].storage.bytesWrittenPerSec
+                                this.report.storage.bytesReadPerSec += messages[i].storage.bytesReadPerSec
+                            }
+                        }
 
-                securePublish(
-                    this.streamIds.minStreamId,
-                    minReport
-                )
+                        if (messages.length > 0) {
+                            this.report.broker.messagesToNetworkPerSec /= messages.length
+                            this.report.broker.bytesToNetworkPerSec /= messages.length
+                            this.report.network.avgLatencyMs /= messages.length
 
-                // let's check, once a minute, if it's time to run hour and/or daily reports
+                            this.report.broker.messagesToNetworkPerSec /= messages.length
+                            this.report.broker.bytesToNetworkPerSec /= messages.length
 
-                // get the last msg to check if it's been an hour
+                            this.report.network.avgLatencyMs /= messages.length
+                            this.report.network.bytesToPeersPerSec /= messages.length
+                            this.report.network.bytesFromPeersPerSec /= messages.length
+                            this.report.network.connections /= messages.length
 
-                const lastHourReports = await getResend(this.streamIds.hourStreamId, 1)
+                            if (metricsReport.metrics['broker/cassandra']) {
+                                this.report.storage.bytesWrittenPerSec /= messages.length
+                                this.report.storage.bytesReadPerSec /= messages.length
+                            }
 
-                if (lastHourReports.length === 0) {
-                    securePublish(
-                        this.streamIds.hourStreamId,
-                        hourReport
-                    )
-                } else if ((lastHourReports[0].timestamp + (60 * 60 * 1000) - now) < 0) {
-                    // fetch the last 60 minute reports and get the averages
-                    const messages = await getResend(this.streamIds.minuteStreamId, 60)
-
-                    for (let i = 1; i < messages.length; i++) {
-                        hourReport.broker.messagesToNetworkPerSec = throtheledAvg(hourReport.broker.messagesToNetworkPerSec, messages[i].broker.messagesToNetworkPerSec)
-                        hourReport.broker.bytesToNetworkPerSec = throtheledAvg(hourReport.broker.bytesToNetworkPerSec, messages[i].broker.bytesToNetworkPerSec)
-                        hourReport.network.avgLatencyMs = throtheledAvg(hourReport.network.avgLatencyMs, messages[i].network.avgLatencyMs)
-
-                        hourReport.broker.messagesToNetworkPerSec = throtheledAvg(hourReport.broker.messagesToNetworkPerSec, messages[i].broker.messagesToNetworkPerSec)
-                        hourReport.broker.bytesToNetworkPerSec = throtheledAvg(hourReport.broker.bytesToNetworkPerSec, messages[i].broker.bytesToNetworkPerSec)
-
-                        hourReport.network.avgLatencyMs = throtheledAvg(hourReport.network.avgLatencyMs, messages[i].network.avgLatencyMs)
-                        hourReport.network.bytesToPeersPerSec = throtheledAvg(hourReport.network.bytesToPeersPerSec, messages[i].network.bytesToPeersPerSec)
-                        hourReport.network.bytesFromPeersPerSec = throtheledAvg(hourReport.network.bytesFromPeersPerSec, messages[i].network.bytesFromPeersPerSec)
-                        hourReport.network.connections = throtheledAvg(hourReport.network.connections, messages[i].network.connections)
-
-                        if (metricsReport.metrics['broker/cassandra']) {
-                            hourReport.storage.bytesWrittenPerSec = throtheledAvg(hourReport.storage.bytesWrittenPerSec, messages[i].storage.bytesWrittenPerSec)
-                            hourReport.storage.bytesReadPerSec = throtheledAvg(hourReport.storage.bytesReadPerSec, messages[i].storage.bytesReadPerSec)
+                            if ((lastMessages[0].timestamp + this.reportMiliseconds - now) < 0) {
+                                await this.publishReport()
+                            }
                         }
                     }
-
-                    securePublish(
-                        this.streamIds.hourStreamId,
-                        hourReport
-                    )
-                }
-
-                // do the same to inspect if a daily report is to be pushed
-                const lastDayReports = await getResend(this.streamIds.dayStreamId, 1)
-                if (lastDayReports.length === 0) {
-                    securePublish(
-                        this.streamIds.dayStreamId,
-                        dayReport
-                    )
-                } else if ((lastDayReports[0].timestamp + (24 * 60 * 60 * 1000) - now) < 0) {
-                    // fetch the last 60 minute reports and get the averages
-                    const messages = await getResend(this.streamIds.hourStreamId, 24)
-
-                    for (let i = 1; i < messages.length; i++) {
-                        dayReport.broker.messagesToNetworkPerSec = throtheledAvg(dayReport.broker.messagesToNetworkPerSec, messages[i].broker.messagesToNetworkPerSec)
-                        dayReport.broker.bytesToNetworkPerSec = throtheledAvg(dayReport.broker.bytesToNetworkPerSec, messages[i].broker.bytesToNetworkPerSec)
-
-                        dayReport.network.avgLatencyMs = throtheledAvg(dayReport.network.avgLatencyMs, messages[i].network.avgLatencyMs)
-                        dayReport.network.bytesToPeersPerSec = throtheledAvg(dayReport.network.bytesToPeersPerSec, messages[i].network.bytesToPeersPerSec)
-                        dayReport.network.bytesFromPeersPerSec = throtheledAvg(dayReport.network.bytesFromPeersPerSec, messages[i].network.bytesFromPeersPerSec)
-                        dayReport.network.connections = throtheledAvg(dayReport.network.connections, messages[i].network.connections)
-
-                        if (metricsReport.metrics['broker/cassandra']) {
-                            dayReport.storage.bytesWrittenPerSec = throtheledAvg(dayReport.storage.bytesWrittenPerSec, messages[i].storage.bytesWrittenPerSec)
-                            dayReport.storage.bytesReadPerSec = throtheledAvg(dayReport.storage.bytesReadPerSec, messages[i].storage.bytesReadPerSec)
-                        }
-                    }
-
-                    securePublish(
-                        this.streamIds.dayStreamId,
-                        dayReport
-                    )
                 }
             }
         } catch (e) {
-            logger.warn(`Error reporting metrics stream ${e}`)
+            logger.error(e)
         }
 
-        this.metricsReportTimeout = setTimeout(metricsReportFn, 1000)
+        const self = this
+        this.metricsReportTimeout = setTimeout(() => {
+            self.runReport()
+        }, this.reportMiliseconds)
     }
 }

@@ -167,7 +167,8 @@ module.exports = async (config) => {
         config.reporting.intervalInSeconds,
         metricsContext,
         client,
-        streamIds
+        streamIds,
+        brokerAddress
     )
 
     // Validator only needs public information, so use unauthenticated client for that

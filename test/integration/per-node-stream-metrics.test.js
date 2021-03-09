@@ -61,6 +61,7 @@ describe('metricsStream', () => {
             client1.ensureDisconnected()
         ])
     })
+
     it('should ensure the legacy metrics endpoint still works properly', (done) => {
         client1.subscribe({
             stream: legacyStream.id,
