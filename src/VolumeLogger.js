@@ -211,10 +211,13 @@ module.exports = class VolumeLogger {
 
     close() {
         this.stopped = true
-        this.perStreamMetrics.sec.stop()
-        this.perStreamMetrics.min.stop()
-        this.perStreamMetrics.hour.stop()
-        this.perStreamMetrics.day.stop()
+
+        if (this.perStreamMetrics) {
+            this.perStreamMetrics.sec.stop()
+            this.perStreamMetrics.min.stop()
+            this.perStreamMetrics.hour.stop()
+            this.perStreamMetrics.day.stop()
+        }
 
         io.destroy()
         clearTimeout(this.timeout)
