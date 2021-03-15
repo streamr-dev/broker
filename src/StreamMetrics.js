@@ -240,7 +240,7 @@ class StreamMetrics {
                 }
             }
         } catch (e) {
-            logger.error(e)
+            logger.warn(e)
         }
 
         this.metricsReportTimeout = setTimeout(async () => {
@@ -257,7 +257,6 @@ module.exports = async function startMetrics(client, metricsContext, brokerAddre
         if (metrics.sourcePath) {
             metrics.sourceStreamId = await metrics.createMetricsStream(metrics.sourcePath)
         }
-
         metrics.runReport()
         return metrics
     } catch (e) {
