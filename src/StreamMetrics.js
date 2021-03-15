@@ -4,6 +4,14 @@ const throttledAvg = (avg, avgInterval) => {
     return (0.8 * avg) + (0.2 * avgInterval)
 }
 
+class StoppedError extends Error {
+    constructor(props) {
+        super('StreamMetrics stopped')
+        this.code = 'StoppedError'
+        Error.captureStackTrace(this, StoppedError)
+    }
+}
+
 class StreamMetrics {
     constructor(
         client,
@@ -94,7 +102,7 @@ class StreamMetrics {
     getResend(stream, last, timeout = 10 * 1000) {
         return new Promise((resolve, reject) => {
             if (this.stopped || !this.client.connection.isConnectionValid()) {
-                reject(new Error('StreamMetrics stopped'))
+                reject(new StoppedError('StreamMetrics stopped'))
             }
             const startTimeout = () => {
                 return setTimeout(() => {
@@ -114,7 +122,7 @@ class StreamMetrics {
                 },
                 (message) => {
                     if (this.stopped || !this.client.connection.isConnectionValid()) {
-                        reject(new Error('StreamMetrics stopped'))
+                        reject(new StoppedError('StreamMetrics stopped'))
                     } else {
                         messages.push(message)
                         clearTimeout(timeoutId)
@@ -243,7 +251,9 @@ class StreamMetrics {
                 }
             }
         } catch (e) {
-            logger.warn(e)
+            if (e.code !== 'StoppedError') {
+                logger.warn(e)
+            }
         }
 
         if (!this.stopped) {
