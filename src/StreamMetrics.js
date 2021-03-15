@@ -85,7 +85,7 @@ class StreamMetrics {
     }
 
     async publishReport() {
-        if (!this.stopped) {
+        if (!this.stopped && this.client.connection.isConnectionValid()) {
             return this.client.publish(this.targetStreamId, this.report)
         }
         return false
@@ -93,7 +93,7 @@ class StreamMetrics {
 
     getResend(stream, last, timeout = 10 * 1000) {
         return new Promise((resolve, reject) => {
-            if (this.stopped) {
+            if (this.stopped || !this.client.connection.isConnectionValid()) {
                 reject(new Error('StreamMetrics stopped'))
             }
             const startTimeout = () => {
@@ -113,7 +113,7 @@ class StreamMetrics {
                     }
                 },
                 (message) => {
-                    if (this.stopped) {
+                    if (this.stopped || !this.client.connection.isConnectionValid()) {
                         reject(new Error('StreamMetrics stopped'))
                     } else {
                         messages.push(message)
@@ -190,9 +190,6 @@ class StreamMetrics {
                 await this.publishReport()
             } else {
                 const now = Date.now()
-                // calculations for min/hour/day
-                // if (this.report.timestamp === 0) {
-                // first iteration
                 const messages = await this.getResend(this.sourceStreamId, this.sourceInterval)
 
                 if (messages.length === 0) {
@@ -241,26 +238,30 @@ class StreamMetrics {
                         }
                     }
                 }
-                // }
             }
         } catch (e) {
             logger.error(e)
         }
 
-        this.metricsReportTimeout = setTimeout(() => {
-            this.runReport()
+        this.metricsReportTimeout = setTimeout(async () => {
+            await this.runReport()
         }, this.reportMiliseconds)
     }
 }
 
 module.exports = async function startMetrics(client, metricsContext, brokerAddress, interval) {
-    const metrics = new StreamMetrics(client, metricsContext, brokerAddress, interval)
-    metrics.targetStreamId = await metrics.createMetricsStream(metrics.path)
+    try {
+        const metrics = new StreamMetrics(client, metricsContext, brokerAddress, interval)
+        metrics.targetStreamId = await metrics.createMetricsStream(metrics.path)
 
-    if (metrics.sourcePath) {
-        metrics.sourceStreamId = await metrics.createMetricsStream(metrics.sourcePath)
+        if (metrics.sourcePath) {
+            metrics.sourceStreamId = await metrics.createMetricsStream(metrics.sourcePath)
+        }
+
+        metrics.runReport()
+        return metrics
+    } catch (e) {
+        logger.error(e)
+        return {}
     }
-
-    metrics.runReport()
-    return metrics
 }
