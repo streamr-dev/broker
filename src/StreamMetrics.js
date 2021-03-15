@@ -144,6 +144,9 @@ class StreamMetrics {
     async runReport() {
         try {
             const metricsReport = await this.metricsContext.report(true)
+            if (this.stopped) {
+                return
+            }
 
             this.report.peerName = metricsReport.peerId
             this.report.peerId = metricsReport.peerName || metricsReport.peerId
@@ -243,25 +246,22 @@ class StreamMetrics {
             logger.error(e)
         }
 
-        this.metricsReportTimeout = setTimeout(async () => {
-            await this.runReport()
-        }, this.reportMiliseconds)
+        if (!this.stopped) {
+            this.metricsReportTimeout = setTimeout(async() => {
+                await this.runReport()
+            }, this.reportMiliseconds)
+        }
     }
 }
 
 module.exports = async function startMetrics(client, metricsContext, brokerAddress, interval) {
-    try {
-        const metrics = new StreamMetrics(client, metricsContext, brokerAddress, interval)
-        metrics.targetStreamId = await metrics.createMetricsStream(metrics.path)
+    const metrics = new StreamMetrics(client, metricsContext, brokerAddress, interval)
+    metrics.targetStreamId = await metrics.createMetricsStream(metrics.path)
 
-        if (metrics.sourcePath) {
-            metrics.sourceStreamId = await metrics.createMetricsStream(metrics.sourcePath)
-        }
-
-        metrics.runReport()
-        return metrics
-    } catch (e) {
-        logger.error(e)
-        return {}
+    if (metrics.sourcePath) {
+        metrics.sourceStreamId = await metrics.createMetricsStream(metrics.sourcePath)
     }
+
+    metrics.runReport()
+    return metrics
 }
