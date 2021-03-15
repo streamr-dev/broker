@@ -225,7 +225,6 @@ module.exports = class VolumeLogger {
 
         io.destroy()
         clearTimeout(this.timeout)
-        clearTimeout(this.metricsReportTimeout)
         if (this.client) {
             this.client.ensureDisconnected()
         }
