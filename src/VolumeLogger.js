@@ -61,8 +61,6 @@ module.exports = class VolumeLogger {
         this.messageQueueSizeMetric = io.metric({
             name: 'messageQueueSize'
         })
-
-        this.stopped = false
     }
 
     async start() {
