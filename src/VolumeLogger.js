@@ -10,6 +10,7 @@ function formatNumber(n) {
 
 module.exports = class VolumeLogger {
     constructor(reportingIntervalSeconds = 60, metricsContext, client = undefined, streamIds = undefined, brokerAddress = undefined) {
+        this.reportingIntervalSeconds = reportingIntervalSeconds
         this.metricsContext = metricsContext
         this.client = client
         this.streamIds = streamIds
@@ -60,16 +61,16 @@ module.exports = class VolumeLogger {
         this.messageQueueSizeMetric = io.metric({
             name: 'messageQueueSize'
         })
+    }
 
-        this.stopped = false
-
+    async start() {
         if (this.client instanceof StreamrClient) {
-            this.initializePerMetricsStream()
+            await this.initializePerMetricsStream()
         }
 
-        if (reportingIntervalSeconds > 0) {
+        if (this.reportingIntervalSeconds > 0) {
             logger.info('starting legacy metrics reporting interval')
-            const reportingIntervalInMs = reportingIntervalSeconds * 1000
+            const reportingIntervalInMs = this.reportingIntervalSeconds * 1000
             const reportFn = async () => {
                 try {
                     await this.reportAndReset()
@@ -224,7 +225,6 @@ module.exports = class VolumeLogger {
 
         io.destroy()
         clearTimeout(this.timeout)
-        clearTimeout(this.metricsReportTimeout)
         if (this.client) {
             this.client.ensureDisconnected()
         }

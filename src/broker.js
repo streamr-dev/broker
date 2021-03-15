@@ -170,6 +170,7 @@ module.exports = async (config) => {
         streamIds,
         brokerAddress
     )
+    await volumeLogger.start()
 
     // Validator only needs public information, so use unauthenticated client for that
     const unauthenticatedClient = new StreamrClient({
