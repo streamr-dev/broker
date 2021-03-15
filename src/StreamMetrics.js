@@ -5,7 +5,7 @@ const throttledAvg = (avg, avgInterval) => {
 }
 
 class StoppedError extends Error {
-    constructor(props) {
+    constructor() {
         super('StreamMetrics stopped')
         this.code = 'StoppedError'
         Error.captureStackTrace(this, StoppedError)
