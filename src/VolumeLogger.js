@@ -1,7 +1,7 @@
 const io = require('@pm2/io')
 const StreamrClient = require('streamr-client')
 
-const StreamMetrics = require('./StreamMetrics')
+const startMetrics = require('./StreamMetrics')
 const logger = require('./helpers/logger')('streamr:VolumeLogger')
 
 function formatNumber(n) {
@@ -13,6 +13,7 @@ module.exports = class VolumeLogger {
         this.metricsContext = metricsContext
         this.client = client
         this.streamIds = streamIds
+        this.brokerAddress = brokerAddress
 
         this.brokerConnectionCountMetric = io.metric({
             name: 'brokerConnectionCountMetric'
@@ -63,32 +64,7 @@ module.exports = class VolumeLogger {
         this.stopped = false
 
         if (this.client instanceof StreamrClient) {
-            this.perStreamMetrics = {
-                sec: new StreamMetrics(
-                    this.client,
-                    this.metricsContext,
-                    brokerAddress,
-                    'sec'
-                ),
-                min: new StreamMetrics(
-                    this.client,
-                    this.metricsContext,
-                    brokerAddress,
-                    'min'
-                ),
-                hour: new StreamMetrics(
-                    this.client,
-                    this.metricsContext,
-                    brokerAddress,
-                    'hour'
-                ),
-                day: new StreamMetrics(
-                    this.client,
-                    this.metricsContext,
-                    brokerAddress,
-                    'day'
-                )
-            }
+            this.initializePerMetricsStream()
         }
 
         if (reportingIntervalSeconds > 0) {
@@ -103,6 +79,35 @@ module.exports = class VolumeLogger {
                 this.timeout = setTimeout(reportFn, reportingIntervalInMs)
             }
             this.timeout = setTimeout(reportFn, reportingIntervalInMs)
+        }
+    }
+
+    async initializePerMetricsStream() {
+        this.perStreamMetrics = {
+            sec: await startMetrics(
+                this.client,
+                this.metricsContext,
+                this.brokerAddress,
+                'sec'
+            ),
+            min: await startMetrics(
+                this.client,
+                this.metricsContext,
+                this.brokerAddress,
+                'min'
+            ),
+            hour: await startMetrics(
+                this.client,
+                this.metricsContext,
+                this.brokerAddress,
+                'hour'
+            ),
+            day: await startMetrics(
+                this.client,
+                this.metricsContext,
+                this.brokerAddress,
+                'day'
+            )
         }
     }
 
@@ -210,8 +215,6 @@ module.exports = class VolumeLogger {
     }
 
     close() {
-        this.stopped = true
-
         if (this.perStreamMetrics) {
             this.perStreamMetrics.sec.stop()
             this.perStreamMetrics.min.stop()

@@ -4,17 +4,14 @@ const throttledAvg = (avg, avgInterval) => {
     return (0.8 * avg) + (0.2 * avgInterval)
 }
 
-module.exports = class StreamMetrics {
+class StreamMetrics {
     constructor(
         client,
         metricsContext,
         brokerAddress,
         interval, // sec/min/hour/day
     ) {
-        const self = this
-
         this.stopped = false
-        this.started = false
 
         this.path = '/streamr/node/metrics/' + interval
 
@@ -29,26 +26,24 @@ module.exports = class StreamMetrics {
                 this.reportMiliseconds = 1000
                 break
             case 'min':
-                this.legacyPath = '/streamr/node/metrics/sec'
-                this.legacyInterval = 60
+                this.sourcePath = '/streamr/node/metrics/sec'
+                this.sourceInterval = 60
                 this.reportMiliseconds = 60 * 1000
                 break
             case 'hour':
-                this.legacyPath = '/streamr/node/metrics/min'
-                this.legacyInterval = 60
+                this.sourcePath = '/streamr/node/metrics/min'
+                this.sourceInterval = 60
                 this.reportMiliseconds = 60 * 60 * 1000
 
                 break
             case 'day':
-                this.legacyPath = '/streamr/node/metrics/hour'
-                this.legacyInterval = 24
+                this.sourcePath = '/streamr/node/metrics/hour'
+                this.sourceInterval = 24
                 this.reportMiliseconds = 24 * 60 * 60 * 1000
                 break
             default:
-                this.reportMiliseconds = 0
+                throw new Error('Unrecognized interval string, should be sec/min/hour/day')
         }
-
-        logger.info(`Started StreamMetrics for interval ${this.interval} running every ${this.reportMiliseconds / 1000}s`)
 
         this.report = {
             peerName: '',
@@ -75,27 +70,10 @@ module.exports = class StreamMetrics {
             timestamp: 0
         }
 
-        this.createMetricsStream()
-            .then((streamId) => {
-                self.streamId = streamId
-                return self.createMetricsStream(self.legacyPath)
-            })
-            .then((legacyStreamId) => {
-                self.legacyStreamId = legacyStreamId
-                return self.runReport()
-            })
-            .then(() => {
-                self.metricsReportTimeout = setTimeout(() => {
-                    self.runReport()
-                }, self.reportMiliseconds)
-            })
-            .catch((e) => {
-                logger.error(e)
-            })
+        logger.info(`Started StreamMetrics for interval ${this.interval} running every ${this.reportMiliseconds / 1000}s`)
     }
 
-    async createMetricsStream(_path) {
-        const path = _path || this.path
+    async createMetricsStream(path) {
         const metricsStream = await this.client.getOrCreateStream({
             name: `Metrics ${path} for broker ${this.brokerAddress}`,
             id: this.brokerAddress + path
@@ -106,69 +84,65 @@ module.exports = class StreamMetrics {
         return metricsStream.id
     }
 
-    publishReport() {
+    async publishReport() {
         if (!this.stopped) {
-            this.client.publish(this.streamId, this.report)
+            return this.client.publish(this.targetStreamId, this.report)
         }
+        return false
     }
 
-    getResend(stream, last, timeout = 1000) {
+    getResend(stream, last, timeout = 10 * 1000) {
         return new Promise((resolve, reject) => {
             if (this.stopped) {
-                resolve([])
+                reject(new Error('StreamMetrics stopped'))
             }
             const startTimeout = () => {
                 return setTimeout(() => {
-                    resolve([])
+                    reject(new Error('StreamMetrics timed out'))
                 }, timeout)
             }
 
             let timeoutId = startTimeout()
             const messages = []
-            if (this.stopped) {
-                resolve(messages)
-            } else {
-                this.client.resend(
-                    {
-                        stream,
-                        resend: {
-                            last
-                        }
-                    },
-                    (message) => {
-                        if (this.stopped) {
-                            resolve(messages)
-                        } else {
-                            messages.push(message)
-                            clearTimeout(timeoutId)
-                            timeoutId = startTimeout()
-                        }
-                    }
-                )
-                    .then((eventEmitter) => {
-                        eventEmitter.once('resent', () => {
-                            resolve(messages)
-                        })
 
-                        eventEmitter.once('no_resend', () => {
-                            resolve(messages)
-                        })
+            this.client.resend(
+                {
+                    stream,
+                    resend: {
+                        last
+                    }
+                },
+                (message) => {
+                    if (this.stopped) {
+                        reject(new Error('StreamMetrics stopped'))
+                    } else {
+                        messages.push(message)
+                        clearTimeout(timeoutId)
+                        timeoutId = startTimeout()
+                    }
+                }
+            )
+                .then((eventEmitter) => {
+                    eventEmitter.once('resent', () => {
+                        resolve(messages)
                     })
-                    .catch(reject)
-            }
+
+                    eventEmitter.once('no_resend', () => {
+                        resolve(messages)
+                    })
+                })
+                .catch(reject)
         })
     }
 
     stop() {
-        logger.info(`Stopped StreamMetrics for ${this.interval}`)
         this.stopped = true
+        clearTimeout(this.metricsReportTimeout)
+        logger.info(`Stopped StreamMetrics for ${this.interval}`)
     }
 
-    async runReport(preventPublish = false) {
+    async runReport() {
         try {
-            if (this.stopped) {
-                return
-            }
             const metricsReport = await this.metricsContext.report(true)
 
             this.report.peerName = metricsReport.peerId
@@ -217,66 +191,76 @@ module.exports = class StreamMetrics {
             } else {
                 const now = Date.now()
                 // calculations for min/hour/day
-                if (this.report.timestamp === 0) {
-                    // first iteration
-                    const lastMessages = await this.getResend(this.legacyStreamId, 1)
+                // if (this.report.timestamp === 0) {
+                // first iteration
+                const messages = await this.getResend(this.sourceStreamId, this.sourceInterval)
 
-                    if (lastMessages.length === 0) {
-                        await this.publishReport()
-                    } else {
-                        const messages = await this.getResend(this.streamIds.minuteStreamId, this.legacyInterval)
+                if (messages.length === 0) {
+                    await this.publishReport()
+                } else {
+                    for (let i = 0; i < messages.length; i++) {
+                        this.report.broker.messagesToNetworkPerSec += messages[i].broker.messagesToNetworkPerSec
+                        this.report.broker.bytesToNetworkPerSec += messages[i].broker.bytesToNetworkPerSec
+                        this.report.network.avgLatencyMs += messages[i].network.avgLatencyMs
 
-                        for (let i = 1; i < messages.length; i++) {
-                            this.report.broker.messagesToNetworkPerSec += messages[i].broker.messagesToNetworkPerSec
-                            this.report.broker.bytesToNetworkPerSec += messages[i].broker.bytesToNetworkPerSec
-                            this.report.network.avgLatencyMs += messages[i].network.avgLatencyMs
+                        this.report.broker.messagesToNetworkPerSec += messages[i].broker.messagesToNetworkPerSec
+                        this.report.broker.bytesToNetworkPerSec += messages[i].broker.bytesToNetworkPerSec
 
-                            this.report.broker.messagesToNetworkPerSec += messages[i].broker.messagesToNetworkPerSec
-                            this.report.broker.bytesToNetworkPerSec += messages[i].broker.bytesToNetworkPerSec
+                        this.report.network.avgLatencyMs += messages[i].network.avgLatencyMs
+                        this.report.network.bytesToPeersPerSec += messages[i].network.bytesToPeersPerSec
+                        this.report.network.bytesFromPeersPerSec += messages[i].network.bytesFromPeersPerSec
+                        this.report.network.connections += messages[i].network.connections
 
-                            this.report.network.avgLatencyMs += messages[i].network.avgLatencyMs
-                            this.report.network.bytesToPeersPerSec += messages[i].network.bytesToPeersPerSec
-                            this.report.network.bytesFromPeersPerSec += messages[i].network.bytesFromPeersPerSec
-                            this.report.network.connections += messages[i].network.connections
+                        if (metricsReport.metrics['broker/cassandra']) {
+                            this.report.storage.bytesWrittenPerSec += messages[i].storage.bytesWrittenPerSec
+                            this.report.storage.bytesReadPerSec += messages[i].storage.bytesReadPerSec
+                        }
+                    }
 
-                            if (metricsReport.metrics['broker/cassandra']) {
-                                this.report.storage.bytesWrittenPerSec += messages[i].storage.bytesWrittenPerSec
-                                this.report.storage.bytesReadPerSec += messages[i].storage.bytesReadPerSec
-                            }
+                    if (messages.length > 0) {
+                        this.report.broker.messagesToNetworkPerSec /= messages.length
+                        this.report.broker.bytesToNetworkPerSec /= messages.length
+                        this.report.network.avgLatencyMs /= messages.length
+
+                        this.report.broker.messagesToNetworkPerSec /= messages.length
+                        this.report.broker.bytesToNetworkPerSec /= messages.length
+
+                        this.report.network.avgLatencyMs /= messages.length
+                        this.report.network.bytesToPeersPerSec /= messages.length
+                        this.report.network.bytesFromPeersPerSec /= messages.length
+                        this.report.network.connections /= messages.length
+
+                        if (metricsReport.metrics['broker/cassandra']) {
+                            this.report.storage.bytesWrittenPerSec /= messages.length
+                            this.report.storage.bytesReadPerSec /= messages.length
                         }
 
-                        if (messages.length > 0) {
-                            this.report.broker.messagesToNetworkPerSec /= messages.length
-                            this.report.broker.bytesToNetworkPerSec /= messages.length
-                            this.report.network.avgLatencyMs /= messages.length
-
-                            this.report.broker.messagesToNetworkPerSec /= messages.length
-                            this.report.broker.bytesToNetworkPerSec /= messages.length
-
-                            this.report.network.avgLatencyMs /= messages.length
-                            this.report.network.bytesToPeersPerSec /= messages.length
-                            this.report.network.bytesFromPeersPerSec /= messages.length
-                            this.report.network.connections /= messages.length
-
-                            if (metricsReport.metrics['broker/cassandra']) {
-                                this.report.storage.bytesWrittenPerSec /= messages.length
-                                this.report.storage.bytesReadPerSec /= messages.length
-                            }
-
-                            if ((lastMessages[0].timestamp + this.reportMiliseconds - now) < 0) {
-                                await this.publishReport()
-                            }
+                        const lastMessage = messages[messages.length - 1]
+                        if ((lastMessage.timestamp + this.reportMiliseconds - now) < 0) {
+                            await this.publishReport()
                         }
                     }
                 }
+                // }
             }
         } catch (e) {
             logger.error(e)
         }
 
-        const self = this
         this.metricsReportTimeout = setTimeout(() => {
-            self.runReport()
+            this.runReport()
         }, this.reportMiliseconds)
     }
+}
+
+module.exports = async function startMetrics(client, metricsContext, brokerAddress, interval) {
+    const metrics = new StreamMetrics(client, metricsContext, brokerAddress, interval)
+    metrics.targetStreamId = await metrics.createMetricsStream(metrics.path)
+
+    if (metrics.sourcePath) {
+        metrics.sourceStreamId = await metrics.createMetricsStream(metrics.sourcePath)
+    }
+
+    metrics.runReport()
+    return metrics
 }
