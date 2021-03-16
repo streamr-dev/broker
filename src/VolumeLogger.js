@@ -84,19 +84,19 @@ module.exports = class VolumeLogger {
     }
 
     async initializePerMetricsStream() {
-        this.perStreamMetrics = {/*
+        this.perStreamMetrics = {
             sec: await startMetrics(
                 this.client,
                 this.metricsContext,
                 this.brokerAddress,
                 'sec'
-            ),*/
+            ),
             min: await startMetrics(
                 this.client,
                 this.metricsContext,
                 this.brokerAddress,
                 'min'
-            ),/*
+            ),
             hour: await startMetrics(
                 this.client,
                 this.metricsContext,
@@ -108,7 +108,7 @@ module.exports = class VolumeLogger {
                 this.metricsContext,
                 this.brokerAddress,
                 'day'
-            )*/
+            )
         }
     }
 
@@ -217,10 +217,10 @@ module.exports = class VolumeLogger {
 
     close() {
         if (this.perStreamMetrics) {
-            //this.perStreamMetrics.sec.stop()
+            this.perStreamMetrics.sec.stop()
             this.perStreamMetrics.min.stop()
-            //this.perStreamMetrics.hour.stop()
-            //this.perStreamMetrics.day.stop()
+            this.perStreamMetrics.hour.stop()
+            this.perStreamMetrics.day.stop()
         }
 
         io.destroy()

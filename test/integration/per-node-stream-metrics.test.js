@@ -1,9 +1,7 @@
 const { startTracker } = require('streamr-network')
-
 const ethers = require('ethers')
 
 const { startBroker, createClient } = require('../utils')
-
 
 const httpPort1 = 47741
 const wsPort1 = 47751
@@ -22,9 +20,8 @@ describe('metricsStream', () => {
         client1 = createClient(wsPort1)
 
         const tmpAccount = ethers.Wallet.createRandom()
-        console.log(tmpAccount.privateKey, tmpAccount.address)
 
-        nodeAddress = tmpAccount.address 
+        nodeAddress = tmpAccount.address
 
         legacyStream = await client1.getOrCreateStream({
             name: 'per-node-stream-metrics.test.js-legacyStream'
@@ -67,7 +64,7 @@ describe('metricsStream', () => {
             client1.ensureDisconnected()
         ])
     })
-/*
+
     it('should ensure the legacy metrics endpoint still works properly', (done) => {
         client1.subscribe({
             stream: legacyStream.id,
@@ -76,7 +73,7 @@ describe('metricsStream', () => {
             done()
         })
     })
-*/
+
     it('should retrieve the last `sec` metrics', (done) => {
         client1.subscribe({
             stream: nodeAddress + '/streamr/node/metrics/sec',
@@ -99,7 +96,7 @@ describe('metricsStream', () => {
             done()
         })
     })
-
+/*
     it('should retrieve the last `min` metrics', (done) => {
         client1.subscribe({
             stream: nodeAddress + '/streamr/node/metrics/min',
@@ -118,35 +115,14 @@ describe('metricsStream', () => {
             expect(res.startTime).toBeGreaterThanOrEqual(0)
             expect(res.currentTime).toBeGreaterThanOrEqual(0)
             expect(res.timestamp).toBeGreaterThanOrEqual(0)
-            done()
-        })
-    }, 15 * 1000)
-/*
-    it('should retrieve the last `hour` metrics', (done) => {
-        client1.subscribe({
-            stream: '0xC59b3658D22e0716726819a56e164ee6825e21C2/streamr/node/metrics/hour',
-        }, (res) => {
-            expect(res.peerName).toEqual('broker1')
-            expect(res.broker.messagesToNetworkPerSec).toBeGreaterThanOrEqual(0)
-            expect(res.broker.bytesToNetworkPerSec).toBeGreaterThanOrEqual(0)
-            expect(res.broker.messagesFromNetworkPerSec).toBeGreaterThanOrEqual(0)
-            expect(res.broker.bytesFromNetworkPerSec).toBeGreaterThanOrEqual(0)
-            expect(res.network.avgLatencyMs).toBeGreaterThanOrEqual(0)
-            expect(res.network.bytesToPeersPerSec).toBeGreaterThanOrEqual(0)
-            expect(res.network.bytesFromPeersPerSec).toBeGreaterThanOrEqual(0)
-            expect(res.network.connections).toBeGreaterThanOrEqual(0)
-            expect(res.storage.bytesWrittenPerSec).toBeGreaterThanOrEqual(0)
-            expect(res.storage.bytesReadPerSec).toBeGreaterThanOrEqual(0)
-            expect(res.startTime).toBeGreaterThanOrEqual(0)
-            expect(res.currentTime).toBeGreaterThanOrEqual(0)
-            expect(res.timestamp).toBeGreaterThanOrEqual(0)
+
             done()
         })
     })
 
-    it('should retrieve the last `day` metrics', (done) => {
+    it('should retrieve the last `hour` metrics', (done) => {
         client1.subscribe({
-            stream: '0xC59b3658D22e0716726819a56e164ee6825e21C2/streamr/node/metrics/day',
+            stream: nodeAddress + '/streamr/node/metrics/hour',
         }, (res) => {
             expect(res.peerName).toEqual('broker1')
             expect(res.broker.messagesToNetworkPerSec).toBeGreaterThanOrEqual(0)
@@ -164,5 +140,27 @@ describe('metricsStream', () => {
             expect(res.timestamp).toBeGreaterThanOrEqual(0)
             done()
         })
-    })*/
+    }, 20 * 1000)
+
+    it('should retrieve the last `day` metrics', (done) => {
+        client1.subscribe({
+            stream: nodeAddress + '/streamr/node/metrics/day',
+        }, (res) => {
+            expect(res.peerName).toEqual('broker1')
+            expect(res.broker.messagesToNetworkPerSec).toBeGreaterThanOrEqual(0)
+            expect(res.broker.bytesToNetworkPerSec).toBeGreaterThanOrEqual(0)
+            expect(res.broker.messagesFromNetworkPerSec).toBeGreaterThanOrEqual(0)
+            expect(res.broker.bytesFromNetworkPerSec).toBeGreaterThanOrEqual(0)
+            expect(res.network.avgLatencyMs).toBeGreaterThanOrEqual(0)
+            expect(res.network.bytesToPeersPerSec).toBeGreaterThanOrEqual(0)
+            expect(res.network.bytesFromPeersPerSec).toBeGreaterThanOrEqual(0)
+            expect(res.network.connections).toBeGreaterThanOrEqual(0)
+            expect(res.storage.bytesWrittenPerSec).toBeGreaterThanOrEqual(0)
+            expect(res.storage.bytesReadPerSec).toBeGreaterThanOrEqual(0)
+            expect(res.startTime).toBeGreaterThanOrEqual(0)
+            expect(res.currentTime).toBeGreaterThanOrEqual(0)
+            expect(res.timestamp).toBeGreaterThanOrEqual(0)
+            done()
+        })
+    }, 20 * 1000) */
 })

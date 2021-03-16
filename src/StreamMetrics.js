@@ -54,8 +54,8 @@ class StreamMetrics {
         }
 
         this.report = {
-            peerName: '',
-            peerId: '',
+            peerName: brokerAddress,
+            peerId: brokerAddress,
             broker: {
                 messagesToNetworkPerSec: 0,
                 bytesToNetworkPerSec: 0,
@@ -93,8 +93,8 @@ class StreamMetrics {
     }
 
     async publishReport() {
-        if (!this.stopped && this.client.connection.isConnectionValid()) {
-            logger.info(`publishing ${this.report} to stream ${this.targetStreamId}`)
+        if (!this.stopped) {
+            logger.info(`publishing report for ${this.report.peerId} to stream ${this.targetStreamId}`)
             return this.client.publish(this.targetStreamId, this.report)
         }
         return false
@@ -102,15 +102,8 @@ class StreamMetrics {
 
     getResend(stream, last, timeout = 10 * 1000) {
         return new Promise((resolve, reject) => {
-            let cummulative = 'hi:'
-            logger.info('stopped:' + this.stopped)
-            logger.info('isConnectionValid:' + this.client.connection.isConnectionValid())
-            setInterval(() => {
-                logger.info('isConnectionValid:' + this.client.connection.isConnectionValid())
-
-            },500)
-            if (this.stopped || !this.client.connection.isConnectionValid()) {
-                return reject(new StoppedError('StreamMetrics stopped 2'))
+            if (this.stopped) {
+                return reject(new StoppedError('StreamMetrics stopped'))
             }
 
             const startTimeout = () => {
@@ -122,7 +115,7 @@ class StreamMetrics {
             let timeoutId = startTimeout()
             const messages = []
 
-            this.client.resend(
+            return this.client.resend(
                 {
                     stream,
                     resend: {
@@ -130,13 +123,9 @@ class StreamMetrics {
                     }
                 },
                 (message) => {
-                    /*if (this.stopped || !this.client.connection.isConnectionValid()) {
-                        reject(new StoppedError('StreamMetrics stopped'))
-                    } else {*/
-                        messages.push(message)
-                        clearTimeout(timeoutId)
-                        timeoutId = startTimeout()
-                    //}
+                    messages.push(message)
+                    clearTimeout(timeoutId)
+                    timeoutId = startTimeout()
                 }
             )
                 .then((eventEmitter) => {
@@ -211,12 +200,9 @@ class StreamMetrics {
             } else {
                 const now = Date.now()
                 const messages = await this.getResend(this.sourceStreamId, this.sourceInterval)
-                console.log(messages)
-                logger.info(`found ${messages.length} messages`)
-                logger.info(messages)
+
                 if (messages.length === 0) {
                     await this.publishReport()
-                    logger.info('CALLED PUBLISH REPORT FOR EMPTY MESSAGE QUEUE')
                 } else {
                     for (let i = 0; i < messages.length; i++) {
                         this.report.broker.messagesToNetworkPerSec += messages[i].broker.messagesToNetworkPerSec
@@ -278,29 +264,7 @@ class StreamMetrics {
     }
 }
 
-const waitForClient = (client, timeoutInSeconds = 3) => {
-    return new Promise((resolve, reject) => {
-        setTimeout(() => {
-            reject(`Waiting for client connection in StreamMetrics timed out after ${timeoutInSeconds}s`)
-        }, timeoutInSeconds * 1000)
-        client.once('error', (err) => {
-            logger.error(err)
-            reject(err)
-        })
-
-        client.once('connected', () => {
-            logger.info('client connected')
-            resolve()
-        })
-    })
-}
-
 module.exports = async function startMetrics(client, metricsContext, brokerAddress, interval) {
-    
-    if (!client.connection.isConnectionValid()){
-        await waitForClient(client)
-    }
-    
     const metrics = new StreamMetrics(client, metricsContext, brokerAddress, interval)
     metrics.targetStreamId = await metrics.createMetricsStream(metrics.path)
 
