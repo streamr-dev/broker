@@ -79,7 +79,8 @@ function formConfig({
             perNodeMetrics: {
                 enabled: false,
                 wsUrl: null,
-                httpUrl: null
+                httpUrl: null,
+                intervals: null
             }
         },
         streamrUrl,
