@@ -128,17 +128,6 @@ module.exports = async (config) => {
             restUrl: config.reporting.perNodeMetrics ? (config.reporting.perNodeMetrics.httpUrl || null) : null
         })
 
-        const createMetricsStream = async (path) => {
-            const metricsStream = await client.getOrCreateStream({
-                name: `Metrics ${path} for broker ${brokerAddress}`,
-                id: brokerAddress + path
-            })
-
-            await metricsStream.grantPermission('stream_get', null)
-            await metricsStream.grantPermission('stream_subscribe', null)
-            return metricsStream.id
-        }
-
         if (config.reporting.streamr && config.reporting.streamr.streamId) {
             const { streamId } = config.reporting.streamr
 
@@ -147,17 +136,6 @@ module.exports = async (config) => {
             logger.info(`Starting StreamrClient reporting with streamId: ${streamId}`)
         } else {
             logger.info('StreamrClient reporting disabled')
-        }
-
-        if (config.reporting.perNodeMetrics && config.reporting.perNodeMetrics.enabled) {
-            // await client.ensureConnected()
-            streamIds.secStreamId = await createMetricsStream('/streamr/node/metrics/sec')
-            streamIds.minStreamId = await createMetricsStream('/streamr/node/metrics/min')
-            streamIds.hourStreamId = await createMetricsStream('/streamr/node/metrics/hour')
-            streamIds.dayStreamId = await createMetricsStream('/streamr/node/metrics/day')
-            logger.info('Starting perNodeMetrics')
-        } else {
-            logger.info('perNodeMetrics reporting disabled')
         }
     } else {
         logger.info('StreamrClient and perNodeMetrics disabled')
@@ -197,13 +175,20 @@ module.exports = async (config) => {
         }
     })
 
+    let reportingIntervals
+
+    if (config.reporting && config.reporting.perNodeMetrics && config.reporting.perNodeMetrics.intervals) {
+        reportingIntervals = config.reporting.perNodeMetrics.intervals
+    }
+
     // Start logging facilities
     const volumeLogger = new VolumeLogger(
         config.reporting.intervalInSeconds,
         metricsContext,
         client,
         streamIds,
-        brokerAddress
+        brokerAddress,
+        reportingIntervals
     )
     await volumeLogger.start()
 

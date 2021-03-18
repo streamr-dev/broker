@@ -234,7 +234,8 @@
           "required": [
             "enabled",
             "wsUrl",
-            "httpUrl"
+            "httpUrl",
+            "intervals"
           ],
           "additionalProperties": false,
           "properties": {
@@ -251,6 +252,18 @@
               "type" : [
                 "string",
                 "null"
+              ]
+            },
+            "intervals": {
+              "type":[
+                "object",
+                "null"
+              ],
+              "required": [
+                "sec",
+                "min",
+                "hour",
+                "day"
               ]
             }
           }

@@ -9,12 +9,13 @@ function formatNumber(n) {
 }
 
 module.exports = class VolumeLogger {
-    constructor(reportingIntervalSeconds = 60, metricsContext, client = undefined, streamIds = undefined, brokerAddress = undefined) {
+    constructor(reportingIntervalSeconds = 60, metricsContext, client = undefined, streamIds = undefined, brokerAddress = undefined, perStreamReportingIntervals = undefined) {
         this.reportingIntervalSeconds = reportingIntervalSeconds
         this.metricsContext = metricsContext
         this.client = client
         this.streamIds = streamIds
         this.brokerAddress = brokerAddress
+        this.perStreamReportingIntervals = perStreamReportingIntervals
 
         this.brokerConnectionCountMetric = io.metric({
             name: 'brokerConnectionCountMetric'
@@ -89,25 +90,29 @@ module.exports = class VolumeLogger {
                 this.client,
                 this.metricsContext,
                 this.brokerAddress,
-                'sec'
+                'sec',
+                (this.perStreamReportingIntervals) ? this.perStreamReportingIntervals.sec : undefined
             ),
             min: await startMetrics(
                 this.client,
                 this.metricsContext,
                 this.brokerAddress,
-                'min'
+                'min',
+                (this.perStreamReportingIntervals) ? this.perStreamReportingIntervals.min : undefined
             ),
             hour: await startMetrics(
                 this.client,
                 this.metricsContext,
                 this.brokerAddress,
-                'hour'
+                'hour',
+                (this.perStreamReportingIntervals) ? this.perStreamReportingIntervals.hour : undefined
             ),
             day: await startMetrics(
                 this.client,
                 this.metricsContext,
                 this.brokerAddress,
-                'day'
+                'day',
+                (this.perStreamReportingIntervals) ? this.perStreamReportingIntervals.day : undefined
             )
         }
     }

@@ -18,6 +18,7 @@ class StreamMetrics {
         metricsContext,
         brokerAddress,
         interval, // sec/min/hour/day
+        reportMiliseconds = undefined,
     ) {
         this.stopped = false
 
@@ -31,23 +32,23 @@ class StreamMetrics {
 
         switch (this.interval) {
             case 'sec':
-                this.reportMiliseconds = 1000
+                this.reportMiliseconds = reportMiliseconds || 1000
                 break
             case 'min':
                 this.sourcePath = '/streamr/node/metrics/sec'
                 this.sourceInterval = 60
-                this.reportMiliseconds = 60 * 1000
+                this.reportMiliseconds = reportMiliseconds || 60 * 1000
                 break
             case 'hour':
                 this.sourcePath = '/streamr/node/metrics/min'
                 this.sourceInterval = 60
-                this.reportMiliseconds = 60 * 60 * 1000
+                this.reportMiliseconds = reportMiliseconds || 60 * 60 * 1000
 
                 break
             case 'day':
                 this.sourcePath = '/streamr/node/metrics/hour'
                 this.sourceInterval = 24
-                this.reportMiliseconds = 24 * 60 * 60 * 1000
+                this.reportMiliseconds = reportMiliseconds || 24 * 60 * 60 * 1000
                 break
             default:
                 throw new Error('Unrecognized interval string, should be sec/min/hour/day')
@@ -264,8 +265,8 @@ class StreamMetrics {
     }
 }
 
-module.exports = async function startMetrics(client, metricsContext, brokerAddress, interval) {
-    const metrics = new StreamMetrics(client, metricsContext, brokerAddress, interval)
+module.exports = async function startMetrics(client, metricsContext, brokerAddress, interval, reportingIntervalInMs) {
+    const metrics = new StreamMetrics(client, metricsContext, brokerAddress, interval, reportingIntervalInMs)
     metrics.targetStreamId = await metrics.createMetricsStream(metrics.path)
 
     if (metrics.sourcePath) {

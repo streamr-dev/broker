@@ -7,7 +7,46 @@ const httpPort1 = 47741
 const wsPort1 = 47751
 const networkPort1 = 47365
 const trackerPort = 47970
-const broker1Key = '0x241b3f241b110ff7b3e6d52e74fea922006a83e33ff938e6e3cba8a460c02513'
+
+const fillMetrics = async (client, count, nodeAddress, source) => {
+    const sourceStream = nodeAddress + '/streamr/node/metrics/' + source
+    const mockDate = new Date('2020-01-01').getTime()
+
+    const promises = []
+
+    for (let i = 0; i < count; i++) {
+        const ts = mockDate + (i * 1000)
+
+        const mockReport = {
+            peerName: nodeAddress,
+            peerId: nodeAddress,
+            broker: {
+                messagesToNetworkPerSec: 0,
+                bytesToNetworkPerSec: 0,
+                messagesFromNetworkPerSec: 0,
+                bytesFromNetworkPerSec: 0,
+            },
+            network: {
+                avgLatencyMs: 0,
+                bytesToPeersPerSec: 0,
+                bytesFromPeersPerSec: 0,
+                connections: 0,
+            },
+            storage: {
+                bytesWrittenPerSec: 0,
+                bytesReadPerSec: 0,
+            },
+
+            startTime: 0,
+            currentTime: ts,
+            timestamp: ts
+        }
+
+        promises.push(client.publish(sourceStream, mockReport))
+    }
+
+    return Promise.allSettled(promises)
+}
 
 describe('metricsStream', () => {
     let tracker
@@ -15,6 +54,7 @@ describe('metricsStream', () => {
     let client1
     let legacyStream
     let nodeAddress
+    let client2
 
     beforeEach(async () => {
         client1 = createClient(wsPort1)
@@ -51,8 +91,20 @@ describe('metricsStream', () => {
                 perNodeMetrics: {
                     enabled: true,
                     wsUrl: 'ws://127.0.0.1:' + wsPort1 + '/api/v1/ws',
-                    httpUrl: 'http://localhost/api/v1'
+                    httpUrl: 'http://localhost/api/v1',
+                    intervals: {
+                        sec: 1000,
+                        min: 1000,
+                        hour: 1000,
+                        day: 1000
+                    }
                 }
+            }
+        })
+
+        client2 = createClient(wsPort1, {
+            auth: {
+                privateKey: tmpAccount.privateKey,
             }
         })
     })
@@ -61,7 +113,8 @@ describe('metricsStream', () => {
         await Promise.allSettled([
             tracker.stop(),
             broker1.close(),
-            client1.ensureDisconnected()
+            client1.ensureDisconnected(),
+            client2.ensureDisconnected()
         ])
     })
 
@@ -96,7 +149,7 @@ describe('metricsStream', () => {
             done()
         })
     })
-/*
+
     it('should retrieve the last `min` metrics', (done) => {
         client1.subscribe({
             stream: nodeAddress + '/streamr/node/metrics/min',
@@ -115,9 +168,9 @@ describe('metricsStream', () => {
             expect(res.startTime).toBeGreaterThanOrEqual(0)
             expect(res.currentTime).toBeGreaterThanOrEqual(0)
             expect(res.timestamp).toBeGreaterThanOrEqual(0)
-
             done()
         })
+        fillMetrics(client2, 60, nodeAddress, 'sec')
     })
 
     it('should retrieve the last `hour` metrics', (done) => {
@@ -140,7 +193,8 @@ describe('metricsStream', () => {
             expect(res.timestamp).toBeGreaterThanOrEqual(0)
             done()
         })
-    }, 20 * 1000)
+        fillMetrics(client2, 60, nodeAddress, 'min')
+    })
 
     it('should retrieve the last `day` metrics', (done) => {
         client1.subscribe({
@@ -162,5 +216,6 @@ describe('metricsStream', () => {
             expect(res.timestamp).toBeGreaterThanOrEqual(0)
             done()
         })
-    }, 20 * 1000) */
+        fillMetrics(client2, 24, nodeAddress, 'hour')
+    })
 })
