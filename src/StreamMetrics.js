@@ -18,7 +18,7 @@ class StreamMetrics {
         metricsContext,
         brokerAddress,
         interval, // sec/min/hour/day
-        reportMiliseconds = undefined,
+        reportMiliseconds = undefined, // used to override default in tests
     ) {
         this.stopped = false
 
@@ -28,6 +28,7 @@ class StreamMetrics {
         this.metricsContext = metricsContext
 
         this.brokerAddress = brokerAddress
+
         this.interval = interval
 
         switch (this.interval) {
@@ -54,30 +55,7 @@ class StreamMetrics {
                 throw new Error('Unrecognized interval string, should be sec/min/hour/day')
         }
 
-        this.report = {
-            peerName: brokerAddress,
-            peerId: brokerAddress,
-            broker: {
-                messagesToNetworkPerSec: 0,
-                bytesToNetworkPerSec: 0,
-                messagesFromNetworkPerSec: 0,
-                bytesFromNetworkPerSec: 0,
-            },
-            network: {
-                avgLatencyMs: 0,
-                bytesToPeersPerSec: 0,
-                bytesFromPeersPerSec: 0,
-                connections: 0,
-            },
-            storage: {
-                bytesWrittenPerSec: 0,
-                bytesReadPerSec: 0,
-            },
-
-            startTime: 0,
-            currentTime: 0,
-            timestamp: 0
-        }
+        this.resetReport()
 
         logger.info(`Started StreamMetrics for interval ${this.interval} running every ${this.reportMiliseconds / 1000}s`)
     }
@@ -148,6 +126,21 @@ class StreamMetrics {
         logger.info(`Stopped StreamMetrics for ${this.interval}`)
     }
 
+    resetReport() {
+        this.report.broker.messagesToNetworkPerSec = 0
+        this.report.broker.bytesToNetworkPerSec = 0
+
+        this.report.network.avgLatencyMs = 0
+        this.report.network.bytesToPeersPerSec = 0
+        this.report.network.bytesFromPeersPerSec = 0
+        this.report.network.connections = 0
+
+        if (this.report.storage) {
+            this.report.storage.bytesWrittenPerSec = 0
+            this.report.storage.bytesReadPerSec = 0
+        }
+    }
+
     async runReport() {
         try {
             const metricsReport = await this.metricsContext.report(true)
@@ -203,28 +196,41 @@ class StreamMetrics {
                 const messages = await this.getResend(this.sourceStreamId, this.sourceInterval)
 
                 if (messages.length === 0) {
+                    this.resetReport()
                     await this.publishReport()
                 } else {
-                    for (let i = 0; i < messages.length; i++) {
-                        this.report.broker.messagesToNetworkPerSec += messages[i].broker.messagesToNetworkPerSec
-                        this.report.broker.bytesToNetworkPerSec += messages[i].broker.bytesToNetworkPerSec
-                        this.report.network.avgLatencyMs += messages[i].network.avgLatencyMs
+                    const targetMessages = await this.getResend(this.targetStreamId, 1)
+                    if (targetMessages.length > 0 && (targetMessages[0].timestamp + this.reportMiliseconds - now) < 0) {
+                        for (let i = 0; i < messages.length; i++) {
+                            this.report.broker.messagesToNetworkPerSec += messages[i].broker.messagesToNetworkPerSec
+                            this.report.broker.bytesToNetworkPerSec += messages[i].broker.bytesToNetworkPerSec
+                            this.report.network.avgLatencyMs += messages[i].network.avgLatencyMs
 
-                        this.report.broker.messagesToNetworkPerSec += messages[i].broker.messagesToNetworkPerSec
-                        this.report.broker.bytesToNetworkPerSec += messages[i].broker.bytesToNetworkPerSec
+                            this.report.broker.messagesToNetworkPerSec += messages[i].broker.messagesToNetworkPerSec
+                            this.report.broker.bytesToNetworkPerSec += messages[i].broker.bytesToNetworkPerSec
 
-                        this.report.network.avgLatencyMs += messages[i].network.avgLatencyMs
-                        this.report.network.bytesToPeersPerSec += messages[i].network.bytesToPeersPerSec
-                        this.report.network.bytesFromPeersPerSec += messages[i].network.bytesFromPeersPerSec
-                        this.report.network.connections += messages[i].network.connections
+                            this.report.network.avgLatencyMs += messages[i].network.avgLatencyMs
+                            this.report.network.bytesToPeersPerSec += messages[i].network.bytesToPeersPerSec
+                            this.report.network.bytesFromPeersPerSec += messages[i].network.bytesFromPeersPerSec
+                            this.report.network.connections += messages[i].network.connections
 
-                        if (metricsReport.metrics['broker/cassandra']) {
-                            this.report.storage.bytesWrittenPerSec += messages[i].storage.bytesWrittenPerSec
-                            this.report.storage.bytesReadPerSec += messages[i].storage.bytesReadPerSec
+                            if (metricsReport.metrics['broker/cassandra']) {
+                                this.report.storage.bytesWrittenPerSec += messages[i].storage.bytesWrittenPerSec
+                                this.report.storage.bytesReadPerSec += messages[i].storage.bytesReadPerSec
+                            }
                         }
-                    }
 
-                    if (messages.length > 0) {
+                        this.report.broker.messagesToNetworkPerSec /= messages.length
+                        this.report.broker.bytesToNetworkPerSec /= messages.length
+                        this.report.network.avgLatencyMs /= messages.length
+
+                        this.report.broker.messagesToNetworkPerSec /= messages.length
+                        this.report.broker.bytesToNetworkPerSec /= messages.length
+
+                        this.report.network.avgLatencyMs /= messages.length
+                        this.report.network.bytesToPeersPerSec /= messages.length
+                        this.report.network.bytesFromPeersPerSec /= messages.length
+                        this.report.network.connections /= messages.length
                         this.report.broker.messagesToNetworkPerSec /= messages.length
                         this.report.broker.bytesToNetworkPerSec /= messages.length
                         this.report.network.avgLatencyMs /= messages.length
@@ -242,17 +248,12 @@ class StreamMetrics {
                             this.report.storage.bytesReadPerSec /= messages.length
                         }
 
-                        const lastMessage = messages[messages.length - 1]
-                        if ((lastMessage.timestamp + this.reportMiliseconds - now) < 0) {
-                            await this.publishReport()
-                        }
+                        await this.publishReport()
                     }
                 }
             }
         } catch (e) {
-            if (e.code === 'StoppedError') {
-                console.log(e)
-            } else {
+            if (!e.code === 'StoppedError') {
                 logger.warn(e)
             }
         }
