@@ -55,7 +55,30 @@ class StreamMetrics {
                 throw new Error('Unrecognized interval string, should be sec/min/hour/day')
         }
 
-        this.resetReport()
+        this.report = {
+            peerName: brokerAddress,
+            peerId: brokerAddress,
+            broker: {
+                messagesToNetworkPerSec: 0,
+                bytesToNetworkPerSec: 0,
+                messagesFromNetworkPerSec: 0,
+                bytesFromNetworkPerSec: 0,
+            },
+            network: {
+                avgLatencyMs: 0,
+                bytesToPeersPerSec: 0,
+                bytesFromPeersPerSec: 0,
+                connections: 0,
+            },
+            storage: {
+                bytesWrittenPerSec: 0,
+                bytesReadPerSec: 0,
+            },
+
+            startTime: 0,
+            currentTime: 0,
+            timestamp: 0
+        }
 
         logger.info(`Started StreamMetrics for interval ${this.interval} running every ${this.reportMiliseconds / 1000}s`)
     }
