@@ -224,6 +224,7 @@ class StreamMetrics {
                 } else {
                     const targetMessages = await this.getResend(this.targetStreamId, 1)
                     if (targetMessages.length > 0 && (targetMessages[0].timestamp + this.reportMiliseconds - now) < 0) {
+                        this.resetReport()
                         for (let i = 0; i < messages.length; i++) {
                             this.report.broker.messagesToNetworkPerSec += messages[i].broker.messagesToNetworkPerSec
                             this.report.broker.bytesToNetworkPerSec += messages[i].broker.bytesToNetworkPerSec
@@ -276,7 +277,7 @@ class StreamMetrics {
                 }
             }
         } catch (e) {
-            if (!e.code === 'StoppedError') {
+            if (e.code !== 'StoppedError') {
                 logger.warn(e)
             }
         }
