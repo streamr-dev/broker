@@ -4,7 +4,7 @@ const logger = require('./helpers/logger')('streamr:Stream')
 
 module.exports = class Stream {
     constructor(id, partition, name, msgHandler, gapHandler) {
-        this.id = id
+        this.id = id.toLowerCase()
         this.name = name
         this.partition = partition
         this.state = 'init'
