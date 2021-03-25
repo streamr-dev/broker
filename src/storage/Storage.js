@@ -394,13 +394,20 @@ class Storage extends EventEmitter {
         return Promise.all([
             this.bucketManager.getLastBuckets(streamId, partition, 1, fromTimestamp),
             this.bucketManager.getLastBuckets(streamId, partition, 1, toTimestamp),
-        ]).then((results) => {
-            if (!results || results.length !== 2) {
+        ]).then(([fromBuckets, toBuckets]) => {
+            const fromBucket = fromBuckets[0]
+            const toBucket = toBuckets[0]
+            if ((fromBucket !== undefined) && (toBucket !== undefined)) {
+                const date1 = fromBucket.dateCreate
+                const date2 = toBucket.dateCreate
+                return [Math.min(date1, date2), Math.max(date1, date2)]
+            } else if ((fromBucket !== undefined) || (toBucket !== undefined)) { // eslint-disable-line no-else-return
+                const bucket = fromBucket || toBucket
+                const date = bucket.dateCreate
+                return [date, date]
+            } else { // eslint-disable-line no-else-return
                 throw new Error('Failed to find buckets')
             }
-            const date1 = results[0][0].dateCreate
-            const date2 = results[1][0].dateCreate
-            return [Math.min(date1, date2), Math.max(date1, date2)]
         })
     }
 
