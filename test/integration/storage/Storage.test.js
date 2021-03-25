@@ -83,6 +83,12 @@ describe('Storage', () => {
         expect(resultsB).toEqual([])
     })
 
+    test('requestRange not throwing exception if no buckets found', async () => {
+        const a = storage.requestRange(streamId, 777, null, null, null, null, null, null)
+        const resultsB = await toArray(a)
+        expect(resultsB).toEqual([])
+    })
+
     test('requestFrom not throwing exception if timestamp is zero', async () => {
         const a = storage.requestFrom(streamId, 0, 0)
         const resultsA = await toArray(a)
@@ -219,6 +225,14 @@ describe('Storage', () => {
         const results = await toArray(streamingResults)
 
         expect(results).toEqual([msg1, msg2, msg3, msg4, msg5])
+    })
+
+    test('fetch messages in a timestamp range: only one message', async () => {
+        const msg = buildMsg(streamId, 10, 2000, 0)
+        await storage.store(msg)
+        const streamingResults = storage.requestRange(streamId, 10, 1500, undefined, 3500, undefined)
+        const results = await toArray(streamingResults)
+        expect(results).toEqual([msg])
     })
 
     test('fetch messages in a timestamp,seqeuenceNo range for a particular publisher, msgChainId', async () => {
