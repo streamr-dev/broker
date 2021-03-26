@@ -31,7 +31,7 @@ class Storage extends EventEmitter {
         }
 
         this.cassandraClient = cassandraClient
-        this.bucketManager = new BucketManager(cassandraClient)
+        this.bucketManager = new BucketManager(cassandraClient, opts)
         this.batchManager = new BatchManager(cassandraClient, {
             useTtl: this.opts.useTtl
         })
@@ -390,23 +390,23 @@ class Storage extends EventEmitter {
         return resultStream
     }
 
-    _getBucketDateRange(streamId, partition, fromTimestamp, toTimestamp) {
+    _getBucketDateRange(streamId, partition, fromTimestamp, toTimestamp) { // TODO move this method to bucketManager, or inline the functionality into getBucketsByTimestamp
         return Promise.all([
             this.bucketManager.getLastBuckets(streamId, partition, 1, fromTimestamp),
             this.bucketManager.getLastBuckets(streamId, partition, 1, toTimestamp),
-        ]).then(([fromBuckets, toBuckets]) => {
+        ]).then(async ([fromBuckets, toBuckets]) => {
             const fromBucket = fromBuckets[0]
             const toBucket = toBuckets[0]
             if ((fromBucket !== undefined) && (toBucket !== undefined)) {
-                const date1 = fromBucket.dateCreate
-                const date2 = toBucket.dateCreate
-                return [Math.min(date1, date2), Math.max(date1, date2)]
-            } else if ((fromBucket !== undefined) || (toBucket !== undefined)) { // eslint-disable-line no-else-return
-                const bucket = fromBucket || toBucket
-                const date = bucket.dateCreate
-                return [date, date]
-            } else { // eslint-disable-line no-else-return
+                return [fromBucket.dateCreate, toBucket.dateCreate]
+            } else if ((fromBucket === undefined) && (toBucket !== undefined)) { 
+                // there is no bucket which starts before fromTimestamp -> use the first bucket
+                const firstBucket = await this.bucketManager.getFirstBucket(streamId, partition)
+                return [firstBucket.dateCreate, toBucket.dateCreate]
+            } else if ((fromBucket === undefined) && (toBucket === undefined)) { // eslint-disable-line no-else-return
                 throw new Error('Failed to find buckets')
+            } else { 
+                throw new Error('Assertion failed') // there is no data, this is not error --> do not throw
             }
         })
     }

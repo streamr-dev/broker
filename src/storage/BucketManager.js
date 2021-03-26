@@ -247,6 +247,12 @@ class BucketManager {
         return this._getBucketsFromDatabase(query, params, streamId, partition)
     }
 
+    async getFirstBucket(streamId, partition) {
+        const QUERY = 'SELECT * FROM bucket WHERE stream_id = ? and partition = ? ORDER BY date_create ASC LIMIT ?'
+        const params = [streamId, partition, 1]
+        return this._getBucketsFromDatabase(QUERY, params, streamId, partition)
+    }
+
     async _getBucketsFromDatabase(query, params, streamId, partition) {
         const buckets = []
 

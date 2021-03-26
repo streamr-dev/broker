@@ -9,6 +9,8 @@ const contactPoints = ['127.0.0.1']
 const localDataCenter = 'datacenter1'
 const keyspace = 'streamr_dev_v2'
 
+const MAX_BUCKET_MESSAGE_COUNT = 20
+
 function buildMsg(
     streamId,
     streamPartition,
@@ -40,6 +42,16 @@ function buildEncryptedMsg(
     })
 }
 
+const storeMockMessages = async (streamId, streamPartition, minTimestamp, maxTimestamp, count, storage) => {
+    const storePromises = []
+    for (let i = 0; i < count; i++) {
+        const timestamp = minTimestamp + Math.floor((i / (count - 1)) * (maxTimestamp - minTimestamp))
+        const msg = buildMsg(streamId, streamPartition, timestamp, 0, 'publisher1')
+        storePromises.push(storage.store(msg))
+    }
+    return await Promise.all(storePromises)
+}
+
 describe('Storage', () => {
     let storage
     let streamId
@@ -63,6 +75,12 @@ describe('Storage', () => {
             contactPoints,
             localDataCenter,
             keyspace,
+            opts: {
+                maxBucketRecords: MAX_BUCKET_MESSAGE_COUNT,
+                checkFullBucketsTimeout: 100,
+                storeBucketsTimeout: 100,
+                bucketKeepAliveSeconds: 1
+            }
         })
         streamId = `stream-id-${Date.now()}-${streamIdx}`
         streamIdx += 1
@@ -271,6 +289,26 @@ describe('Storage', () => {
             expect(results).toEqual([msg1, msg2, msg3, msg4])
         })
     })
+
+    test('multiple buckets', async () => {
+        const messageCount = 3 * MAX_BUCKET_MESSAGE_COUNT
+        await storeMockMessages(streamId, 777, 123000000, 456000000, messageCount, storage)
+
+        // get all
+        const streamingResults1 = storage.requestRange(streamId, 777, 100000000, undefined, 555000000, undefined)
+        const results1 = await toArray(streamingResults1)
+        expect(results1.length).toEqual(messageCount)
+
+        // no messages in range (ignorable messages before range)
+        const streamingResults2 = storage.requestRange(streamId, 777, 460000000, undefined, 470000000, undefined)
+        const results2 = await toArray(streamingResults2)
+        expect(results2).toEqual([])
+
+        // no messages in range (ignorable messages after range)
+        const streamingResults3 = storage.requestRange(streamId, 777, 100000000, undefined, 110000000, undefined)
+        const results3 = await toArray(streamingResults3)
+        expect(results3).toEqual([])
+    }, 20000)
 
     test('fast big stream', async () => {
 
