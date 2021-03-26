@@ -232,12 +232,8 @@ class Storage extends EventEmitter {
         const query = 'SELECT payload FROM stream_data WHERE '
             + 'stream_id = ? AND partition = ? AND bucket_id IN ? AND ts >= ?'
 
-        this.bucketManager.getLastBuckets(streamId, partition, 1, fromTimestamp).then((buckets) => {
-            return buckets.length ? buckets[0].dateCreate : fromTimestamp
-        }).then((startBucketTimestamp) => {
-            return this.bucketManager.getBucketsByTimestamp(streamId, partition, startBucketTimestamp)
-        }).then((buckets) => {
-            if (!buckets || !buckets.length) {
+        this.bucketManager.getBucketsByTimestamp(streamId, partition, fromTimestamp).then((buckets) => {
+            if (buckets.length === 0) { // TODO not an error as there is no data: do not throw
                 throw new Error('Failed to find buckets')
             }
 
@@ -273,12 +269,8 @@ class Storage extends EventEmitter {
         const query2 = 'SELECT payload FROM stream_data WHERE stream_id = ? AND partition = ? AND bucket_id IN ? AND ts > ? AND publisher_id = ? '
             + 'AND msg_chain_id = ? ALLOW FILTERING'
 
-        this.bucketManager.getLastBuckets(streamId, partition, 1, fromTimestamp).then((buckets) => {
-            return buckets.length ? buckets[0].dateCreate : fromTimestamp
-        }).then((startBucketTimestamp) => {
-            return this.bucketManager.getBucketsByTimestamp(streamId, partition, startBucketTimestamp)
-        }).then((buckets) => {
-            if (!buckets || !buckets.length) {
+        this.bucketManager.getBucketsByTimestamp(streamId, partition, fromTimestamp).then((buckets) => {
+            if (buckets.length === 0) { // TODO not an error as there is no data: do not throw
                 throw new Error('Failed to find buckets')
             }
 
@@ -314,10 +306,8 @@ class Storage extends EventEmitter {
         const query = 'SELECT payload FROM stream_data WHERE '
             + 'stream_id = ? AND partition = ? AND bucket_id IN ? AND ts >= ? AND ts <= ?'
 
-        this._getBucketDateRange(streamId, partition, fromTimestamp, toTimestamp).then(([startBucketDate, endBucketDate]) => {
-            return this.bucketManager.getBucketsByTimestamp(streamId, partition, startBucketDate, endBucketDate)
-        }).then((buckets) => {
-            if (!buckets || !buckets.length) {
+        this.bucketManager.getBucketsByTimestamp(streamId, partition, fromTimestamp, toTimestamp).then((buckets) => {
+            if (buckets.length === 0) { // TODO not an error as there is no data: do not throw
                 throw new Error('Failed to find buckets')
             }
 
@@ -355,10 +345,8 @@ class Storage extends EventEmitter {
         const query3 = 'SELECT payload FROM stream_data WHERE stream_id = ? AND partition = ? AND bucket_id IN ? AND ts = ? AND sequence_no <= ? AND publisher_id = ? '
             + 'AND msg_chain_id = ? ALLOW FILTERING'
 
-        this._getBucketDateRange(streamId, partition, fromTimestamp, toTimestamp).then(([startBucketDate, endBucketDate]) => {
-            return this.bucketManager.getBucketsByTimestamp(streamId, partition, startBucketDate, endBucketDate)
-        }).then((buckets) => {
-            if (!buckets || !buckets.length) {
+        this.bucketManager.getBucketsByTimestamp(streamId, partition, fromTimestamp, toTimestamp).then((buckets) => {
+            if (buckets.length === 0) { // TODO not an error as there is no data: do not throw
                 throw new Error('Failed to find buckets')
             }
 
@@ -388,27 +376,6 @@ class Storage extends EventEmitter {
             })
 
         return resultStream
-    }
-
-    _getBucketDateRange(streamId, partition, fromTimestamp, toTimestamp) { // TODO move this method to bucketManager, or inline the functionality into getBucketsByTimestamp
-        return Promise.all([
-            this.bucketManager.getLastBuckets(streamId, partition, 1, fromTimestamp),
-            this.bucketManager.getLastBuckets(streamId, partition, 1, toTimestamp),
-        ]).then(async ([fromBuckets, toBuckets]) => {
-            const fromBucket = fromBuckets[0]
-            const toBucket = toBuckets[0]
-            if ((fromBucket !== undefined) && (toBucket !== undefined)) {
-                return [fromBucket.dateCreate, toBucket.dateCreate]
-            } else if ((fromBucket === undefined) && (toBucket !== undefined)) { 
-                // there is no bucket which starts before fromTimestamp -> use the first bucket
-                const firstBucket = await this.bucketManager.getFirstBucket(streamId, partition)
-                return [firstBucket.dateCreate, toBucket.dateCreate]
-            } else if ((fromBucket === undefined) && (toBucket === undefined)) { // eslint-disable-line no-else-return
-                throw new Error('Failed to find buckets')
-            } else { 
-                throw new Error('Assertion failed') // there is no data, this is not error --> do not throw
-            }
-        })
     }
 
     _queryWithStreamingResults(query, queryParams) {
