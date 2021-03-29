@@ -228,7 +228,7 @@ class BucketManager {
         if (fromTimestamp !== undefined) {
             return Promise.all([getExplicitFirst(), getRest()])
                 .then(([first, rest]) => rest.concat(first))
-        } else {
+        } else { // eslint-disable-line no-else-return
             return getRest()
         }
     }

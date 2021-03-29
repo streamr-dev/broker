@@ -49,7 +49,7 @@ const storeMockMessages = async (streamId, streamPartition, minTimestamp, maxTim
         const msg = buildMsg(streamId, streamPartition, timestamp, 0, 'publisher1')
         storePromises.push(storage.store(msg))
     }
-    return await Promise.all(storePromises)
+    return Promise.all(storePromises)
 }
 
 describe('Storage', () => {
