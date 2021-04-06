@@ -46,8 +46,8 @@ describe('StreamStateManager', () => {
 
     describe('getOrCreate', () => {
         it('creates stream if one does not yet exist', () => {
-            const stream = streams.getOrCreate('streamId', 4)
-            assert.deepStrictEqual(stream.id, 'streamId')
+            const stream = streams.getOrCreate('streamid', 4)
+            assert.deepStrictEqual(stream.id, 'streamid')
             assert.deepStrictEqual(stream.partition, 4)
         })
 
