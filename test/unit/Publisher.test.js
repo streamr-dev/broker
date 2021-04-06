@@ -41,7 +41,7 @@ describe('Publisher', () => {
 
         it('rejects on messages too far in the future', () => {
             return expect(publisher.validateAndPublish(formMessage(Date.now() + 400000))).rejects
-                .toThrow(new Error('Failed publish to stream streamId, reason: future timestamps are not allowed, max allowed +300000 ms'))
+                .toThrow(new Error('Failed publish to stream streamid, reason: future timestamps are not allowed, max allowed +300000 ms'))
         })
 
         it('should call NetworkNode.publish with correct values', async () => {
