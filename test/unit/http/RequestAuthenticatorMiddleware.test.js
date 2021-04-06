@@ -123,7 +123,7 @@ describe('AuthenticationMiddleware', () => {
                 sinon.assert.calledOnce(response.send)
                 sinon.assert.calledWithExactly(response.status, 404)
                 sinon.assert.calledWithExactly(response.send, {
-                    error: 'Stream streamId not found.',
+                    error: 'Stream streamid not found.',
                 })
                 done()
             })
