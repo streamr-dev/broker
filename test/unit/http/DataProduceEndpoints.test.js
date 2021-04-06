@@ -7,7 +7,7 @@ const router = require('../../../src/http/DataProduceEndpoints')
 
 describe('DataProduceEndpoints', () => {
     const stream = {
-        id: 'streamId',
+        id: 'streamid',
         partitions: 1,
     }
 
@@ -17,7 +17,7 @@ describe('DataProduceEndpoints', () => {
 
     function postRequest(overridingOptions = {}) {
         const opts = {
-            streamId: 'streamId',
+            streamId: 'streamid',
             body: '{}',
             key: 'authKey',
             headers: {},
@@ -125,7 +125,7 @@ describe('DataProduceEndpoints', () => {
 
     it('should return 400 if the body is empty', (done) => {
         postRequest({
-            streamId: 'streamId',
+            streamId: 'streamid',
             body: '',
         }).expect(400, done)
     })

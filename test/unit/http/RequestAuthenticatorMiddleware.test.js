@@ -16,7 +16,7 @@ describe('AuthenticationMiddleware', () => {
         request = {
             headers: {},
             params: {
-                id: 'streamId',
+                id: 'streamid',
             },
         }
         response = {
@@ -39,7 +39,7 @@ describe('AuthenticationMiddleware', () => {
             sinon.assert.calledOnce(streamFetcherStub.authenticate)
             sinon.assert.calledWithExactly(
                 streamFetcherStub.authenticate,
-                'streamId', undefined, undefined, 'stream_subscribe',
+                'streamid', undefined, undefined, 'stream_subscribe',
             )
         })
     })
@@ -64,7 +64,7 @@ describe('AuthenticationMiddleware', () => {
         beforeEach(() => {
             request.headers.authorization = 'tOkEn authKey'
             request.params = {
-                id: 'streamId',
+                id: 'streamid',
             }
         })
 
@@ -77,7 +77,7 @@ describe('AuthenticationMiddleware', () => {
             sinon.assert.calledOnce(streamFetcherStub.authenticate)
             sinon.assert.calledWithExactly(
                 streamFetcherStub.authenticate,
-                'streamId', 'authKey', undefined, 'stream_subscribe',
+                'streamid', 'authKey', undefined, 'stream_subscribe',
             )
         })
 
@@ -91,7 +91,7 @@ describe('AuthenticationMiddleware', () => {
             sinon.assert.calledOnce(streamFetcherStub.authenticate)
             sinon.assert.calledWithExactly(
                 streamFetcherStub.authenticate,
-                'streamId', 'authKey', undefined, 'stream_publish',
+                'streamid', 'authKey', undefined, 'stream_publish',
             )
         })
 
@@ -166,7 +166,7 @@ describe('AuthenticationMiddleware', () => {
                 middlewareInstance(request, response, next)
                 setTimeout(() => {
                     assert.deepEqual(request.stream, {
-                        id: 'streamId',
+                        id: 'streamid',
                         partitions: 5,
                         name: 'my stream',
                         feed: {},
@@ -184,7 +184,7 @@ describe('AuthenticationMiddleware', () => {
         beforeEach(() => {
             request.headers.authorization = 'Bearer session-token'
             request.params = {
-                id: 'streamId',
+                id: 'streamid',
             }
         })
 
@@ -197,7 +197,7 @@ describe('AuthenticationMiddleware', () => {
             sinon.assert.calledOnce(streamFetcherStub.authenticate)
             sinon.assert.calledWithExactly(
                 streamFetcherStub.authenticate,
-                'streamId', undefined, 'session-token', 'stream_subscribe',
+                'streamid', undefined, 'session-token', 'stream_subscribe',
             )
         })
 
@@ -211,7 +211,7 @@ describe('AuthenticationMiddleware', () => {
             sinon.assert.calledOnce(streamFetcherStub.authenticate)
             sinon.assert.calledWithExactly(
                 streamFetcherStub.authenticate,
-                'streamId', undefined, 'session-token', 'stream_publish',
+                'streamid', undefined, 'session-token', 'stream_publish',
             )
         })
     })

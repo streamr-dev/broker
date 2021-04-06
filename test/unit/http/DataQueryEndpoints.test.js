@@ -23,7 +23,7 @@ describe('DataQueryEndpoints', () => {
 
     function createStreamMessage(content) {
         return new StreamMessage({
-            messageId: new MessageID('streamId', 0, new Date(2017, 3, 1, 12, 0, 0).getTime(), 0, 'publisherId', '1'),
+            messageId: new MessageID('streamid', 0, new Date(2017, 3, 1, 12, 0, 0).getTime(), 0, 'publisherId', '1'),
             content,
         })
     }
@@ -123,7 +123,7 @@ describe('DataQueryEndpoints', () => {
                     .then(() => {
                         expect(networkNode.requestResendLast).toHaveBeenCalledTimes(1)
                         expect(networkNode.requestResendLast.mock.calls[0])
-                            .toEqual(['streamId', 0, expect.stringMatching(/\w+/), 1])
+                            .toEqual(['streamid', 0, expect.stringMatching(/\w+/), 1])
                         done()
                     })
                     .catch(done)
@@ -146,7 +146,7 @@ describe('DataQueryEndpoints', () => {
 
                 expect(networkNode.requestResendLast).toHaveBeenCalledTimes(1)
                 expect(networkNode.requestResendLast).toHaveBeenCalledWith(
-                    'streamId',
+                    'streamid',
                     0,
                     expect.stringMatching(/\w+/),
                     666,
@@ -191,7 +191,7 @@ describe('DataQueryEndpoints', () => {
 
                 expect(networkNode.requestResendFrom).toHaveBeenCalledTimes(1)
                 expect(networkNode.requestResendFrom).toHaveBeenCalledWith(
-                    'streamId',
+                    'streamid',
                     0,
                     expect.stringMatching(/\w+/),
                     1496408255672,
@@ -233,7 +233,7 @@ describe('DataQueryEndpoints', () => {
 
                 expect(networkNode.requestResendFrom).toHaveBeenCalledTimes(1)
                 expect(networkNode.requestResendFrom).toHaveBeenCalledWith(
-                    'streamId',
+                    'streamid',
                     0,
                     expect.stringMatching(/\w+/),
                     1496408255672,
@@ -338,7 +338,7 @@ describe('DataQueryEndpoints', () => {
 
                 expect(networkNode.requestResendRange).toHaveBeenCalledTimes(1)
                 expect(networkNode.requestResendRange).toHaveBeenCalledWith(
-                    'streamId',
+                    'streamid',
                     0,
                     expect.stringMatching(/\w+/),
                     1496408255672,
@@ -397,7 +397,7 @@ describe('DataQueryEndpoints', () => {
                 await testGetRequest(`/api/v1/streams/streamId/data/partitions/0/range?${query}`)
                 expect(networkNode.requestResendRange).toHaveBeenCalledTimes(1)
                 expect(networkNode.requestResendRange).toHaveBeenCalledWith(
-                    'streamId',
+                    'streamid',
                     0,
                     expect.stringMatching(/\w+/),
                     1496408255672,

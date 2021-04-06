@@ -12,40 +12,40 @@ describe('Bucket', () => {
         }).toThrow(new TypeError('streamId must be not empty string'))
 
         expect(() => {
-            new Bucket('id', 'streamId')
+            new Bucket('id', 'streamid')
         }).toThrow(new TypeError('partition must be >= 0'))
 
         expect(() => {
-            new Bucket('id', 'streamId', 0)
+            new Bucket('id', 'streamid', 0)
         }).toThrow(new TypeError('size must be => 0'))
 
         expect(() => {
-            new Bucket('id', 'streamId', 0, 0)
+            new Bucket('id', 'streamid', 0, 0)
         }).toThrow(new TypeError('records must be => 0'))
 
         expect(() => {
-            new Bucket('id', 'streamId', 0, 0, 0)
+            new Bucket('id', 'streamid', 0, 0, 0)
         }).toThrow(new TypeError('dateCreate must be instance of Date'))
 
         expect(() => {
-            new Bucket('id', 'streamId', 0, 0, 0, new Date('2019-07-19'))
+            new Bucket('id', 'streamid', 0, 0, 0, new Date('2019-07-19'))
         }).toThrow(new TypeError('maxSize must be > 0'))
 
         expect(() => {
-            new Bucket('id', 'streamId', 0, 0, 0, new Date('2019-07-19'), 1)
+            new Bucket('id', 'streamid', 0, 0, 0, new Date('2019-07-19'), 1)
         }).toThrow(new TypeError('maxRecords must be > 0'))
 
         expect(() => {
-            new Bucket('id', 'streamId', 0, 0, 0, new Date('2019-07-19'), 1, 1)
+            new Bucket('id', 'streamid', 0, 0, 0, new Date('2019-07-19'), 1, 1)
         }).toThrow(new TypeError('keepAliveSeconds must be > 0'))
 
         expect(() => {
-            new Bucket('id', 'streamId', 0, 0, 0, new Date('2019-07-19'), 1, 1, 1)
+            new Bucket('id', 'streamid', 0, 0, 0, new Date('2019-07-19'), 1, 1, 1)
         }).not.toThrow()
     })
 
     it('incrementBucket and isAlmostFull', () => {
-        const bucket = new Bucket('id', 'streamId', 0, 0, 0, new Date(), 4, 12, 1)
+        const bucket = new Bucket('id', 'streamid', 0, 0, 0, new Date(), 4, 12, 1)
 
         expect(bucket.isAlmostFull(0)).toBeFalsy()
 
@@ -64,7 +64,7 @@ describe('Bucket', () => {
 
     it('ttl is updated on each incrementBucket, if not isAlive switches to false', () => {
         jest.useFakeTimers('modern').setSystemTime(0)
-        const bucket = new Bucket('id', 'streamId', 0, 0, 0, new Date(), 3, 9, 1)
+        const bucket = new Bucket('id', 'streamid', 0, 0, 0, new Date(), 3, 9, 1)
 
         expect(bucket.getId()).toEqual('id')
         expect(bucket.isAlive()).toBeTruthy()
@@ -77,7 +77,7 @@ describe('Bucket', () => {
     })
 
     it('on each incrementBucket isStored becomes false', () => {
-        const bucket = new Bucket('id', 'streamId', 0, 0, 0, new Date(), 3, 9, 1)
+        const bucket = new Bucket('id', 'streamid', 0, 0, 0, new Date(), 3, 9, 1)
         expect(bucket.isStored()).toBeFalsy()
 
         bucket.setStored()

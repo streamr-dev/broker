@@ -81,7 +81,7 @@ describe('Batch', () => {
     })
 
     it('isFull by number of records', () => {
-        const batch = new Batch('streamId', 99999, 3, 10, 1)
+        const batch = new Batch('streamid', 99999, 3, 10, 1)
 
         expect(batch.isFull()).toEqual(false)
         batch.push(streamMessage)
@@ -96,7 +96,7 @@ describe('Batch', () => {
     })
 
     it('clear() clears timeout and messages', () => {
-        const batch = new Batch('streamId', 3, 3, 10, 1)
+        const batch = new Batch('streamid', 3, 3, 10, 1)
         batch.push(streamMessage)
 
         expect(batch.streamMessages.length).toEqual(1)
@@ -111,7 +111,7 @@ describe('Batch', () => {
     })
 
     it('setClose() emits close state', (done) => {
-        const batch = new Batch('streamId', 3, 3, 10, 1)
+        const batch = new Batch('streamid', 3, 3, 10, 1)
 
         batch.on('locked', () => {
             done()

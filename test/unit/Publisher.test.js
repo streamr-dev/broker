@@ -6,7 +6,7 @@ const Publisher = require('../../src/Publisher')
 
 function formMessage(timestamp) {
     return new StreamMessage({
-        messageId: new MessageID('streamId', 0, timestamp, 0, 'publisherId', 'msgChainId'),
+        messageId: new MessageID('streamid', 0, timestamp, 0, 'publisherId', 'msgChainId'),
         content: {
             hello: 'world'
         },
