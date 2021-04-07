@@ -9,6 +9,8 @@ const DEFAULT_CLIENT_OPTIONS = {
     }
 }
 
+const STREAMR_DOCKER_DEV_HOST = process.env.STREAMR_DOCKER_DEV_HOST || '127.0.0.1'
+
 function formConfig({
     name,
     networkPort,
@@ -20,7 +22,7 @@ function formConfig({
     enableCassandra = false,
     privateKeyFileName = null,
     certFileName = null,
-    streamrUrl = 'http://localhost:8081/streamr-core',
+    streamrUrl = `http://${STREAMR_DOCKER_DEV_HOST}:8081/streamr-core`,
     reporting = false
 }) {
     const adapters = []
@@ -66,7 +68,7 @@ function formConfig({
             }
         },
         cassandra: enableCassandra ? {
-            hosts: ['localhost'],
+            hosts: [STREAMR_DOCKER_DEV_HOST],
             datacenter: 'datacenter1',
             username: '',
             password: '',
@@ -76,7 +78,7 @@ function formConfig({
         reporting: reporting || {
             sentry: null,
             streamr: null,
-            intervalInSeconds: 10,
+            intervalInSeconds: 0,
             perNodeMetrics: {
                 enabled: false,
                 wsUrl: null,
@@ -92,14 +94,18 @@ function startBroker(...args) {
     return createBroker(formConfig(...args))
 }
 
-function getWsUrl(port, ssl = false, controlLayerVersion = 1, messageLayerVersion = 31) {
+function getWsUrl(port, ssl = false) {
+    return `${ssl ? 'wss' : 'ws'}://127.0.0.1:${port}/api/v1/ws`
+}
+
+function getWsUrlWithControlAndMessageLayerVersions(port, ssl = false, controlLayerVersion = 2, messageLayerVersion = 32) {
     return `${ssl ? 'wss' : 'ws'}://127.0.0.1:${port}/api/v1/ws?controlLayerVersion=${controlLayerVersion}&messageLayerVersion=${messageLayerVersion}`
 }
 
 function createClient(wsPort, clientOptions = DEFAULT_CLIENT_OPTIONS) {
     return new StreamrClient({
         url: getWsUrl(wsPort),
-        restUrl: 'http://localhost:8081/streamr-core/api/v1',
+        restUrl: `http://${STREAMR_DOCKER_DEV_HOST}:8081/streamr-core/api/v1`,
         ...clientOptions,
     })
 }
@@ -114,9 +120,11 @@ function createMqttClient(mqttPort = 9000, host = 'localhost', apiKey = 'tester1
 }
 
 module.exports = {
+    STREAMR_DOCKER_DEV_HOST,
     formConfig,
     startBroker,
     createClient,
     createMqttClient,
     getWsUrl,
+    getWsUrlWithControlAndMessageLayerVersions
 }
