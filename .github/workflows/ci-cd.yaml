@@ -28,10 +28,29 @@ jobs:
       - run: npm run eslint
       - run: npm run build --if-present
       - run: npm run test-unit
+      - name: Cache Docker layers
+        uses: actions/cache@v2.1.4
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+      - name: Build Dockerfile
+        uses: docker/build-push-action@v2.3.0
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64
+          push: false
+          load: true
+          tags: streamr/broker-node:dev
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache
       - name: Start Streamr Docker Stack
         uses: streamr-dev/streamr-docker-dev-action@v1.0.0-alpha.3
         with:
           services-to-start: "engine-and-editor cassandra nginx"
+      - run: docker ps
       - run: npm run test-integration
         env:
           CI: true
