@@ -198,15 +198,16 @@ class BucketManager {
      */
     async getBucketsByTimestamp(streamId, partition, fromTimestamp = undefined, toTimestamp = undefined) {
         const getExplicitFirst = () => {
-            // if fromTimestamp is defined, the first data point are in a some earlier bucket (bucket.dateCreated<fromTimestamp)
-            const QUERY = 'SELECT * FROM bucket WHERE stream_id = ? and partition = ? AND date_create < ? ORDER BY date_create DESC LIMIT 1'
+            // if fromTimestamp is defined, the first data point are in a some earlier bucket
+            // (bucket.dateCreated<=fromTimestamp as data within one millisecond won't be divided to multiple buckets)
+            const QUERY = 'SELECT * FROM bucket WHERE stream_id = ? and partition = ? AND date_create <= ? ORDER BY date_create DESC LIMIT 1'
             const params = [streamId, partition, fromTimestamp]
             return this._getBucketsFromDatabase(QUERY, params, streamId, partition)
         }
 
         const getRest = () => {
-            const GET_LAST_BUCKETS_RANGE_TIMESTAMP = 'SELECT * FROM bucket WHERE stream_id = ? and partition = ? AND date_create >= ? AND date_create <= ? ORDER BY date_create DESC'
-            const GET_LAST_BUCKETS_FROM_TIMESTAMP = 'SELECT * FROM bucket WHERE stream_id = ? and partition = ? AND date_create >= ? ORDER BY date_create DESC'
+            const GET_LAST_BUCKETS_RANGE_TIMESTAMP = 'SELECT * FROM bucket WHERE stream_id = ? and partition = ? AND date_create > ? AND date_create <= ? ORDER BY date_create DESC'
+            const GET_LAST_BUCKETS_FROM_TIMESTAMP = 'SELECT * FROM bucket WHERE stream_id = ? and partition = ? AND date_create > ? ORDER BY date_create DESC'
             const GET_LAST_BUCKETS_TO_TIMESTAMP = 'SELECT * FROM bucket WHERE stream_id = ? and partition = ? AND date_create <= ? ORDER BY date_create DESC'
             let query
             let params
