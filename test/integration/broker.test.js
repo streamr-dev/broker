@@ -362,7 +362,7 @@ describe('broker: end-to-end', () => {
             key: 4
         })
 
-        await wait(1500) // wait for propagation
+        await wait(3000) // wait for propagation
 
         const client1Messages = []
         const client2Messages = []
