@@ -12,8 +12,8 @@ const DEFAULT_CLIENT_OPTIONS = {
     }
 }
 
-const STREAMR_URL = 'http://127.0.0.1'
-const API_URL = `${STREAMR_URL}/api/v1`
+const STREAMR_DOCKER_DEV_HOST = process.env.STREAMR_DOCKER_DEV_HOST || '127.0.0.1'
+const API_URL = `http://${STREAMR_DOCKER_DEV_HOST}/api/v1`
 
 function formConfig({
     name,
@@ -26,8 +26,8 @@ function formConfig({
     enableCassandra = false,
     privateKeyFileName = null,
     certFileName = null,
-    streamrUrl = 'http://localhost:8081/streamr-core',
     streamrAddress = '0xFCAd0B19bB29D4674531d6f115237E16AfCE377c',
+    streamrUrl = `http://${STREAMR_DOCKER_DEV_HOST}:8081/streamr-core`,
     reporting = false
 }) {
     const adapters = []
@@ -73,7 +73,7 @@ function formConfig({
             }
         },
         cassandra: enableCassandra ? {
-            hosts: ['localhost'],
+            hosts: [STREAMR_DOCKER_DEV_HOST],
             datacenter: 'datacenter1',
             username: '',
             password: '',
@@ -111,7 +111,7 @@ function getWsUrlWithControlAndMessageLayerVersions(port, ssl = false, controlLa
 function createClient(wsPort, clientOptions = DEFAULT_CLIENT_OPTIONS) {
     return new StreamrClient({
         url: getWsUrl(wsPort),
-        restUrl: 'http://localhost:8081/streamr-core/api/v1',
+        restUrl: `http://${STREAMR_DOCKER_DEV_HOST}:8081/streamr-core/api/v1`,
         ...clientOptions,
     })
 }
@@ -180,6 +180,7 @@ const waitForStreamPersistedInStorageNode = async (streamId, partition, nodeHost
 }
 
 module.exports = {
+    STREAMR_DOCKER_DEV_HOST,
     formConfig,
     startBroker,
     createClient,
