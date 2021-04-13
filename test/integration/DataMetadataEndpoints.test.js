@@ -69,6 +69,7 @@ describe('DataMetadataEndpoints', () => {
         })
         freshStreamId = freshStream.id
         await addStreamToStorageNode(freshStreamId, storageNodeAccount.address, client1)
+        await storageNode.refreshStorageConfig()
     })
 
     afterAll(async () => {

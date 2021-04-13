@@ -88,6 +88,9 @@ describe('broker: end-to-end', () => {
         await addStreamToStorageNode(freshStreamId, storageNodeAccount1.address, client1)
         await addStreamToStorageNode(freshStreamId, storageNodeAccount2.address, client1)
         await addStreamToStorageNode(freshStreamId, storageNodeAccount3.address, client1)
+        await storageNode1.refreshStorageConfig()
+        await storageNode2.refreshStorageConfig()
+        await storageNode3.refreshStorageConfig()
 
         await freshStream.grantPermission('stream_get', 'tester2@streamr.com')
         await freshStream.grantPermission('stream_subscribe', 'tester2@streamr.com')
