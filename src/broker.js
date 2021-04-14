@@ -76,6 +76,13 @@ module.exports = async (config) => {
         trackers = config.network.trackers
     }
 
+    const createStorageConfig = async () => {
+        const pollInterval = (config.storageConfig && config.storageConfig.refreshInterval) || 10 * 60 * 1000
+        return StorageConfig.createInstance(brokerAddress, config.streamrUrl + '/api/v1', pollInterval)
+    }
+
+    const storageConfig = config.network.isStorageNode ? await createStorageConfig() : undefined
+
     // Start network node
     const startFn = config.network.isStorageNode ? startStorageNode : startNetworkNode
     const advertisedWsUrl = config.network.advertisedWsUrl !== 'auto'
