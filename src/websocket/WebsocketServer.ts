@@ -1,27 +1,45 @@
-const { EventEmitter } = require('events')
+import { Todo } from '../types'
 
-const { v4: uuidv4 } = require('uuid')
-const qs = require('qs')
-const { ControlLayer, MessageLayer, Errors, Utils } = require('streamr-network').Protocol
-const ab2str = require('arraybuffer-to-string')
-const uWS = require('uWebSockets.js')
+import { EventEmitter } from 'events'
+
+import { v4 as uuidv4 } from 'uuid'
+import qs from 'qs'
+import { Protocol } from 'streamr-network'
+const { ControlLayer, MessageLayer, Errors, Utils } = Protocol
+// @ts-expect-error no type definitions
+import ab2str from 'arraybuffer-to-string'
+import uWS from 'uWebSockets.js'
 
 const logger = require('../helpers/logger')('streamr:WebsocketServer')
-const HttpError = require('../errors/HttpError')
-const FailedToPublishError = require('../errors/FailedToPublishError')
-const StreamStateManager = require('../StreamStateManager')
+import HttpError from '../errors/HttpError'
+import FailedToPublishError from '../errors/FailedToPublishError'
+import StreamStateManager from '../StreamStateManager'
 
 const Connection = require('./Connection')
 
 module.exports = class WebsocketServer extends EventEmitter {
+
+    wss: Todo
+    _listenSocket: Todo
+    networkNode: Todo
+    streamFetcher: Todo
+    publisher: Todo
+    connections: Todo
+    streams: Todo
+    pingInterval: Todo
+    subscriptionManager: Todo
+    metrics: Todo
+    requestHandlersByMessageType: Todo
+    _pingInterval: Todo
+
     constructor(
-        wss,
-        port,
-        networkNode,
-        streamFetcher,
-        publisher,
-        metricsContext,
-        subscriptionManager,
+        wss: Todo,
+        port: Todo,
+        networkNode: Todo,
+        streamFetcher: Todo,
+        publisher: Todo,
+        metricsContext: Todo,
+        subscriptionManager: Todo,
         pingInterval = 60 * 1000,
     ) {
         super()
@@ -33,7 +51,7 @@ module.exports = class WebsocketServer extends EventEmitter {
         this.connections = new Map()
         this.streams = new StreamStateManager(
             this._broadcastMessage.bind(this),
-            (streamId, streamPartition, from, to, publisherId, msgChainId) => {
+            (streamId: Todo, streamPartition: Todo, from: Todo, to: Todo, publisherId: Todo, msgChainId: Todo) => {
                 this.networkNode.requestResendRange(
                     streamId,
                     streamPartition,
@@ -44,7 +62,7 @@ module.exports = class WebsocketServer extends EventEmitter {
                     to.sequenceNumber,
                     publisherId,
                     msgChainId
-                ).on('data', (unicastMessage) => {
+                ).on('data', (unicastMessage: Todo) => {
                     this._handleStreamMessage(unicastMessage.streamMessage)
                 })
             }
@@ -57,7 +75,7 @@ module.exports = class WebsocketServer extends EventEmitter {
             .addQueriedMetric('connections', () => this.connections.size)
             .addQueriedMetric('totalWebSocketBuffer', () => {
                 let totalBufferSize = 0
-                this.connections.forEach((connection, id) => {
+                this.connections.forEach((connection: Todo, id: Todo) => {
                     if (connection.socket) {
                         totalBufferSize += connection.socket.getBufferedAmount()
                     }
@@ -65,10 +83,10 @@ module.exports = class WebsocketServer extends EventEmitter {
                 return totalBufferSize
             })
             .addQueriedMetric('clientVersions', () => {
-                const control = {}
-                const message = {}
-                const pairs = {}
-                this.connections.forEach((connection, id) => {
+                const control: Todo = {}
+                const message: Todo = {}
+                const pairs: Todo = {}
+                this.connections.forEach((connection: Todo, id: Todo) => {
                     const { controlLayerVersion, messageLayerVersion } = connection
                     const pairKey = controlLayerVersion + '->' + messageLayerVersion
                     if (control[controlLayerVersion] == null) {
@@ -106,7 +124,7 @@ module.exports = class WebsocketServer extends EventEmitter {
             this._pingConnections()
         }, this.pingInterval)
 
-        this.wss.listen(port, (token) => {
+        this.wss.listen(port, (token: Todo) => {
             if (token) {
                 this._listenSocket = token
                 logger.info('WS adapter listening on ' + port)
@@ -122,7 +140,7 @@ module.exports = class WebsocketServer extends EventEmitter {
             maxPayloadLength: 1024 * 1024,
             maxBackpressure: Connection.HIGH_BACK_PRESSURE + (1024 * 1024), // add 1MB safety margin
             idleTimeout: 3600, // 1 hour
-            upgrade: (res, req, context) => {
+            upgrade: (res: Todo, req: Todo, context: Todo) => {
                 let controlLayerVersion
                 let messageLayerVersion
 
@@ -130,7 +148,9 @@ module.exports = class WebsocketServer extends EventEmitter {
                 if (req.getQuery()) {
                     const query = qs.parse(req.getQuery())
                     if (query.controlLayerVersion && query.messageLayerVersion) {
+                        // @ts-expect-error
                         controlLayerVersion = parseInt(query.controlLayerVersion)
+                        // @ts-expect-error
                         messageLayerVersion = parseInt(query.messageLayerVersion)
                     }
                 }
@@ -159,14 +179,14 @@ module.exports = class WebsocketServer extends EventEmitter {
                     context
                 )
             },
-            open: (ws) => {
+            open: (ws: Todo) => {
                 const connection = new Connection(ws, ws.controlLayerVersion, ws.messageLayerVersion)
                 this.connections.set(connection.id, connection)
                 logger.debug('onNewClientConnection: socket "%s" connected', connection.id)
                 // eslint-disable-next-line no-param-reassign
                 ws.connectionId = connection.id
 
-                connection.on('forceClose', (err) => {
+                connection.on('forceClose', (err: Todo) => {
                     try {
                         connection.socket.close()
                     } catch (e) {
@@ -177,11 +197,11 @@ module.exports = class WebsocketServer extends EventEmitter {
                     }
                 })
             },
-            message: (ws, message, isBinary) => {
+            message: (ws: Todo, message: Todo, isBinary: Todo) => {
                 const connection = this.connections.get(ws.connectionId)
 
                 if (connection) {
-                    const copy = (src) => {
+                    const copy = (src: Todo) => {
                         const dst = new ArrayBuffer(src.byteLength)
                         new Uint8Array(dst).set(new Uint8Array(src))
                         return dst
@@ -201,6 +221,7 @@ module.exports = class WebsocketServer extends EventEmitter {
                             connection.send(new ControlLayer.ErrorResponse({
                                 requestId: '', // Can't echo the requestId of the request since parsing the request failed
                                 errorMessage: err.message || err,
+                                // @ts-expect-error
                                 errorCode: 'INVALID_REQUEST',
                             }))
                             return
@@ -216,6 +237,7 @@ module.exports = class WebsocketServer extends EventEmitter {
                                     version: request.version,
                                     requestId: request.requestId,
                                     errorMessage: `Unknown request type: ${request.type}`,
+                                    // @ts-expect-error
                                     errorCode: 'INVALID_REQUEST',
                                 }))
                             }
@@ -230,13 +252,13 @@ module.exports = class WebsocketServer extends EventEmitter {
                     })
                 }
             },
-            drain: (ws) => {
+            drain: (ws: Todo) => {
                 const connection = this.connections.get(ws.connectionId)
                 if (connection) {
                     connection.evaluateBackPressure()
                 }
             },
-            close: (ws, code, message) => {
+            close: (ws: Todo, code: Todo, message: Todo) => {
                 const connection = this.connections.get(ws.connectionId)
 
                 if (connection) {
@@ -244,7 +266,7 @@ module.exports = class WebsocketServer extends EventEmitter {
                     this._removeConnection(connection)
                 }
             },
-            pong: (ws) => {
+            pong: (ws: Todo) => {
                 const connection = this.connections.get(ws.connectionId)
 
                 if (connection) {
@@ -255,7 +277,7 @@ module.exports = class WebsocketServer extends EventEmitter {
         })
     }
 
-    static validateProtocolVersions(controlLayerVersion, messageLayerVersion) {
+    static validateProtocolVersions(controlLayerVersion: Todo, messageLayerVersion: Todo) {
         if (controlLayerVersion === undefined || messageLayerVersion === undefined) {
             throw new Error('Missing version negotiation! Must give controlLayerVersion and messageLayerVersion as query parameters!')
         }
@@ -274,11 +296,11 @@ module.exports = class WebsocketServer extends EventEmitter {
         }
     }
 
-    _removeConnection(connection) {
+    _removeConnection(connection: Todo) {
         this.connections.delete(connection.id)
 
         // Unsubscribe from all streams
-        connection.forEachStream((stream) => {
+        connection.forEachStream((stream: Todo) => {
             // for cleanup, spoof an UnsubscribeRequest to ourselves on the removed connection
             this.handleUnsubscribeRequest(
                 connection,
@@ -292,7 +314,7 @@ module.exports = class WebsocketServer extends EventEmitter {
         })
 
         // Cancel all resends
-        connection.getOngoingResends().forEach((resend) => {
+        connection.getOngoingResends().forEach((resend: Todo) => {
             resend.destroy()
         })
 
@@ -306,7 +328,7 @@ module.exports = class WebsocketServer extends EventEmitter {
 
         return new Promise((resolve, reject) => {
             try {
-                this.connections.forEach((connection) => connection.socket.close())
+                this.connections.forEach((connection: Todo) => connection.socket.close())
             } catch (e) {
                 // ignoring any error
             }
@@ -316,11 +338,12 @@ module.exports = class WebsocketServer extends EventEmitter {
                 this._listenSocket = null
             }
 
+            // @ts-expect-error
             setTimeout(() => resolve(), 100)
         })
     }
 
-    async handlePublishRequest(connection, request) {
+    async handlePublishRequest(connection: Todo, request: Todo) {
         const { streamMessage } = request
 
         try {
@@ -356,17 +379,18 @@ module.exports = class WebsocketServer extends EventEmitter {
                 version: request.version,
                 requestId: request.requestId,
                 errorMessage,
+                // @ts-expect-error
                 errorCode,
             }))
         }
     }
 
     // TODO: Extract resend stuff to class?
-    async handleResendRequest(connection, request, resendTypeHandler) {
+    async handleResendRequest(connection: Todo, request: Todo, resendTypeHandler: Todo) {
         let nothingToResend = true
         let sentMessages = 0
 
-        const msgHandler = (unicastMessage) => {
+        const msgHandler = (unicastMessage: Todo) => {
             if (nothingToResend) {
                 nothingToResend = false
                 connection.send(new ControlLayer.ResendResponseResending(request))
@@ -430,7 +454,7 @@ module.exports = class WebsocketServer extends EventEmitter {
         }
     }
 
-    async handleResendLastRequest(connection, request) {
+    async handleResendLastRequest(connection: Todo, request: Todo) {
         await this.handleResendRequest(connection, request, () => this.networkNode.requestResendLast(
             request.streamId,
             request.streamPartition,
@@ -439,7 +463,7 @@ module.exports = class WebsocketServer extends EventEmitter {
         ))
     }
 
-    async handleResendFromRequest(connection, request) {
+    async handleResendFromRequest(connection: Todo, request: Todo) {
         await this.handleResendRequest(connection, request, () => this.networkNode.requestResendFrom(
             request.streamId,
             request.streamPartition,
@@ -451,7 +475,7 @@ module.exports = class WebsocketServer extends EventEmitter {
         ))
     }
 
-    async handleResendRangeRequest(connection, request) {
+    async handleResendRangeRequest(connection: Todo, request: Todo) {
         await this.handleResendRequest(connection, request, () => this.networkNode.requestResendRange(
             request.streamId,
             request.streamPartition,
@@ -465,13 +489,13 @@ module.exports = class WebsocketServer extends EventEmitter {
         ))
     }
 
-    _broadcastMessage(streamMessage) {
+    _broadcastMessage(streamMessage: Todo) {
         const streamId = streamMessage.getStreamId()
         const streamPartition = streamMessage.getStreamPartition()
         const stream = this.streams.get(streamId, streamPartition)
 
         if (stream) {
-            stream.forEachConnection((connection) => {
+            stream.forEachConnection((connection: Todo) => {
                 connection.send(new ControlLayer.BroadcastMessage({
                     requestId: '', // TODO: can we have here the requestId of the original SubscribeRequest?
                     streamMessage,
@@ -505,7 +529,7 @@ module.exports = class WebsocketServer extends EventEmitter {
         })
     }
 
-    _handleStreamMessage(streamMessage) {
+    _handleStreamMessage(streamMessage: Todo) {
         const streamId = streamMessage.getStreamId()
         const streamPartition = streamMessage.getStreamPartition()
         const stream = this.streams.get(streamId, streamPartition)
@@ -516,7 +540,7 @@ module.exports = class WebsocketServer extends EventEmitter {
         }
     }
 
-    async _validateSubscribeOrResendRequest(request) {
+    async _validateSubscribeOrResendRequest(request: Todo) {
         if (Utils.StreamMessageValidator.isKeyExchangeStream(request.streamId)) {
             if (request.streamPartition !== 0) {
                 throw new Error(`Key exchange streams only have partition 0. Tried to subscribe to ${request.streamId}:${request.streamPartition}`)
@@ -526,7 +550,7 @@ module.exports = class WebsocketServer extends EventEmitter {
         }
     }
 
-    async handleSubscribeRequest(connection, request) {
+    async handleSubscribeRequest(connection: Todo, request: Todo) {
         try {
             await this._validateSubscribeOrResendRequest(request)
 
@@ -580,12 +604,13 @@ module.exports = class WebsocketServer extends EventEmitter {
                 version: request.version,
                 requestId: request.requestId,
                 errorMessage,
+                // @ts-expect-error
                 errorCode,
             }))
         }
     }
 
-    handleUnsubscribeRequest(connection, request, noAck = false) {
+    handleUnsubscribeRequest(connection: Todo, request: Todo, noAck = false) {
         const stream = this.streams.get(request.streamId, request.streamPartition)
 
         if (stream) {
@@ -632,6 +657,7 @@ module.exports = class WebsocketServer extends EventEmitter {
                     version: request.version,
                     requestId: request.requestId,
                     errorMessage: `Not subscribed to stream ${request.streamId} partition ${request.streamPartition}!`,
+                    // @ts-expect-error
                     errorCode: 'INVALID_REQUEST',
                 }))
             }
