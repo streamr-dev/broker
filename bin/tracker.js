@@ -7,7 +7,7 @@ const pino = require('pino')
 const ethers = require('ethers')
 
 const CURRENT_VERSION = require('../package.json').version
-const logger = require('../src/helpers/logger')('streamr:broker:tracker')
+const logger = require('../dist/src/helpers/logger')('streamr:broker:tracker')
 
 program
     .version(CURRENT_VERSION)

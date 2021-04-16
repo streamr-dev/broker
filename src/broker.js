@@ -16,6 +16,7 @@ const SubscriptionManager = require('./SubscriptionManager')
 const MissingConfigError = require('./errors/MissingConfigError')
 const adapterRegistry = require('./adapterRegistry')
 const validateConfig = require('./helpers/validateConfig')
+const StorageConfig = require('./storage/StorageConfig')
 
 const { Utils } = Protocol
 
@@ -35,6 +36,13 @@ module.exports = async (config) => {
     }
     const brokerAddress = wallet.address
 
+    const createStorageConfig = async () => {
+        const pollInterval = (config.storageConfig && config.storageConfig.refreshInterval) || 10 * 60 * 1000
+        return StorageConfig.createInstance(brokerAddress, config.streamrUrl + '/api/v1', pollInterval)
+    }
+
+    const storageConfig = config.network.isStorageNode ? await createStorageConfig() : null
+
     let cassandraStorage
     // Start cassandra storage
     if (config.cassandra) {
@@ -47,7 +55,8 @@ module.exports = async (config) => {
             password: config.cassandra.password,
             opts: {
                 useTtl: !config.network.isStorageNode
-            }
+            },
+            storageConfig
         })
         cassandraStorage.enableMetrics(metricsContext)
         storages.push(cassandraStorage)
@@ -79,11 +88,16 @@ module.exports = async (config) => {
         name: networkNodeName,
         trackers,
         storages,
+        storageConfig,
         advertisedWsUrl,
         location: config.network.location,
         metricsContext
     })
     networkNode.start()
+
+    if ((storageConfig !== null) && (config.streamrAddress !== null)) {
+        storageConfig.startAssignmentEventListener(config.streamrAddress, networkNode)
+    }
 
     // Set up sentry logging
     if (config.reporting.sentry) {
@@ -110,58 +124,64 @@ module.exports = async (config) => {
 
     // Set up reporting to Streamr stream
     let client
-    let streamId
-    let apiKey
-    if (config.reporting.streamr) {
-        streamId = config.reporting.streamr.streamId
-        apiKey = config.reporting.streamr.apiKey
-        logger.info(`Starting StreamrClient reporting with apiKey: ${apiKey} and streamId: ${streamId}`)
 
+    const streamIds = {
+        metricsStreamId: null,
+        secStreamId: null,
+        minStreamId: null,
+        hourStreamId: null,
+        dayStreamId: null
+    }
+    if (config.reporting.streamr || (config.reporting.perNodeMetrics && config.reporting.perNodeMetrics.enabled)) {
         client = new StreamrClient({
             auth: {
-                apiKey
+                privateKey: config.ethereumPrivateKey,
             },
-            autoConnect: true
+            url: config.reporting.perNodeMetrics ? (config.reporting.perNodeMetrics.wsUrl || undefined) : undefined,
+            restUrl: config.reporting.perNodeMetrics ? (config.reporting.perNodeMetrics.httpUrl || undefined) : undefined
         })
+
+        const createMetricsStream = async (path) => {
+            const metricsStream = await client.getOrCreateStream({
+                name: `Metrics ${path} for broker ${brokerAddress}`,
+                id: brokerAddress + path
+            })
+
+            await metricsStream.grantPermission('stream_get', null)
+            await metricsStream.grantPermission('stream_subscribe', null)
+            return metricsStream.id
+        }
+
+        if (config.reporting.streamr && config.reporting.streamr.streamId) {
+            const { streamId } = config.reporting.streamr
+
+            // await createMetricsStream(streamId)
+            streamIds.metricsStreamId = streamId
+
+            logger.info(`Starting StreamrClient reporting with streamId: ${streamId}`)
+        } else {
+            logger.info('StreamrClient reporting disabled')
+        }
+
+        if (config.reporting.perNodeMetrics && config.reporting.perNodeMetrics.enabled) {
+            // streamIds.secStreamId = await createMetricsStream('/streamr/node/metrics/sec')
+            // streamIds.minStreamId = await createMetricsStream('/streamr/node/metrics/min')
+            // streamIds.hourStreamId = await createMetricsStream('/streamr/node/metrics/hour')
+            // streamIds.dayStreamId = await createMetricsStream('/streamr/node/metrics/day')
+            logger.info('Starting perNodeMetrics -- Not implemented yet')
+        } else {
+            logger.info('perNodeMetrics reporting disabled')
+        }
     } else {
-        logger.info('StreamrClient reporting disabled')
+        logger.info('StreamrClient and perNodeMetrics disabled')
     }
 
-    let volumeLogger
-    if (config.reporting.perNodeMetrics && config.reporting.perNodeMetrics.enabled) {
-        // set up stream-specific reporting metrics
-        client = new StreamrClient({
-            auth: {
-                privateKey: config.ethereumPrivateKey
-            },
-            url: config.reporting.perNodeMetrics.wsUrl,
-            restUrl: config.reporting.perNodeMetrics.httpUrl
-            // autoConnect: false
-        })
-
-        const metricsStream = await client.getOrCreateStream({
-            name: brokerAddress,
-            id: brokerAddress + '/streamr/node/metrics/sec'
-        })
-
-        await metricsStream.grantPermission('stream_get', null)
-        await metricsStream.grantPermission('stream_subscribe', null)
-
-        // Initialize common utilities
-        volumeLogger = new VolumeLogger(
-            config.reporting.intervalInSeconds,
-            metricsContext,
-            client,
-            metricsStream.id
-        )
-    } else {
-        volumeLogger = new VolumeLogger(
-            config.reporting.intervalInSeconds,
-            metricsContext,
-            client,
-            streamId
-        )
-    }
+    const volumeLogger = new VolumeLogger(
+        config.reporting.intervalInSeconds,
+        metricsContext,
+        client,
+        streamIds
+    )
 
     // Validator only needs public information, so use unauthenticated client for that
     const unauthenticatedClient = new StreamrClient({
@@ -185,7 +205,8 @@ module.exports = async (config) => {
                 streamFetcher,
                 metricsContext,
                 subscriptionManager,
-                cassandraStorage
+                cassandraStorage,
+                storageConfig
             })
         } catch (e) {
             if (e instanceof MissingConfigError) {
@@ -217,7 +238,8 @@ module.exports = async (config) => {
             ...closeAdapterFns.map((close) => close()),
             ...storages.map((storage) => storage.close()),
             volumeLogger.close(),
-            subscriptionManager.clear()
+            subscriptionManager.clear(),
+            (storageConfig !== null) ? storageConfig.cleanup() : undefined
         ])
     }
 }

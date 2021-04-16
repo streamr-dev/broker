@@ -5,10 +5,12 @@ const { waitForCondition } = require('streamr-test-utils')
 const ws = require('uWebSockets.js')
 
 const WebsocketServer = require('../../src/websocket/WebsocketServer')
-const { createClient } = require('../utils')
+const { createClient, STREAMR_DOCKER_DEV_HOST } = require('../utils')
 const StreamFetcher = require('../../src/StreamFetcher')
 const Publisher = require('../../src/Publisher')
 const SubscriptionManager = require('../../src/SubscriptionManager')
+
+const { createMockStorageConfig } = require('./storage/MockStorageConfig')
 
 const { StreamMessage, MessageID } = Protocol.MessageLayer
 
@@ -26,6 +28,10 @@ describe('resend cancellation', () => {
     let timeoutCleared = false
 
     beforeEach(async () => {
+        client = createClient(wsPort)
+        freshStream = await client.createStream({
+            name: 'resends-cancelled-on-client-disconnect.test.js-' + Date.now()
+        })
         metricsContext = new MetricsContext(null)
         tracker = await startTracker({
             host: '127.0.0.1',
@@ -64,22 +70,22 @@ describe('resend cancellation', () => {
                     },
                     store: () => {}
                 }
-            ]
+            ],
+            storageConfig: createMockStorageConfig([{
+                id: freshStream.id,
+                partition: 0
+            }])
         })
         const subscriptionManager = new SubscriptionManager(networkNode)
         websocketServer = new WebsocketServer(
             ws.App(),
             wsPort,
             networkNode,
-            new StreamFetcher('http://localhost:8081/streamr-core'),
+            new StreamFetcher(`http://${STREAMR_DOCKER_DEV_HOST}:8081/streamr-core`),
             new Publisher(networkNode, {}, subscriptionManager, metricsContext),
             metricsContext,
             subscriptionManager
         )
-        client = createClient(wsPort)
-        freshStream = await client.createStream({
-            name: 'resends-cancelled-on-client-disconnect.test.js-' + Date.now()
-        })
     })
 
     afterEach(async () => {
