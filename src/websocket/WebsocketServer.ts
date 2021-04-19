@@ -1,38 +1,39 @@
 import { Todo } from '../types'
-
 import { EventEmitter } from 'events'
-
 import { v4 as uuidv4 } from 'uuid'
 import qs from 'qs'
-import { Protocol } from 'streamr-network'
+import { MetricsContext, NetworkNode, Protocol } from 'streamr-network'
 const { ControlLayer, MessageLayer, Errors } = Protocol
 // @ts-expect-error no type definitions
 import ab2str from 'arraybuffer-to-string'
-import uWS from 'uWebSockets.js'
+import uWS, { TemplatedApp } from 'uWebSockets.js'
 import { RequestHandlers } from './RequestHandlers'
+import { Connection } from './Connection'
+import { Metrics } from 'streamr-network/dist/helpers/MetricsContext'
+import { Publisher } from '../Publisher'
+import { SubscriptionManager } from '../SubscriptionManager'
+import getLogger from '../helpers/logger'
 
-const logger = require('../helpers/logger')('streamr:WebsocketServer')
-
-const Connection = require('./Connection')
+const logger = getLogger('streamr:WebsocketServer')
 
 module.exports = class WebsocketServer extends EventEmitter {
 
-    wss: Todo
+    wss: TemplatedApp
     _listenSocket: Todo
     requestHandlers: RequestHandlers
-    connections: Todo
-    pingInterval: Todo
-    metrics: Todo
-    _pingInterval: Todo
+    connections: Map<string,Connection>
+    pingInterval: number
+    metrics: Metrics
+    _pingInterval: NodeJS.Timeout
 
     constructor(
-        wss: Todo,
+        wss: TemplatedApp,
         port: Todo,
-        networkNode: Todo,
+        networkNode: NetworkNode,
         streamFetcher: Todo,
-        publisher: Todo,
-        metricsContext: Todo,
-        subscriptionManager: Todo,
+        publisher: Publisher,
+        metricsContext: MetricsContext,
+        subscriptionManager: SubscriptionManager,
         pingInterval = 60 * 1000,
     ) {
         super()
@@ -233,6 +234,7 @@ module.exports = class WebsocketServer extends EventEmitter {
 
                 if (connection) {
                     logger.debug(`received from ${connection.id} "pong" frame`)
+                    // @ts-expect-error
                     connection.respondedPong = true
                 }
             }
@@ -309,11 +311,13 @@ module.exports = class WebsocketServer extends EventEmitter {
         const connections = [...this.connections.values()]
         connections.forEach((connection) => {
             try {
+                // @ts-expect-error
                 // didn't get "pong" in pingInterval
                 if (connection.respondedPong !== undefined && !connection.respondedPong) {
                     throw Error('Connection is not active')
                 }
 
+                // @ts-expect-error
                 // eslint-disable-next-line no-param-reassign
                 connection.respondedPong = false
                 connection.ping()

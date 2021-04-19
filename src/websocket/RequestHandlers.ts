@@ -1,30 +1,35 @@
-import { Todo } from '../types';
+import { Todo } from '../types'
 import { v4 as uuidv4 } from 'uuid'
-import { Protocol } from 'streamr-network'
+import { NetworkNode, Protocol } from 'streamr-network'
 const { ControlLayer, Utils } = Protocol
 import HttpError from '../errors/HttpError'
-import FailedToPublishError from '../errors/FailedToPublishError'
-const logger = require('../helpers/logger')('streamr:RequestHandlers')
-import StreamStateManager from '../StreamStateManager'
+import { FailedToPublishError } from '../errors/FailedToPublishError'
+import getLogger from '../helpers/logger'
+import StreamStateManager from '../StreamStateManager' 
+import { Metrics } from 'streamr-network/dist/helpers/MetricsContext'
+import { Publisher } from '../Publisher'
+import { SubscriptionManager } from '../SubscriptionManager'
+import { Connection } from './Connection'
 
+const logger = getLogger('streamr:RequestHandlers')
 type RequestHandler = (Connection: Todo, request: Todo) => void
 
 export class RequestHandlers {
 
-    networkNode: Todo
+    networkNode: NetworkNode
     streamFetcher: Todo
-    publisher: Todo
+    publisher: Publisher
     streams: Todo
-    subscriptionManager: Todo
-    metrics: Todo
-    requestHandlersByMessageType: Todo
+    subscriptionManager: SubscriptionManager
+    metrics: Metrics
+    requestHandlersByMessageType: Record<Todo,(connection: Connection, request: Todo) => Todo>
 
     constructor(   
-        networkNode: Todo,
+        networkNode: NetworkNode,
         streamFetcher: Todo,
-        publisher: Todo,
-        subscriptionManager: Todo,
-        metrics: Todo
+        publisher: Publisher,
+        subscriptionManager: SubscriptionManager,
+        metrics: Metrics
     ) {
         this.networkNode = networkNode
         this.streamFetcher = streamFetcher
@@ -64,7 +69,7 @@ export class RequestHandlers {
         return this.requestHandlersByMessageType[messageType]
     }
 
-    async handlePublishRequest(connection: Todo, request: Todo) {
+    async handlePublishRequest(connection: Connection, request: Todo) {
         const { streamMessage } = request
 
         try {
@@ -107,7 +112,7 @@ export class RequestHandlers {
     }
 
     // TODO: Extract resend stuff to class?
-    async handleResendRequest(connection: Todo, request: Todo, resendTypeHandler: Todo) {
+    async handleResendRequest(connection: Connection, request: Todo, resendTypeHandler: Todo) {
         let nothingToResend = true
         let sentMessages = 0
 
@@ -175,7 +180,7 @@ export class RequestHandlers {
         }
     }
 
-    async handleResendLastRequest(connection: Todo, request: Todo) {
+    async handleResendLastRequest(connection: Connection, request: Todo) {
         await this.handleResendRequest(connection, request, () => this.networkNode.requestResendLast(
             request.streamId,
             request.streamPartition,
@@ -184,7 +189,7 @@ export class RequestHandlers {
         ))
     }
 
-    async handleResendFromRequest(connection: Todo, request: Todo) {
+    async handleResendFromRequest(connection: Connection, request: Todo) {
         await this.handleResendRequest(connection, request, () => this.networkNode.requestResendFrom(
             request.streamId,
             request.streamPartition,
@@ -196,7 +201,7 @@ export class RequestHandlers {
         ))
     }
 
-    async handleResendRangeRequest(connection: Todo, request: Todo) {
+    async handleResendRangeRequest(connection: Connection, request: Todo) {
         await this.handleResendRequest(connection, request, () => this.networkNode.requestResendRange(
             request.streamId,
             request.streamPartition,
@@ -230,7 +235,7 @@ export class RequestHandlers {
         }
     }
 
-    async handleSubscribeRequest(connection: Todo, request: Todo) {
+    async handleSubscribeRequest(connection: Connection, request: Todo) {
         try {
             await this._validateSubscribeOrResendRequest(request)
 
@@ -290,7 +295,7 @@ export class RequestHandlers {
         }
     }
 
-    handleUnsubscribeRequest(connection: Todo, request: Todo, noAck = false) {
+    handleUnsubscribeRequest(connection: Connection, request: Todo, noAck = false) {
         const stream = this.streams.get(request.streamId, request.streamPartition)
 
         if (stream) {
