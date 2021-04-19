@@ -30,7 +30,7 @@ describe('AuthenticationMiddleware', () => {
     })
 
     describe('given no authorization token', () => {
-        it('delegates streamId to streamFetcher#authenticate without key', () => {
+        it('delegates streamId to streamFetcher#authenticate without session token', () => {
             streamFetcherStub.authenticate = sinon.stub()
             streamFetcherStub.authenticate.returns(Promise.resolve({}))
 
@@ -39,14 +39,14 @@ describe('AuthenticationMiddleware', () => {
             sinon.assert.calledOnce(streamFetcherStub.authenticate)
             sinon.assert.calledWithExactly(
                 streamFetcherStub.authenticate,
-                'streamId', undefined, undefined, 'stream_subscribe',
+                'streamId', undefined, 'stream_subscribe',
             )
         })
     })
 
     it('responds 400 and error message if authorization header malformed', () => {
         streamFetcherStub.authenticate = sinon.stub()
-        request.headers.authorization = 'doken 90rjsdojg9823jtopsdjglsd'
+        request.headers.authorization = 'foobar 90rjsdojg9823jtopsdjglsd'
 
         middlewareInstance(request, response, next)
 
@@ -60,15 +60,15 @@ describe('AuthenticationMiddleware', () => {
         })
     })
 
-    describe('given well-formed API key as authorization header', () => {
+    describe('given well-formed session token as authorization header', () => {
         beforeEach(() => {
-            request.headers.authorization = 'tOkEn authKey'
+            request.headers.authorization = 'bEaReR session-token'
             request.params = {
                 id: 'streamId',
             }
         })
 
-        it('delegates streamId and authKey to streamFetcher#authenticate', () => {
+        it('delegates streamId and session token to streamFetcher#authenticate', () => {
             streamFetcherStub.authenticate = sinon.stub()
             streamFetcherStub.authenticate.returns(Promise.resolve({}))
 
@@ -77,7 +77,7 @@ describe('AuthenticationMiddleware', () => {
             sinon.assert.calledOnce(streamFetcherStub.authenticate)
             sinon.assert.calledWithExactly(
                 streamFetcherStub.authenticate,
-                'streamId', 'authKey', undefined, 'stream_subscribe',
+                'streamId', 'session-token', 'stream_subscribe',
             )
         })
 
@@ -91,7 +91,7 @@ describe('AuthenticationMiddleware', () => {
             sinon.assert.calledOnce(streamFetcherStub.authenticate)
             sinon.assert.calledWithExactly(
                 streamFetcherStub.authenticate,
-                'streamId', 'authKey', undefined, 'stream_publish',
+                'streamId', 'session-token', 'stream_publish',
             )
         })
 
@@ -177,42 +177,6 @@ describe('AuthenticationMiddleware', () => {
                     done()
                 })
             })
-        })
-    })
-
-    describe('given well-formed session token as authorization header', () => {
-        beforeEach(() => {
-            request.headers.authorization = 'Bearer session-token'
-            request.params = {
-                id: 'streamId',
-            }
-        })
-
-        it('delegates streamId and session token to streamFetcher#authenticate', () => {
-            streamFetcherStub.authenticate = sinon.stub()
-            streamFetcherStub.authenticate.returns(Promise.resolve({}))
-
-            middlewareInstance(request, response, next)
-
-            sinon.assert.calledOnce(streamFetcherStub.authenticate)
-            sinon.assert.calledWithExactly(
-                streamFetcherStub.authenticate,
-                'streamId', undefined, 'session-token', 'stream_subscribe',
-            )
-        })
-
-        it('authenticates with an explicitly given permission', () => {
-            streamFetcherStub.authenticate = sinon.stub()
-            streamFetcherStub.authenticate.returns(Promise.resolve({}))
-
-            middlewareInstance = authenticationMiddleware(streamFetcherStub, 'stream_publish')
-            middlewareInstance(request, response, next)
-
-            sinon.assert.calledOnce(streamFetcherStub.authenticate)
-            sinon.assert.calledWithExactly(
-                streamFetcherStub.authenticate,
-                'streamId', undefined, 'session-token', 'stream_publish',
-            )
         })
     })
 })

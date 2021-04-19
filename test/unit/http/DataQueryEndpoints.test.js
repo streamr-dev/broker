@@ -14,11 +14,11 @@ describe('DataQueryEndpoints', () => {
     let networkNode
     let streamFetcher
 
-    function testGetRequest(url, key = 'authKey') {
+    function testGetRequest(url, sessionToken = 'mock-session-token') {
         return request(app)
             .get(url)
             .set('Accept', 'application/json')
-            .set('Authorization', `Token ${key}`)
+            .set('Authorization', `Bearer ${sessionToken}`)
     }
 
     function createStreamMessage(content) {
@@ -39,9 +39,9 @@ describe('DataQueryEndpoints', () => {
         app = express()
         networkNode = {}
         streamFetcher = {
-            authenticate(streamId, authKey) {
+            authenticate(streamId, sessionToken) {
                 return new Promise(((resolve, reject) => {
-                    if (authKey === 'authKey') {
+                    if (sessionToken === 'mock-session-token') {
                         resolve({})
                     } else {
                         reject(new HttpError(403, 'GET', ''))
@@ -79,7 +79,7 @@ describe('DataQueryEndpoints', () => {
             })
 
             it('responds 403 and error message if not authorized', (done) => {
-                testGetRequest('/api/v1/streams/streamId/data/partitions/0/last', 'wrongKey')
+                testGetRequest('/api/v1/streams/streamId/data/partitions/0/last', 'wrong-session-token')
                     .expect('Content-Type', /json/)
                     .expect(403, {
                         error: 'Authentication failed.',
@@ -265,7 +265,7 @@ describe('DataQueryEndpoints', () => {
                     }, done)
             })
             it('responds 403 and error message if not authorized', (done) => {
-                testGetRequest('/api/v1/streams/streamId/data/partitions/0/range', 'wrongKey')
+                testGetRequest('/api/v1/streams/streamId/data/partitions/0/range', 'wrong-session-token')
                     .expect('Content-Type', /json/)
                     .expect(403, {
                         error: 'Authentication failed.',

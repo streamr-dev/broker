@@ -9,12 +9,10 @@ const StreamrClient = require('streamr-client')
 const MAX_AGE = 15 * 60 * 1000 // 15 minutes
 const MAX_AGE_MINUTE = 1000 // 1 minutes
 
-function formHeaders(authKey, sessionToken) {
+function formHeaders(sessionToken) {
     const headers = {}
     if (sessionToken) {
         headers.Authorization = `Bearer ${sessionToken}`
-    } else if (authKey) {
-        headers.Authorization = `token ${authKey}`
     }
     return headers
 }
@@ -28,11 +26,11 @@ async function fetchWithErrorLogging(...args) {
     }
 }
 
-async function handleNon2xxResponse(funcName, response, streamId, apiKey, sessionToken, method, url) {
+async function handleNon2xxResponse(funcName, response, streamId, sessionToken, method, url) {
     const errorMsg = await response.text()
     logger.debug(
-        '%s failed with status %d for streamId %s, apiKey %s, sessionToken %s : %o',
-        funcName, response.status, streamId, apiKey, sessionToken, errorMsg,
+        '%s failed with status %d for streamId %s, sessionToken %s : %o',
+        funcName, response.status, streamId, sessionToken, errorMsg,
     )
     throw new HttpError(response.status, method, url)
 }
@@ -54,9 +52,9 @@ module.exports = class StreamFetcher {
         })
     }
 
-    _authenticate(streamId, apiKey, sessionToken, operation = 'stream_subscribe') {
-        return this.checkPermission(streamId, apiKey, sessionToken, operation)
-            .then(() => this.fetch(streamId, apiKey, sessionToken))
+    async _authenticate(streamId, sessionToken, operation = 'stream_subscribe') {
+        await this.checkPermission(streamId, sessionToken, operation)
+        return this.fetch(streamId, sessionToken)
     }
 
     async getToken(privateKey) {
@@ -74,22 +72,21 @@ module.exports = class StreamFetcher {
      * Returns a Promise that resolves with the stream json. Fails if there is no read permission.
      *
      * @param streamId
-     * @param apiKey
      * @param sessionToken
      * @returns {Promise.<TResult>}
      * @private
      */
-    async _fetch(streamId, apiKey, sessionToken) {
+    async _fetch(streamId, sessionToken) {
         const url = `${this.apiUrl}/streams/${encodeURIComponent(streamId)}`
-        const headers = formHeaders(apiKey, sessionToken)
+        const headers = formHeaders(sessionToken)
 
         const response = await fetchWithErrorLogging(url, {
             headers
         })
 
         if (response.status !== 200) {
-            this.fetch.delete(streamId, apiKey, sessionToken) // clear cache result
-            return handleNon2xxResponse('_fetch', response, streamId, apiKey, sessionToken, 'GET', url)
+            this.fetch.delete(streamId, sessionToken) // clear cache result
+            return handleNon2xxResponse('_fetch', response, streamId, sessionToken, 'GET', url)
         }
         return response.json()
     }
@@ -99,27 +96,26 @@ module.exports = class StreamFetcher {
      * Promise always resolves to true.
      *
      * @param streamId
-     * @param apiKey
      * @param sessionToken
      * @param operation
      * @returns {Promise}
      * @private
      */
-    async _checkPermission(streamId, apiKey, sessionToken, operation = 'stream_subscribe') {
+    async _checkPermission(streamId, sessionToken, operation = 'stream_subscribe') {
         if (streamId == null) {
             throw new Error('streamId can not be null!')
         }
 
         const url = `${this.apiUrl}/streams/${encodeURIComponent(streamId)}/permissions/me`
-        const headers = formHeaders(apiKey, sessionToken)
+        const headers = formHeaders(sessionToken)
 
         const response = await fetchWithErrorLogging(url, {
             headers,
         })
 
         if (response.status !== 200) {
-            this.checkPermission.delete(streamId, apiKey, sessionToken) // clear cache result
-            return handleNon2xxResponse('_checkPermission', response, streamId, apiKey, sessionToken, 'GET', url)
+            this.checkPermission.delete(streamId, sessionToken) // clear cache result
+            return handleNon2xxResponse('_checkPermission', response, streamId, sessionToken, 'GET', url)
         }
 
         const permissions = await response.json()
@@ -128,8 +124,8 @@ module.exports = class StreamFetcher {
         }
 
         logger.debug(
-            'checkPermission failed for streamId %s, apiKey %s, sessionToken %s, operation %s. permissions were: %o',
-            streamId, apiKey, sessionToken, operation, permissions,
+            'checkPermission failed for streamId %s, sessionToken %s, operation %s. permissions were: %o',
+            streamId, sessionToken, operation, permissions,
         )
         throw new HttpError(403, 'GET', url)
     }
