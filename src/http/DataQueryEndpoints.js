@@ -23,28 +23,35 @@ const onRow = (res, unicastMessage, delimiter, format = 'object', version, metri
 }
 
 const streamData = (res, stream, format, version, metrics) => {
-    let delimiter = ''
-    stream.on('data', (row) => {
-        // first row
-        if (delimiter === '') {
-            onStarted(res)
-        }
-        onRow(res, row, delimiter, format, version, metrics)
-        delimiter = ','
-    })
-    stream.on('end', () => {
-        if (delimiter === '') {
-            onStarted(res)
-        }
-        res.write(']')
-        res.end()
-    })
-    stream.on('error', (err) => {
+    try {
+        let delimiter = ''
+        stream.on('data', (row) => {
+            // first row
+            if (delimiter === '') {
+                onStarted(res)
+            }
+            onRow(res, row, delimiter, format, version, metrics)
+            delimiter = ','
+        })
+        stream.on('end', () => {
+            if (delimiter === '') {
+                onStarted(res)
+            }
+            res.write(']')
+            res.end()
+        })
+        stream.on('error', (err) => {
+            logger.error(err)
+            res.status(500).send({
+                error: 'Failed to fetch data!'
+            })
+        })
+    } catch (err) {
         logger.error(err)
         res.status(500).send({
             error: 'Failed to fetch data!'
         })
-    })
+    }
 }
 
 function parseIntIfExists(x) {
