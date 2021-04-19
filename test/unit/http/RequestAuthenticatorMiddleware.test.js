@@ -56,7 +56,7 @@ describe('AuthenticationMiddleware', () => {
         sinon.assert.calledOnce(response.send)
         sinon.assert.calledWithExactly(response.status, 400)
         sinon.assert.calledWithExactly(response.send, {
-            error: 'Authorization header malformed. Should be of form "[Bearer|token] authKey".',
+            error: 'Authorization header malformed. Should be of form "Bearer session-token".',
         })
     })
 
