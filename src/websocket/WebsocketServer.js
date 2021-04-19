@@ -7,7 +7,7 @@ const ab2str = require('arraybuffer-to-string')
 const uWS = require('uWebSockets.js')
 
 const logger = require('../helpers/logger')('streamr:WebsocketServer')
-const HttpError = require('../errors/HttpError')
+const { HttpError } = require('../errors/HttpError')
 const FailedToPublishError = require('../errors/FailedToPublishError')
 const StreamStateManager = require('../StreamStateManager')
 
