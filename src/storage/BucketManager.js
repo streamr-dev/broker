@@ -1,6 +1,5 @@
 const Heap = require('heap')
 const { TimeUuid } = require('cassandra-driver').types
-const allSettled = require('promise.allsettled')
 
 const logger = require('../helpers/logger')('streamr:storage:BucketManager')
 
@@ -299,7 +298,7 @@ class BucketManager {
 
         const notStoredBuckets = Object.values(this.buckets).filter((bucket) => !bucket.isStored())
 
-        const results = await allSettled(notStoredBuckets.map(async (bucket) => {
+        const results = await Promise.allSettled(notStoredBuckets.map(async (bucket) => {
             const {
                 id, size, records, streamId, partition, dateCreate
             } = bucket
