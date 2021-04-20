@@ -71,8 +71,6 @@ describe('metricsStream', () => {
             name: 'per-node-stream-metrics.test.js-legacyStream'
         })
 
-
-        
         await legacyStream.grantPermission('stream_get', null)
         await legacyStream.grantPermission('stream_publish', nodeAddress)
 
@@ -105,7 +103,7 @@ describe('metricsStream', () => {
                         hour: 1000,
                         day: 1000
                     },
-                    storageNode:{
+                    storageNode: {
                         address: '0xde1112f631486CfC759A50196853011528bC5FA0',
                         url: 'http://10.200.10.1:8891'
                     }
@@ -228,5 +226,5 @@ describe('metricsStream', () => {
             done()
         })
         fillMetrics(client2, 24, nodeAddress, 'hour')
-    })*/
+    }) */
 })

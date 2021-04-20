@@ -83,7 +83,7 @@ function formConfig({
                 wsUrl: null,
                 httpUrl: null,
                 intervals: null,
-                storageNode:{
+                storageNode: {
                     address: null,
                     url: null
                 }

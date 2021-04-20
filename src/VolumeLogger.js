@@ -9,7 +9,7 @@ function formatNumber(n) {
 }
 
 module.exports = class VolumeLogger {
-    constructor(reportingIntervalSeconds = 60, metricsContext, client = undefined, streamIds = undefined, brokerAddress = undefined, perStreamReportingIntervals = undefined, storageNodeAddress=undefined) {
+    constructor(reportingIntervalSeconds = 60, metricsContext, client = undefined, streamIds = undefined, brokerAddress = undefined, perStreamReportingIntervals = undefined, storageNodeAddress = undefined) {
         this.reportingIntervalSeconds = reportingIntervalSeconds
         this.metricsContext = metricsContext
         this.client = client

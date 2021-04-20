@@ -176,7 +176,8 @@ module.exports = async (config) => {
         }
     })
 
-    let reportingIntervals, storageNodeAddress
+    let reportingIntervals; let
+        storageNodeAddress
 
     if (config.reporting && config.reporting.perNodeMetrics && config.reporting.perNodeMetrics.intervals) {
         reportingIntervals = config.reporting.perNodeMetrics.intervals

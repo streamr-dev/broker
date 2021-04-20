@@ -93,15 +93,15 @@ class StreamMetrics {
         })
         try {
             await metricsStream.addToStorageNode(this.storageNodeAddress)
-        } catch (e){
+        } catch (e) {
             /*
             if (e.body.code === 'DUPLICATE_NOT_ALLOWED'){
                 // should keep running
                 logger.warn(e)
             } else {
-                // throw 
+                // throw
                 throw e
-            }*/
+            } */
         }
         await metricsStream.grantPermission('stream_get', null)
         await metricsStream.grantPermission('stream_subscribe', null)
