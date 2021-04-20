@@ -235,7 +235,8 @@
             "enabled",
             "wsUrl",
             "httpUrl",
-            "intervals"
+            "intervals",
+            "storageNode"
           ],
           "additionalProperties": false,
           "properties": {
@@ -265,6 +266,21 @@
                 "hour",
                 "day"
               ]
+            },
+            "storageNode":{
+              "type":["object", "null"],
+              "required": [
+                "url",
+                "address"
+              ],
+              "properties":{
+                "url": {
+                  "type": ["string", "null"]
+                },
+                "address": {
+                  "type": ["string", "null"]
+                }
+              }
             }
           }
         }

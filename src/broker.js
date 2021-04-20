@@ -123,6 +123,7 @@ module.exports = async (config) => {
             auth: {
                 privateKey: config.ethereumPrivateKey,
             },
+            storageNode: config.reporting.perNodeMetrics.storageNode,
             autoconnect: true,
             url: config.reporting.perNodeMetrics ? (config.reporting.perNodeMetrics.wsUrl || null) : null,
             restUrl: config.reporting.perNodeMetrics ? (config.reporting.perNodeMetrics.httpUrl || null) : null
@@ -182,6 +183,7 @@ module.exports = async (config) => {
     }
 
     // Start logging facilities
+    console.log(config)
     const volumeLogger = new VolumeLogger(
         config.reporting.intervalInSeconds,
         metricsContext,

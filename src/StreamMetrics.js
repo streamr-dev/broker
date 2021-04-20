@@ -88,7 +88,7 @@ class StreamMetrics {
             name: `Metrics ${path} for broker ${this.brokerAddress}`,
             id: this.brokerAddress + path
         })
-
+        await metricsStream.addToStorageNode(this.brokerAddress)
         await metricsStream.grantPermission('stream_get', null)
         await metricsStream.grantPermission('stream_subscribe', null)
         return metricsStream.id
