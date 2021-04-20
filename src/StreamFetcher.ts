@@ -1,24 +1,27 @@
-const fetch = require('node-fetch')
-const memoize = require('memoizee')
-
-const logger = require('./helpers/logger')('streamr:StreamFetcher')
-const { HttpError } = require('./errors/HttpError')
+import fetch from 'node-fetch'
+import memoize from 'memoizee'
+import getLogger from './helpers/logger'
+import { HttpError } from './errors/HttpError'
 // TODO do all REST operations to E&E via StreamrClient
-const StreamrClient = require('streamr-client') 
+import StreamrClient from 'streamr-client'
+import { Todo } from './types'
+
+const logger = getLogger('streamr:StreamFetcher')
 
 const MAX_AGE = 15 * 60 * 1000 // 15 minutes
 const MAX_AGE_MINUTE = 1000 // 1 minutes
 
-function formHeaders(sessionToken) {
-    const headers = {}
+function formHeaders(sessionToken: string|undefined) {
+    const headers: any = {}
     if (sessionToken) {
         headers.Authorization = `Bearer ${sessionToken}`
     }
     return headers
 }
 
-async function fetchWithErrorLogging(...args) {
+async function fetchWithErrorLogging(...args: Todo[]) {
     try {
+        // @ts-expect-error
         return await fetch(...args)
     } catch (e) {
         logger.error(`failed to communicate with E&E: ${e}`)
@@ -26,7 +29,7 @@ async function fetchWithErrorLogging(...args) {
     }
 }
 
-async function handleNon2xxResponse(funcName, response, streamId, sessionToken, method, url) {
+async function handleNon2xxResponse(funcName: Todo, response: Todo, streamId: string, sessionToken: string|undefined, method: Todo, url: string) {
     const errorMsg = await response.text()
     logger.debug(
         '%s failed with status %d for streamId %s, sessionToken %s : %o',
@@ -35,8 +38,14 @@ async function handleNon2xxResponse(funcName, response, streamId, sessionToken, 
     throw new HttpError(response.status, method, url)
 }
 
-module.exports = class StreamFetcher {
-    constructor(baseUrl) {
+export class StreamFetcher {
+
+    apiUrl: string
+    fetch: Todo
+    checkPermission: Todo
+    authenticate: Todo
+
+    constructor(baseUrl: string) {
         this.apiUrl = `${baseUrl}/api/v1`
         this.fetch = memoize(this._fetch, {
             maxAge: MAX_AGE,
@@ -52,12 +61,12 @@ module.exports = class StreamFetcher {
         })
     }
 
-    async _authenticate(streamId, sessionToken, operation = 'stream_subscribe') {
+    async _authenticate(streamId: string, sessionToken: string|undefined, operation = 'stream_subscribe') {
         await this.checkPermission(streamId, sessionToken, operation)
         return this.fetch(streamId, sessionToken)
     }
 
-    async getToken(privateKey) {
+    async getToken(privateKey: string) {
         const client = new StreamrClient({
             auth: {
                 privateKey
@@ -65,6 +74,7 @@ module.exports = class StreamFetcher {
             restUrl: this.apiUrl,
             autoConnect: false
         })
+        // @ts-expect-error
         return await client.session.getSessionToken()
     }
 
@@ -76,7 +86,7 @@ module.exports = class StreamFetcher {
      * @returns {Promise.<TResult>}
      * @private
      */
-    async _fetch(streamId, sessionToken) {
+    async _fetch(streamId: string, sessionToken: string|undefined) {
         const url = `${this.apiUrl}/streams/${encodeURIComponent(streamId)}`
         const headers = formHeaders(sessionToken)
 
@@ -101,7 +111,7 @@ module.exports = class StreamFetcher {
      * @returns {Promise}
      * @private
      */
-    async _checkPermission(streamId, sessionToken, operation = 'stream_subscribe') {
+    async _checkPermission(streamId: string, sessionToken: string|undefined, operation = 'stream_subscribe') {
         if (streamId == null) {
             throw new Error('streamId can not be null!')
         }
@@ -119,7 +129,7 @@ module.exports = class StreamFetcher {
         }
 
         const permissions = await response.json()
-        if (permissions.some((p) => p.operation === operation)) {
+        if (permissions.some((p: Todo) => p.operation === operation)) {
             return true
         }
 
