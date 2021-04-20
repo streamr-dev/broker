@@ -125,8 +125,8 @@ module.exports = async (config) => {
             },
             storageNode: config.reporting.perNodeMetrics.storageNode,
             autoconnect: true,
-            url: config.reporting.perNodeMetrics ? (config.reporting.perNodeMetrics.wsUrl || null) : null,
-            restUrl: config.reporting.perNodeMetrics ? (config.reporting.perNodeMetrics.httpUrl || null) : null
+            url: config.reporting.perNodeMetrics ? (config.reporting.perNodeMetrics.wsUrl || undefined) : undefined,
+            restUrl: config.reporting.perNodeMetrics ? (config.reporting.perNodeMetrics.httpUrl || undefined) : undefined
         })
 
         if (config.reporting.streamr && config.reporting.streamr.streamId) {
@@ -176,21 +176,23 @@ module.exports = async (config) => {
         }
     })
 
-    let reportingIntervals
+    let reportingIntervals, storageNodeAddress
 
     if (config.reporting && config.reporting.perNodeMetrics && config.reporting.perNodeMetrics.intervals) {
         reportingIntervals = config.reporting.perNodeMetrics.intervals
+        storageNodeAddress = config.reporting.perNodeMetrics.storageNode.address
+        console.log('config', config.reporting.perNodeMetrics.storageNode)
     }
 
     // Start logging facilities
-    console.log(config)
     const volumeLogger = new VolumeLogger(
         config.reporting.intervalInSeconds,
         metricsContext,
         client,
         streamIds,
         brokerAddress,
-        reportingIntervals
+        reportingIntervals,
+        storageNodeAddress
     )
     await volumeLogger.start()
 

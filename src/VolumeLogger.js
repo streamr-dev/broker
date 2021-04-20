@@ -9,13 +9,14 @@ function formatNumber(n) {
 }
 
 module.exports = class VolumeLogger {
-    constructor(reportingIntervalSeconds = 60, metricsContext, client = undefined, streamIds = undefined, brokerAddress = undefined, perStreamReportingIntervals = undefined) {
+    constructor(reportingIntervalSeconds = 60, metricsContext, client = undefined, streamIds = undefined, brokerAddress = undefined, perStreamReportingIntervals = undefined, storageNodeAddress=undefined) {
         this.reportingIntervalSeconds = reportingIntervalSeconds
         this.metricsContext = metricsContext
         this.client = client
         this.streamIds = streamIds
         this.brokerAddress = brokerAddress
         this.perStreamReportingIntervals = perStreamReportingIntervals
+        this.storageNodeAddress = storageNodeAddress
 
         this.brokerConnectionCountMetric = io.metric({
             name: 'brokerConnectionCountMetric'
@@ -91,28 +92,32 @@ module.exports = class VolumeLogger {
                 this.metricsContext,
                 this.brokerAddress,
                 'sec',
-                (this.perStreamReportingIntervals) ? this.perStreamReportingIntervals.sec : undefined
+                (this.perStreamReportingIntervals) ? this.perStreamReportingIntervals.sec : undefined,
+                this.storageNodeAddress
             ),
             min: await startMetrics(
                 this.client,
                 this.metricsContext,
                 this.brokerAddress,
                 'min',
-                (this.perStreamReportingIntervals) ? this.perStreamReportingIntervals.min : undefined
+                (this.perStreamReportingIntervals) ? this.perStreamReportingIntervals.min : undefined,
+                this.storageNodeAddress
             ),
             hour: await startMetrics(
                 this.client,
                 this.metricsContext,
                 this.brokerAddress,
                 'hour',
-                (this.perStreamReportingIntervals) ? this.perStreamReportingIntervals.hour : undefined
+                (this.perStreamReportingIntervals) ? this.perStreamReportingIntervals.hour : undefined,
+                this.storageNodeAddress
             ),
             day: await startMetrics(
                 this.client,
                 this.metricsContext,
                 this.brokerAddress,
                 'day',
-                (this.perStreamReportingIntervals) ? this.perStreamReportingIntervals.day : undefined
+                (this.perStreamReportingIntervals) ? this.perStreamReportingIntervals.day : undefined,
+                this.storageNodeAddress
             )
         }
     }

@@ -18,7 +18,8 @@ class StreamMetrics {
         metricsContext,
         brokerAddress,
         interval, // sec/min/hour/day
-        reportMiliseconds = undefined, // used to override default in tests
+        reportMiliseconds = undefined, // used to override default in tests,
+        storageNodeAddress = undefined
     ) {
         this.stopped = false
 
@@ -30,6 +31,8 @@ class StreamMetrics {
         this.brokerAddress = brokerAddress
 
         this.interval = interval
+
+        this.storageNodeAddress = storageNodeAddress
 
         switch (this.interval) {
             case 'sec':
@@ -88,7 +91,18 @@ class StreamMetrics {
             name: `Metrics ${path} for broker ${this.brokerAddress}`,
             id: this.brokerAddress + path
         })
-        await metricsStream.addToStorageNode(this.brokerAddress)
+        try {
+            await metricsStream.addToStorageNode(this.storageNodeAddress)
+        } catch (e){
+            /*
+            if (e.body.code === 'DUPLICATE_NOT_ALLOWED'){
+                // should keep running
+                logger.warn(e)
+            } else {
+                // throw 
+                throw e
+            }*/
+        }
         await metricsStream.grantPermission('stream_get', null)
         await metricsStream.grantPermission('stream_subscribe', null)
         return metricsStream.id
@@ -290,8 +304,8 @@ class StreamMetrics {
     }
 }
 
-module.exports = async function startMetrics(client, metricsContext, brokerAddress, interval, reportingIntervalInMs) {
-    const metrics = new StreamMetrics(client, metricsContext, brokerAddress, interval, reportingIntervalInMs)
+module.exports = async function startMetrics(client, metricsContext, brokerAddress, interval, reportingIntervalInMs, storageNodeAddress) {
+    const metrics = new StreamMetrics(client, metricsContext, brokerAddress, interval, reportingIntervalInMs, storageNodeAddress)
     metrics.targetStreamId = await metrics.createMetricsStream(metrics.path)
 
     if (metrics.sourcePath) {
