@@ -91,17 +91,18 @@ class StreamMetrics {
             name: `Metrics ${path} for broker ${this.brokerAddress}`,
             id: this.brokerAddress + path
         })
+
         try {
             await metricsStream.addToStorageNode(this.storageNodeAddress)
         } catch (e) {
-            /*
-            if (e.body.code === 'DUPLICATE_NOT_ALLOWED'){
+            const parsedBody = JSON.parse(e.body)
+            if (parsedBody.code === 'DUPLICATE_NOT_ALLOWED') {
                 // should keep running
                 logger.warn(e)
             } else {
                 // throw
                 throw e
-            } */
+            }
         }
         await metricsStream.grantPermission('stream_get', null)
         await metricsStream.grantPermission('stream_subscribe', null)
