@@ -14,7 +14,7 @@ export class SubscriptionManager {
         this.publishTimeouts = new Map()
     }
 
-    recordPublish(streamId: string, streamPartition = 0) {
+    recordPublish(streamId: string, streamPartition = 0): void {
         this.networkNode.subscribe(streamId, streamPartition)
 
         const key = `${streamId}::${streamPartition}`
@@ -27,14 +27,14 @@ export class SubscriptionManager {
         }, this.publishSessionTimeout))
     }
 
-    subscribe(streamId: string, streamPartition = 0) {
+    subscribe(streamId: string, streamPartition = 0): void {
         const key = `${streamId}::${streamPartition}`
         this.streams.set(key, (this.streams.get(key) || 0) + 1)
 
         this.networkNode.subscribe(streamId, streamPartition)
     }
 
-    unsubscribe(streamId: string, streamPartition = 0) {
+    unsubscribe(streamId: string, streamPartition = 0): void {
         const key = `${streamId}::${streamPartition}`
         if (this.streams.has(key)) {
             if (this.streams.get(key) <= 1) {
@@ -48,7 +48,7 @@ export class SubscriptionManager {
         }
     }
 
-    clear() {
+    clear(): void {
         this.publishTimeouts.forEach((timeout) => clearTimeout(timeout))
         this.publishTimeouts = new Map()
         this.streams = new Map()

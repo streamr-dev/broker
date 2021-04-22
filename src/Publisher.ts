@@ -36,7 +36,7 @@ export class Publisher {
             .addRecordedMetric('messages')
     }
 
-    async validateAndPublish(streamMessage: Todo) {
+    async validateAndPublish(streamMessage: Todo): Promise<void> {
         if (isTimestampTooFarInTheFuture(streamMessage.getTimestamp())) {
             throw new FailedToPublishError(
                 streamMessage.getStreamId(),
