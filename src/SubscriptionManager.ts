@@ -7,7 +7,7 @@ export class SubscriptionManager {
     streams: Map<Todo,Todo>
     publishTimeouts: Map<string, NodeJS.Timeout>
 
-    constructor(networkNode: NetworkNode, publishSessionTimeout = 10 * 60 * 1000) {
+    constructor(networkNode: NetworkNode, publishSessionTimeout = 30 * 1000) {
         this.networkNode = networkNode
         this.publishSessionTimeout = publishSessionTimeout
         this.streams = new Map()

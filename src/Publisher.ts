@@ -15,7 +15,7 @@ export class Publisher {
     subscriptionManager: Todo
     metrics: Todo
 
-    constructor(networkNode: Todo, streamMessageValidator: Todo, subscriptionManager, metricsContext: Todo) {
+    constructor(networkNode: Todo, streamMessageValidator: Todo, subscriptionManager: Todo, metricsContext: Todo) {
         if (!networkNode) {
             throw new Error('No networkNode defined!')
         }

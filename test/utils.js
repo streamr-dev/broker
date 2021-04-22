@@ -125,6 +125,10 @@ function createMqttClient(mqttPort = 9000, host = 'localhost', privateKey = crea
     })
 }
 
+/**
+ * Due to E&E docker in streamr-docker-dev being configured to operate with the storage broker in streamr-docker-dev,
+ * we need to simulate E&E behaviour here for any custom storage broker we start up in tests.
+ */
 class StorageAssignmentEventManager {
     constructor(wsPort, engineAndEditorAccount) {
         this.engineAndEditorAccount = engineAndEditorAccount
@@ -138,6 +142,7 @@ class StorageAssignmentEventManager {
     }
 
     async addStreamToStorageNode(streamId, storageNodeAddress, client) {
+        // TODO: consider replacing with client !?
         await fetch(`${API_URL}/streams/${encodeURIComponent(streamId)}/storageNodes`, {
             body: JSON.stringify({
                 address: storageNodeAddress
