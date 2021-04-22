@@ -158,7 +158,7 @@ describe('metricsStream', () => {
             done()
         })
     })
-/*
+
     it('should retrieve the last `min` metrics', (done) => {
         client1.subscribe({
             stream: nodeAddress + '/streamr/node/metrics/min',
@@ -226,5 +226,5 @@ describe('metricsStream', () => {
             done()
         })
         fillMetrics(client2, 24, nodeAddress, 'hour')
-    }) */
+    })
 })

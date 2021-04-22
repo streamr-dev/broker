@@ -91,16 +91,22 @@ class StreamMetrics {
             name: `Metrics ${path} for broker ${this.brokerAddress}`,
             id: this.brokerAddress + path
         })
-
+        // TODO: pretify this error handler
+        // https://linear.app/streamr/issue/BACK-155/assign-a-stream-to-a-storage-node-when-it-has-already-been-assigned
         try {
             await metricsStream.addToStorageNode(this.storageNodeAddress)
         } catch (e) {
-            const parsedBody = JSON.parse(e.body)
-            if (parsedBody.code === 'DUPLICATE_NOT_ALLOWED') {
-                // should keep running
-                logger.warn(e)
-            } else {
-                // throw
+            if (!e.body) { throw e }
+
+            let parsedBody
+            try {
+                parsedBody = JSON.parse(e.body)
+            } catch (jsonError) {
+                throw e // original error, not parsing one
+            }
+
+            // expected error when re-adding storage node
+            if (parsedBody.code !== 'DUPLICATE_NOT_ALLOWED') {
                 throw e
             }
         }

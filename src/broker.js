@@ -182,7 +182,6 @@ module.exports = async (config) => {
     if (config.reporting && config.reporting.perNodeMetrics && config.reporting.perNodeMetrics.intervals) {
         reportingIntervals = config.reporting.perNodeMetrics.intervals
         storageNodeAddress = config.reporting.perNodeMetrics.storageNode.address
-        console.log('config', config.reporting.perNodeMetrics.storageNode)
     }
 
     // Start logging facilities
