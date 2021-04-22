@@ -1,6 +1,6 @@
 const { wait } = require('streamr-test-utils')
 
-const SubscriptionManager = require('../../src/SubscriptionManager')
+const { SubscriptionManager } = require('../../src/SubscriptionManager')
 
 describe('SubscriptionManager', () => {
     let networkNode
