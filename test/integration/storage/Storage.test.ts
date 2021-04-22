@@ -1,25 +1,25 @@
-/* eslint-disable padded-blocks */
-const cassandra = require('cassandra-driver')
-const toArray = require('stream-to-array')
-const { StreamMessage, MessageIDStrict } = require('streamr-network').Protocol.MessageLayer
+import { Client } from 'cassandra-driver'
+import toArray from 'stream-to-array'
+import { Protocol } from 'streamr-network'
+import { Storage } from '../../storage/Storage'
+import { startCassandraStorage } from '../../../src/storage/Storage'
+import { STREAMR_DOCKER_DEV_HOST } from '../../utils'
 
-const { startCassandraStorage } = require('../../../src/storage/Storage')
-const { STREAMR_DOCKER_DEV_HOST } = require('../../utils')
+const { StreamMessage, MessageIDStrict } = Protocol.MessageLayer
 
 const contactPoints = [STREAMR_DOCKER_DEV_HOST]
 const localDataCenter = 'datacenter1'
 const keyspace = 'streamr_dev_v2'
-
 const MAX_BUCKET_MESSAGE_COUNT = 20
 
 function buildMsg(
-    streamId,
-    streamPartition,
-    timestamp,
-    sequenceNumber,
+    streamId: string,
+    streamPartition: number,
+    timestamp: number,
+    sequenceNumber: number,
     publisherId = 'publisher',
     msgChainId = '1',
-    content = {}
+    content: any = {}
 ) {
     return new StreamMessage({
         messageId: new MessageIDStrict(streamId, streamPartition, timestamp, sequenceNumber, publisherId, msgChainId),
@@ -28,10 +28,10 @@ function buildMsg(
 }
 
 function buildEncryptedMsg(
-    streamId,
-    streamPartition,
-    timestamp,
-    sequenceNumber,
+    streamId: string,
+    streamPartition: number,
+    timestamp: number,
+    sequenceNumber: number,
     publisherId = 'publisher',
     msgChainId = '1',
     content = 'ab3516983712fa4eb216a898ddd'
@@ -43,7 +43,7 @@ function buildEncryptedMsg(
     })
 }
 
-const storeMockMessages = async (streamId, streamPartition, minTimestamp, maxTimestamp, count, storage) => {
+const storeMockMessages = async (streamId: string, streamPartition: number, minTimestamp: number, maxTimestamp: number, count: number, storage: Storage) => {
     const storePromises = []
     for (let i = 0; i < count; i++) {
         const timestamp = minTimestamp + Math.floor((i / (count - 1)) * (maxTimestamp - minTimestamp))
@@ -54,13 +54,13 @@ const storeMockMessages = async (streamId, streamPartition, minTimestamp, maxTim
 }
 
 describe('Storage', () => {
-    let storage
-    let streamId
-    let cassandraClient
+    let storage: Storage
+    let streamId: string
+    let cassandraClient: Client
     let streamIdx = 1
 
     beforeAll(async () => {
-        cassandraClient = new cassandra.Client({
+        cassandraClient = new Client({
             contactPoints,
             localDataCenter,
             keyspace,
@@ -72,6 +72,7 @@ describe('Storage', () => {
     })
 
     beforeEach(async () => {
+        // @ts-expect-error
         storage = await startCassandraStorage({
             contactPoints,
             localDataCenter,
@@ -106,6 +107,7 @@ describe('Storage', () => {
         })
 
         test('requestRange not throwing exception if no buckets found', async () => {
+            // @ts-expect-error
             const a = storage.requestRange(streamId, 777, null, null, null, null, null, null)
             const resultsB = await toArray(a)
             expect(resultsB).toEqual([])

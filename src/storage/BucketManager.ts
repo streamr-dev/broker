@@ -1,18 +1,39 @@
-const Heap = require('heap')
-const { TimeUuid } = require('cassandra-driver').types
+import { Client } from 'cassandra-driver'
+import { Todo } from '../types'
+import Heap from 'heap'
+import { types as cassandraTypes } from 'cassandra-driver'
+import getLogger from '../helpers/logger'
+import { Bucket, BucketId } from './Bucket'
+const { TimeUuid } = cassandraTypes
 
-const logger = require('../helpers/logger')('streamr:storage:BucketManager')
+const logger = getLogger('streamr:storage:BucketManager')
 
-const Bucket = require('./Bucket')
+type StreamPartKey = string
 
-const toKey = (streamId, partition) => `${streamId}-${partition}`
+interface StreamPartState {
+    streamId: string
+    partition: number
+    buckets: Heap<Bucket>
+    minTimestamp?: number
+}
 
-const instantiateNewHeap = () => new Heap((a, b) => {
+const toKey = (streamId: string, partition: number): StreamPartKey => `${streamId}-${partition}`
+
+const instantiateNewHeap = () => new Heap((a: Bucket, b: Bucket) => {
+    // @ts-expect-error TODO is dateCreate a Date object or a number?
     return b.dateCreate - a.dateCreate
 })
 
-class BucketManager {
-    constructor(cassandraClient, opts = {}) {
+export class BucketManager {
+
+    opts: Todo
+    streams: Record<StreamPartKey,StreamPartState>
+    buckets: Record<BucketId,Bucket>
+    cassandraClient: Client
+    _checkFullBucketsTimeout?: NodeJS.Timeout
+    _storeBucketsTimeout?: NodeJS.Timeout
+
+    constructor(cassandraClient: Client, opts = {}) {
         const defaultOptions = {
             logErrors: true,
             checkFullBucketsTimeout: 1000,
@@ -39,7 +60,7 @@ class BucketManager {
         this._storeBuckets()
     }
 
-    getBucketId(streamId, partition, timestamp) {
+    getBucketId(streamId: string, partition: number, timestamp: number) {
         let bucketId
 
         const key = toKey(streamId, partition)
@@ -66,7 +87,7 @@ class BucketManager {
         return bucketId
     }
 
-    incrementBucket(bucketId, size) {
+    incrementBucket(bucketId: BucketId, size: number) {
         const bucket = this.buckets[bucketId]
         if (bucket) {
             bucket.incrementBucket(size)
@@ -75,7 +96,7 @@ class BucketManager {
         }
     }
 
-    _getLatestInMemoryBucket(key) {
+    _getLatestInMemoryBucket(key: StreamPartKey) {
         const stream = this.streams[key]
         if (stream) {
             return stream.buckets.peek()
@@ -83,7 +104,7 @@ class BucketManager {
         return undefined
     }
 
-    _findBucketId(key, timestamp) {
+    _findBucketId(key: StreamPartKey, timestamp: number) {
         let bucketId
         logger.debug(`checking stream: ${key}, timestamp: ${timestamp} in BucketManager state`)
 
@@ -133,7 +154,7 @@ class BucketManager {
             let insertNewBucket = false
 
             // helper function
-            const checkFoundBuckets = (foundBuckets) => {
+            const checkFoundBuckets = (foundBuckets: Bucket[]) => {
                 const foundBucket = foundBuckets.length ? foundBuckets[0] : undefined
 
                 if (foundBucket && !(foundBucket.getId() in this.buckets)) {
@@ -195,7 +216,7 @@ class BucketManager {
      * @param toTimestamp
      * @returns {Promise<[]>}
      */
-    async getBucketsByTimestamp(streamId, partition, fromTimestamp = undefined, toTimestamp = undefined) {
+    async getBucketsByTimestamp(streamId: string, partition: number, fromTimestamp: number|undefined = undefined, toTimestamp: number|undefined = undefined) {
         const getExplicitFirst = () => {
             // if fromTimestamp is defined, the first data point are in a some earlier bucket
             // (bucket.dateCreated<=fromTimestamp as data within one millisecond won't be divided to multiple buckets)
@@ -242,7 +263,7 @@ class BucketManager {
      * @param timestamp
      * @returns {Promise<[]>}
      */
-    async getLastBuckets(streamId, partition, limit = 1, timestamp = undefined) {
+    async getLastBuckets(streamId: string, partition: number, limit = 1, timestamp: number|undefined = undefined) {
         const GET_LAST_BUCKETS = 'SELECT * FROM bucket WHERE stream_id = ? and partition = ?  ORDER BY date_create DESC LIMIT ?'
         const GET_LAST_BUCKETS_TIMESTAMP = 'SELECT * FROM bucket WHERE stream_id = ? and partition = ? AND date_create <= ? ORDER BY date_create DESC LIMIT ?'
 
@@ -260,8 +281,8 @@ class BucketManager {
         return this._getBucketsFromDatabase(query, params, streamId, partition)
     }
 
-    async _getBucketsFromDatabase(query, params, streamId, partition) {
-        const buckets = []
+    async _getBucketsFromDatabase(query: string, params: any, streamId: string, partition: number) {
+        const buckets: Bucket[] = []
 
         try {
             const resultSet = await this.cassandraClient.execute(query, params, {
@@ -288,15 +309,15 @@ class BucketManager {
     }
 
     stop() {
-        clearInterval(this._checkFullBucketsTimeout)
-        clearInterval(this._storeBucketsTimeout)
+        clearInterval(this._checkFullBucketsTimeout!)
+        clearInterval(this._storeBucketsTimeout!)
     }
 
     async _storeBuckets() {
         // for non-existing buckets UPDATE works as INSERT
         const UPDATE_BUCKET = 'UPDATE bucket SET size = ?, records = ?, id = ? WHERE stream_id = ? AND partition = ? AND date_create = ?'
 
-        const notStoredBuckets = Object.values(this.buckets).filter((bucket) => !bucket.isStored())
+        const notStoredBuckets = Object.values(this.buckets).filter((bucket: Bucket) => !bucket.isStored())
 
         const results = await Promise.allSettled(notStoredBuckets.map(async (bucket) => {
             const {
@@ -313,7 +334,7 @@ class BucketManager {
             }
         }))
 
-        results.forEach((result) => {
+        results.forEach((result: Todo) => {
             if (result.status === 'fulfilled') {
                 const { bucket: storedBucket, records } = result.value
 
@@ -327,13 +348,14 @@ class BucketManager {
             }
         })
 
-        const bucketsToRemove = Object.values(this.buckets).filter((bucket) => bucket.isStored() && !bucket.isAlive())
-        bucketsToRemove.forEach((bucket) => this._removeBucket(bucket.getId(), bucket.streamId, bucket.partition))
+        const bucketsToRemove = Object.values(this.buckets).filter((bucket: Bucket) => bucket.isStored() && !bucket.isAlive())
+        // @ts-expect-error
+        bucketsToRemove.forEach((bucket: Bucket) => this._removeBucket(bucket.getId(), bucket.streamId, bucket.partition))
 
         this._storeBucketsTimeout = setTimeout(() => this._storeBuckets(), this.opts.storeBucketsTimeout)
     }
 
-    _removeBucket(bucketId, streamId, partition) {
+    _removeBucket(bucketId: BucketId, streamId: string, partition: number) {
         delete this.buckets[bucketId]
 
         const key = toKey(streamId, partition)
@@ -349,11 +371,9 @@ class BucketManager {
 
             // after removing we need to rebuild heap
             stream.buckets = instantiateNewHeap()
-            currentBuckets.forEach((bucket) => {
+            currentBuckets.forEach((bucket: Bucket) => {
                 stream.buckets.push(bucket)
             })
         }
     }
 }
-
-module.exports = BucketManager

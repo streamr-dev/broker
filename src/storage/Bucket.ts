@@ -1,7 +1,25 @@
-const getLogger = require('../helpers/logger')
+import { Logger } from 'pino'
+import getLogger from '../helpers/logger'
 
-class Bucket {
-    constructor(id, streamId, partition, size, records, dateCreate, maxSize, maxRecords, keepAliveSeconds) {
+export type BucketId = string
+
+export class Bucket {
+
+    id: BucketId
+    streamId: string
+    partition: number|string
+    size: number|string
+    records: number|string
+    dateCreate: Date
+    _maxSize: number|string
+    _maxRecords: number|string
+    _keepAliveSeconds: number|string
+    ttl: Date
+    _stored: boolean
+    logger: Logger
+
+    // TODO these "number|string" types should be just "number" (do the conversion outside constructor)
+    constructor(id: BucketId, streamId: string, partition: number|string, size: number|string, records: number|string, dateCreate: Date, maxSize: number|string, maxRecords: number|string, keepAliveSeconds: number|string) {
         if (!id || !id.length) {
             throw new TypeError('id must be not empty string')
         }
@@ -10,15 +28,15 @@ class Bucket {
             throw new TypeError('streamId must be not empty string')
         }
 
-        if (!Number.isInteger(partition) || parseInt(partition) < 0) {
+        if (!Number.isInteger(partition) || parseInt(partition as string) < 0) {
             throw new TypeError('partition must be >= 0')
         }
 
-        if (!Number.isInteger(size) || parseInt(size) < 0) {
+        if (!Number.isInteger(size) || parseInt(size as string) < 0) {
             throw new TypeError('size must be => 0')
         }
 
-        if (!Number.isInteger(records) || parseInt(records) < 0) {
+        if (!Number.isInteger(records) || parseInt(records as string) < 0) {
             throw new TypeError('records must be => 0')
         }
 
@@ -26,15 +44,15 @@ class Bucket {
             throw new TypeError('dateCreate must be instance of Date')
         }
 
-        if (!Number.isInteger(maxSize) || parseInt(maxSize) <= 0) {
+        if (!Number.isInteger(maxSize) || parseInt(maxSize as string) <= 0) {
             throw new TypeError('maxSize must be > 0')
         }
 
-        if (!Number.isInteger(maxRecords) || parseInt(maxRecords) <= 0) {
+        if (!Number.isInteger(maxRecords) || parseInt(maxRecords as string) <= 0) {
             throw new TypeError('maxRecords must be > 0')
         }
 
-        if (!Number.isInteger(keepAliveSeconds) || parseInt(keepAliveSeconds) <= 0) {
+        if (!Number.isInteger(keepAliveSeconds) || parseInt(keepAliveSeconds as string) <= 0) {
             throw new Error('keepAliveSeconds must be > 0')
         }
 
@@ -66,7 +84,9 @@ class Bucket {
     }
 
     _checkSize(percentDeduction = 0) {
+        // @ts-expect-error
         const maxPercentSize = (this._maxSize * (100 - percentDeduction)) / 100
+        // @ts-expect-error
         const maxRecords = (this._maxRecords * (100 - percentDeduction)) / 100
         this.logger.debug(`_checkSize: ${this.size >= maxPercentSize || this.records >= maxRecords} => ${this.size} >= ${maxPercentSize} || ${this.records} >= ${maxRecords}`)
 
@@ -81,8 +101,10 @@ class Bucket {
         return this.id
     }
 
-    incrementBucket(size) {
+    incrementBucket(size: number) {
+        // @ts-expect-error
         this.size += size
+        // @ts-expect-error
         this.records += 1
 
         this.logger.debug(`incremented bucket => size: ${this.size}, records: ${this.records}`)
@@ -93,6 +115,7 @@ class Bucket {
 
     _updateTTL() {
         this.ttl = new Date()
+        // @ts-expect-error
         this.ttl.setSeconds(this.ttl.getSeconds() + this._keepAliveSeconds)
         this.logger.debug(`new ttl: ${this.ttl}`)
     }
@@ -103,5 +126,3 @@ class Bucket {
         return this.ttl >= new Date()
     }
 }
-
-module.exports = Bucket
