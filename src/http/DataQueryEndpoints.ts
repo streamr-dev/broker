@@ -11,8 +11,8 @@ import authenticationMiddleware from './RequestAuthenticatorMiddleware'
 const logger = getLogger('streamr:http:DataQueryEndpoints')
 
 // TODO: move this to protocol-js
-const MIN_SEQUENCE_NUMBER_VALUE = 0
-const MAX_SEQUENCE_NUMBER_VALUE = 2147483647
+export const MIN_SEQUENCE_NUMBER_VALUE = 0
+export const MAX_SEQUENCE_NUMBER_VALUE = 2147483647
 
 const onStarted = (res: Response) => {
     res.writeHead(200, {
