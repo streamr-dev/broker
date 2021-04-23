@@ -203,11 +203,10 @@ export class Storage extends EventEmitter {
             return this._fetchFromMessageRefForPublisher(streamId, partition, fromTimestamp,
                 fromSequenceNo, publisherId, msgChainId)
         } 
-        if ((fromSequenceNo === 0) && publisherId == null && msgChainId == null) {
+        if (publisherId == null && msgChainId == null) { // TODO should add fromSequenceNo to this call (NET-268)
             return this._fetchFromTimestamp(streamId, partition, fromTimestamp)
         }
 
-        // TODO is it invalid combination if (fromSequenceNo !== 0) && (publisherId == null) && (msgChainId == null)?
         throw new Error('Invalid combination of requestFrom arguments')
     }
 
@@ -219,12 +218,10 @@ export class Storage extends EventEmitter {
             return this._fetchBetweenMessageRefsForPublisher(streamId, partition, fromTimestamp,
                 fromSequenceNo, toTimestamp, toSequenceNo, publisherId, msgChainId)
         }
-        if ((fromSequenceNo === 0) && (toSequenceNo === 0)
-            && publisherId == null && msgChainId == null) {
-            return this._fetchBetweenTimestamps(streamId, partition, fromTimestamp, toTimestamp)
+        if (publisherId == null && msgChainId == null) {  
+            return this._fetchBetweenTimestamps(streamId, partition, fromTimestamp, toTimestamp) // TODO should add fromSequenceNo and toSequenceNo to this call (NET-268)
         }
 
-        // TODO is it invalid combination if ((fromSequenceNo !== 0) || (toSequenceNo !== 0)) && (publisherId == null) && (msgChainId == null)?
         throw new Error('Invalid combination of requestFrom arguments')
     }
 
