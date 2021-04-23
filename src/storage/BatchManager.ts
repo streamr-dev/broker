@@ -16,15 +16,24 @@ const INSERT_STATEMENT_WITH_TTL = 'INSERT INTO stream_data '
     + '(stream_id, partition, bucket_id, ts, sequence_no, publisher_id, msg_chain_id, payload) '
     + 'VALUES (?, ?, ?, ?, ?, ?, ?, ?) USING TTL 259200' // 3 days
 
+export interface BatchManagerOptions {
+    useTtl: boolean
+    logErrors: boolean
+    batchMaxSize: number
+    batchMaxRecords: number
+    batchCloseTimeout: number
+    batchMaxRetries: number
+}
+
 export class BatchManager extends EventEmitter {
 
-    opts: Todo
+    opts: BatchManagerOptions
     batches: Record<BucketId,Batch>
     pendingBatches: Record<BatchId,Batch>
     cassandraClient: Client
     insertStatement: string
 
-    constructor(cassandraClient: Client, opts = {}) {
+    constructor(cassandraClient: Client, opts: Partial<BatchManagerOptions> = {}) {
         super()
 
         const defaultOptions = {
