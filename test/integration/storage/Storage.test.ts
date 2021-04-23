@@ -101,20 +101,19 @@ describe('Storage', () => {
         })
 
         test('requestFrom not throwing exception if no buckets found', async () => {
-            const a = storage.requestFrom(streamId, 777, 1)
+            const a = storage.requestFrom(streamId, 777, 1, 0, null, null)
             const resultsB = await toArray(a)
             expect(resultsB).toEqual([])
         })
 
         test('requestRange not throwing exception if no buckets found', async () => {
-            // @ts-expect-error
-            const a = storage.requestRange(streamId, 777, null, null, null, null, null, null)
+            const a = storage.requestRange(streamId, 777, 0, 0, Number.MAX_VALUE, 0, null, null)
             const resultsB = await toArray(a)
             expect(resultsB).toEqual([])
         })
 
         test('requestFrom not throwing exception if timestamp is zero', async () => {
-            const a = storage.requestFrom(streamId, 0, 0)
+            const a = storage.requestFrom(streamId, 0, 0, 0, null, null)
             const resultsA = await toArray(a)
             expect(resultsA).toEqual([])
         })
@@ -198,7 +197,7 @@ describe('Storage', () => {
                 storage.store(buildMsg(`${streamId}-wrong`, 10, 8000, 0)),
             ])
 
-            const streamingResults = storage.requestFrom(streamId, 10, 3000)
+            const streamingResults = storage.requestFrom(streamId, 10, 3000, 0, null, null)
             const results = await toArray(streamingResults)
 
             expect(results).toEqual([msg1, msg2, msg3, msg4, msg5])
@@ -252,7 +251,7 @@ describe('Storage', () => {
                 storage.store(buildMsg(`${streamId}-wrong`, 10, 3000, 0)),
             ])
 
-            const streamingResults = storage.requestRange(streamId, 10, 1500, undefined, 3500, undefined)
+            const streamingResults = storage.requestRange(streamId, 10, 1500, 0, 3500, 0, null, null)
             const results = await toArray(streamingResults)
 
             expect(results).toEqual([msg1, msg2, msg3, msg4, msg5])
@@ -261,7 +260,7 @@ describe('Storage', () => {
         test('only one message', async () => {
             const msg = buildMsg(streamId, 10, 2000, 0)
             await storage.store(msg)
-            const streamingResults = storage.requestRange(streamId, 10, 1500, undefined, 3500, undefined)
+            const streamingResults = storage.requestRange(streamId, 10, 1500, 0, 3500, 0, null, null)
             const results = await toArray(streamingResults)
             expect(results).toEqual([msg])
         })
@@ -298,17 +297,17 @@ describe('Storage', () => {
         await storeMockMessages(streamId, 777, 123000000, 456000000, messageCount, storage)
 
         // get all
-        const streamingResults1 = storage.requestRange(streamId, 777, 100000000, undefined, 555000000, undefined)
+        const streamingResults1 = storage.requestRange(streamId, 777, 100000000, 0, 555000000, 0, null, null)
         const results1 = await toArray(streamingResults1)
         expect(results1.length).toEqual(messageCount)
 
         // no messages in range (ignorable messages before range)
-        const streamingResults2 = storage.requestRange(streamId, 777, 460000000, undefined, 470000000, undefined)
+        const streamingResults2 = storage.requestRange(streamId, 777, 460000000, 0, 470000000, 0, null, null)
         const results2 = await toArray(streamingResults2)
         expect(results2).toEqual([])
 
         // no messages in range (ignorable messages after range)
-        const streamingResults3 = storage.requestRange(streamId, 777, 100000000, undefined, 110000000, undefined)
+        const streamingResults3 = storage.requestRange(streamId, 777, 100000000, 0, 110000000, 0, null, null)
         const results3 = await toArray(streamingResults3)
         expect(results3).toEqual([])
     }, 20000)
@@ -326,7 +325,7 @@ describe('Storage', () => {
         const results1 = await toArray(streamingResults1)
         expect(results1.length).toEqual(1000)
 
-        const streamingResults2 = storage.requestFrom(streamId, 0, 1000)
+        const streamingResults2 = storage.requestFrom(streamId, 0, 1000, 0, null, null)
         const results2 = await toArray(streamingResults2)
         expect(results2.length).toEqual(1000)
 

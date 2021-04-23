@@ -3,7 +3,6 @@ import { Logger } from 'pino'
 import { Protocol } from 'streamr-network'
 import { v4 as uuidv4 } from 'uuid'
 import getLogger from '../helpers/logger'
-import { Todo } from '../types'
 import { BucketId } from './Bucket'
 
 export type BatchId = string
@@ -33,28 +32,27 @@ export class Batch extends EventEmitter {
     _maxSize: number
     _maxRecords: number
     _maxRetries : number
-    _closeTimeout: number|string
+    _closeTimeout: number
     _timeout: NodeJS.Timeout
 
-    // TODO these "number|string" types should be just "number" (do the conversion outside constructor)
-    constructor(bucketId: BucketId, maxSize: number|string, maxRecords: number|string, closeTimeout: number|string, maxRetries: number|string) {
+    constructor(bucketId: BucketId, maxSize: number, maxRecords: number, closeTimeout: number, maxRetries: number) {
         if (!bucketId || !bucketId.length) {
             throw new TypeError('bucketId must be not empty string')
         }
 
-        if (!Number.isInteger(maxSize) || parseInt(maxSize as string) <= 0) {
+        if (maxSize <= 0) {
             throw new TypeError('maxSize must be > 0')
         }
 
-        if (!Number.isInteger(maxRecords) || parseInt(maxRecords as string) <= 0) {
+        if (maxRecords <= 0) {
             throw new TypeError('maxRecords must be > 0')
         }
 
-        if (!Number.isInteger(closeTimeout) || parseInt(closeTimeout as string) <= 0) {
+        if (closeTimeout <= 0) {
             throw new TypeError('closeTimeout must be > 0')
         }
 
-        if (!Number.isInteger(maxRetries) || parseInt(maxRetries as string) <= 0) {
+        if (maxRetries <= 0) {
             throw new TypeError('maxRetries must be > 0')
         }
 
@@ -71,18 +69,14 @@ export class Batch extends EventEmitter {
 
         this.logger = getLogger(`streamr:storage:batch:${this.getId()}`)
 
-        // @ts-expect-error
         this._maxSize = maxSize
-        // @ts-expect-error
         this._maxRecords = maxRecords
-        // @ts-expect-error
         this._maxRetries = maxRetries
         this._closeTimeout = closeTimeout
 
         this._timeout = setTimeout(() => {
             this.logger.debug('lock timeout')
             this.lock()
-        // @ts-expect-error
         }, this._closeTimeout)
 
         this.logger.debug('init new batch')
@@ -114,7 +108,6 @@ export class Batch extends EventEmitter {
                 this.retries += 1
             }
             this._setState(Batch.states.PENDING)
-        // @ts-expect-error
         }, this._closeTimeout * this.retries)
     }
 
