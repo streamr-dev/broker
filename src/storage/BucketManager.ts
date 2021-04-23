@@ -17,6 +17,15 @@ interface StreamPartState {
     minTimestamp?: number
 }
 
+export interface BucketManagerOptions {
+    logErrors: boolean,
+    checkFullBucketsTimeout: number,
+    storeBucketsTimeout: number
+    maxBucketSize: number
+    maxBucketRecords: number
+    bucketKeepAliveSeconds: number
+}
+
 const toKey = (streamId: string, partition: number): StreamPartKey => `${streamId}-${partition}`
 
 const instantiateNewHeap = () => new Heap((a: Bucket, b: Bucket) => {
@@ -26,14 +35,14 @@ const instantiateNewHeap = () => new Heap((a: Bucket, b: Bucket) => {
 
 export class BucketManager {
 
-    opts: Todo
+    opts: BucketManagerOptions
     streams: Record<StreamPartKey,StreamPartState>
     buckets: Record<BucketId,Bucket>
     cassandraClient: Client
     _checkFullBucketsTimeout?: NodeJS.Timeout
     _storeBucketsTimeout?: NodeJS.Timeout
 
-    constructor(cassandraClient: Client, opts = {}) {
+    constructor(cassandraClient: Client, opts: Partial<BucketManagerOptions> = {}) {
         const defaultOptions = {
             logErrors: true,
             checkFullBucketsTimeout: 1000,
@@ -349,7 +358,6 @@ export class BucketManager {
         })
 
         const bucketsToRemove = Object.values(this.buckets).filter((bucket: Bucket) => bucket.isStored() && !bucket.isAlive())
-        // @ts-expect-error
         bucketsToRemove.forEach((bucket: Bucket) => this._removeBucket(bucket.getId(), bucket.streamId, bucket.partition))
 
         this._storeBucketsTimeout = setTimeout(() => this._storeBuckets(), this.opts.storeBucketsTimeout)
