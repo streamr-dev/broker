@@ -195,6 +195,7 @@ export class Storage extends EventEmitter {
     }
 
     requestFrom(streamId: string, partition: number, fromTimestamp: number, fromSequenceNo: number, publisherId: string|null, msgChainId: string|null): Readable {
+        //TODO: msgChainId is always null, remove on NET-143
         logger.debug(`requestFrom, streamId: "${streamId}", partition: "${partition}", fromTimestamp: "${fromTimestamp}", fromSequenceNo: `
             + `"${fromSequenceNo}", publisherId: "${publisherId}", msgChainId: "${msgChainId}"`)
 
