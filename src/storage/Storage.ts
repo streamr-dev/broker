@@ -1,7 +1,7 @@
 import { auth, Client, tracker } from 'cassandra-driver'
 import { MetricsContext } from 'streamr-network'
 import { BatchManager } from './BatchManager'
-import { Transform } from 'stream'
+import { Readable, Transform } from 'stream'
 import { EventEmitter } from 'events'
 import pump from 'pump'
 import { v1 as uuidv1 } from 'uuid'
@@ -99,7 +99,7 @@ export class Storage extends EventEmitter {
         })
     }
 
-    requestLast(streamId: string, partition: number, limit: number) {
+    requestLast(streamId: string, partition: number, limit: number): Readable {
         if (limit > MAX_RESEND_LAST) {
             // eslint-disable-next-line no-param-reassign
             limit = MAX_RESEND_LAST
@@ -194,36 +194,36 @@ export class Storage extends EventEmitter {
         return resultStream
     }
 
-    // TODO do we need to support both nulls and undefined?
-    requestFrom(streamId: string, partition: number, fromTimestamp: number, fromSequenceNo?: number|null, publisherId?: string|null, msgChainId?: string|null) {
+    requestFrom(streamId: string, partition: number, fromTimestamp: number, fromSequenceNo: number, publisherId: string|null, msgChainId: string|null): Readable {
         logger.debug(`requestFrom, streamId: "${streamId}", partition: "${partition}", fromTimestamp: "${fromTimestamp}", fromSequenceNo: `
             + `"${fromSequenceNo}", publisherId: "${publisherId}", msgChainId: "${msgChainId}"`)
 
-        if (fromSequenceNo != null && publisherId != null && msgChainId != null) {
+        if (publisherId != null && msgChainId != null) {
             return this._fetchFromMessageRefForPublisher(streamId, partition, fromTimestamp,
                 fromSequenceNo, publisherId, msgChainId)
-        }
-        if ((fromSequenceNo == null || fromSequenceNo === 0) && publisherId == null && msgChainId == null) {
+        } 
+        if ((fromSequenceNo === 0) && publisherId == null && msgChainId == null) {
             return this._fetchFromTimestamp(streamId, partition, fromTimestamp)
         }
 
+        // TODO is it invalid combination if (fromSequenceNo !== 0) && (publisherId == null) && (msgChainId == null)?
         throw new Error('Invalid combination of requestFrom arguments')
     }
 
-    // TODO do we need to support both nulls and undefined?
-    requestRange(streamId: string, partition: number, fromTimestamp: number, fromSequenceNo: number|null|undefined, toTimestamp: number, toSequenceNo: number|null|undefined, publisherId?: string|null, msgChainId?: string|null) {
+    requestRange(streamId: string, partition: number, fromTimestamp: number, fromSequenceNo: number, toTimestamp: number, toSequenceNo: number, publisherId: string|null, msgChainId: string|null): Readable {
         logger.debug(`requestRange, streamId: "${streamId}", partition: "${partition}", fromTimestamp: "${fromTimestamp}", fromSequenceNo: "${fromSequenceNo}"`
             + `, toTimestamp: "${toTimestamp}", toSequenceNo: "${toSequenceNo}", publisherId: "${publisherId}", msgChainId: "${msgChainId}"`)
 
-        if (fromSequenceNo != null && toSequenceNo != null && publisherId != null && msgChainId != null) {
+        if (publisherId != null && msgChainId != null) {
             return this._fetchBetweenMessageRefsForPublisher(streamId, partition, fromTimestamp,
                 fromSequenceNo, toTimestamp, toSequenceNo, publisherId, msgChainId)
         }
-        if ((fromSequenceNo == null || fromSequenceNo === 0) && (toSequenceNo == null || toSequenceNo === 0)
+        if ((fromSequenceNo === 0) && (toSequenceNo === 0)
             && publisherId == null && msgChainId == null) {
             return this._fetchBetweenTimestamps(streamId, partition, fromTimestamp, toTimestamp)
         }
 
+        // TODO is it invalid combination if ((fromSequenceNo !== 0) || (toSequenceNo !== 0)) && (publisherId == null) && (msgChainId == null)?
         throw new Error('Invalid combination of requestFrom arguments')
     }
 
