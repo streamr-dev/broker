@@ -1,7 +1,7 @@
 const cassandra = require('cassandra-driver')
 const { TimeUuid } = require('cassandra-driver').types
 
-const DeleteExpiredCmd = require('../../../src/storage/DeleteExpiredCmd')
+const { DeleteExpiredCmd } = require('../../../src/storage/DeleteExpiredCmd')
 const { createMockUser, createClient, STREAMR_DOCKER_DEV_HOST } = require('../../utils')
 
 const contactPoints = [STREAMR_DOCKER_DEV_HOST]

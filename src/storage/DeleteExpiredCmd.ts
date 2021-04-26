@@ -1,14 +1,24 @@
-const cassandra = require('cassandra-driver')
-const fetch = require('node-fetch')
-const pLimit = require('p-limit')
+import cassandra, { Client } from 'cassandra-driver'
+import fetch from 'node-fetch'
+import pLimit, { Limit } from 'p-limit'
+import getLogger from '../helpers/logger'
+import { Todo } from '../types'
+import { Bucket } from './Bucket'
 
-const logger = require('../helpers/logger')('streamr:DeleteExpiredCmd')
+const logger = getLogger('streamr:DeleteExpiredCmd')
 
-const totalSizeOfBuckets = (buckets) => buckets.reduce((mem, { size }) => mem + size, 0) / (1024 * 1024)
+const totalSizeOfBuckets = (buckets: Bucket[]) => buckets.reduce((mem, { size }) => mem + size, 0) / (1024 * 1024)
 
-const totalNumOfRecords = (buckets) => buckets.reduce((mem, { records }) => mem + records, 0)
+const totalNumOfRecords = (buckets: Bucket[]) => buckets.reduce((mem, { records }) => mem + records, 0)
 
-class DeleteExpiredCmd {
+export class DeleteExpiredCmd {
+
+    streamrBaseUrl: string
+    dryRun: boolean
+    bucketLimit: number
+    cassandraClient: Client
+    limit: Limit
+
     constructor({
         streamrBaseUrl,
         cassandraUsername,
@@ -18,7 +28,7 @@ class DeleteExpiredCmd {
         cassandraKeyspace,
         bucketLimit,
         dryRun = true
-    }) {
+    }: Todo) {
         this.streamrBaseUrl = streamrBaseUrl
         this.dryRun = dryRun
         this.bucketLimit = bucketLimit || 10000000
@@ -70,8 +80,8 @@ class DeleteExpiredCmd {
         }))
     }
 
-    async _fetchStreamsInfo(streams) {
-        const tasks = streams.filter(Boolean).map((stream) => {
+    async _fetchStreamsInfo(streams: Todo) {
+        const tasks = streams.filter(Boolean).map((stream: Todo) => {
             return this.limit(async () => {
                 const url = `${this.streamrBaseUrl}/api/v1/streams/${encodeURIComponent(stream.streamId)}/validation`
                 return fetch(url).then((res) => res.json()).then((json) => {
@@ -87,12 +97,12 @@ class DeleteExpiredCmd {
         return Promise.all(tasks)
     }
 
-    async _getPotentiallyExpiredBuckets(streamsInfo) {
-        const result = []
+    async _getPotentiallyExpiredBuckets(streamsInfo: Todo) {
+        const result: Todo[] = []
 
         const query = 'SELECT * FROM bucket WHERE stream_id = ? AND partition = ? AND date_create <= ?'
 
-        const tasks = streamsInfo.filter(Boolean).map((stream) => {
+        const tasks = streamsInfo.filter(Boolean).map((stream: Todo) => {
             const { streamId, partition, storageDays } = stream
             const timestampBefore = Date.now() - 1000 * 60 * 60 * 24 * storageDays
             const params = [streamId, partition, timestampBefore]
@@ -103,7 +113,7 @@ class DeleteExpiredCmd {
                 }).catch((err) => logger.error(err))
 
                 if (resultSet) {
-                    resultSet.rows.forEach((row) => {
+                    resultSet.rows.forEach((row: Todo) => {
                         result.push({
                             bucketId: row.id,
                             dateCreate: row.date_create,
@@ -122,12 +132,12 @@ class DeleteExpiredCmd {
         return result
     }
 
-    async _filterExpiredBuckets(potentialBuckets) {
-        const result = []
+    async _filterExpiredBuckets(potentialBuckets: Todo) {
+        const result: Todo[] = []
 
         const query = 'SELECT MAX(ts) AS m FROM stream_data WHERE stream_id = ? AND partition = ? AND bucket_id = ?'
 
-        const tasks = potentialBuckets.filter(Boolean).map((bucket) => {
+        const tasks = potentialBuckets.filter(Boolean).map((bucket: Todo) => {
             const { streamId, partition, bucketId, storageDays } = bucket
             const timestampBefore = Date.now() - 1000 * 60 * 60 * 24 * storageDays
             const params = [streamId, partition, bucketId]
@@ -150,7 +160,7 @@ class DeleteExpiredCmd {
         return result
     }
 
-    async _deleteExpired(expiredBuckets) {
+    async _deleteExpired(expiredBuckets: Todo[]) {
         const tasks = expiredBuckets.filter(Boolean).map((stream) => {
             const { bucketId, dateCreate, streamId, partition } = stream
             const queries = [
@@ -176,5 +186,3 @@ class DeleteExpiredCmd {
         return Promise.all(tasks)
     }
 }
-
-module.exports = DeleteExpiredCmd
