@@ -1,14 +1,14 @@
-const express = require('express')
+import express, { Request, Response } from 'express'
 
-module.exports = (cassandraStorage) => {
+export const router = (cassandraStorage: Storage) => {
     const router = express.Router()
     let handler
     if (!cassandraStorage) {
-        handler = async (req, res) => {
+        handler = async (req: Request, res: Response) => {
             return res.status(501).send('Not a storage node.')
         }
     } else {
-        handler = async (req, res) => {
+        handler = async (req: Request, res: Response) => {
             const streamId = req.params.id
             const partition = req.params.partition || 0
 

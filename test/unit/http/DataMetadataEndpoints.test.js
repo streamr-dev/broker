@@ -1,7 +1,7 @@
 const express = require('express')
 const request = require('supertest')
 
-const dataMetadataEndpoint = require('../../../src/http/DataMetadataEndpoints')
+const { router } = require('../../../src/http/DataMetadataEndpoints')
 
 describe('DataMetadataEndpoints', () => {
     let app
@@ -15,7 +15,7 @@ describe('DataMetadataEndpoints', () => {
 
     it('should fail testGetRequest on uninitialized Cassandra broker', async () => {
         app = express()
-        app.use('/api/v1', dataMetadataEndpoint())
+        app.use('/api/v1', router())
 
         await testGetRequest('/api/v1/streams/0/metadata/partitions/0')
             .expect(501)

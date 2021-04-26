@@ -1,11 +1,14 @@
-const { HttpError } = require('../errors/HttpError')
-const logger = require('../helpers/logger')('streamr:http:RequestAuthenticatorMiddleware')
+import { Todo } from '../types'
+import { HttpError } from '../errors/HttpError'
+import getLogger from '../helpers/logger'
+import { StreamFetcher } from '../StreamFetcher'
+
+const logger = getLogger('streamr:http:RequestAuthenticatorMiddleware')
 
 /**
  * Middleware used to authenticate REST API requests
  */
-module.exports = (streamFetcher, permission = 'stream_subscribe') => (req, res, next) => {
-    let authKey
+export const authenticator = (streamFetcher: StreamFetcher, permission = 'stream_subscribe') => (req: Todo, res: Todo, next: Todo) => {
     let sessionToken
 
     // Try to parse authorization header if defined
@@ -26,11 +29,11 @@ module.exports = (streamFetcher, permission = 'stream_subscribe') => (req, res, 
     }
 
     streamFetcher.authenticate(req.params.id, sessionToken, permission)
-        .then((streamJson) => {
+        .then((streamJson: Todo) => {
             req.stream = streamJson
             next()
         })
-        .catch((err) => {
+        .catch((err: Todo) => {
             let errorMsg
             if (err instanceof HttpError && err.code === 403) {
                 errorMsg = 'Authentication failed.'

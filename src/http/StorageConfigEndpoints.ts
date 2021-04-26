@@ -1,7 +1,9 @@
-const express = require('express')
+import express, { Request, Response } from 'express'
+import { StorageConfig } from '../storage/StorageConfig'
+import { Todo } from '../types'
 
-const createHandler = (storageConfig) => {
-    return (req, res) => {
+const createHandler = (storageConfig: StorageConfig) => {
+    return (req: Request, res: Response) => {
         const { id, partition } = req.params
         const isValidPartition = !Number.isNaN(parseInt(partition))
         if (isValidPartition) {
@@ -20,9 +22,9 @@ const createHandler = (storageConfig) => {
     }
 }
 
-module.exports = (storageConfig) => {
+export const router = (storageConfig: StorageConfig) => {
     const router = express.Router()
-    const handler = (storageConfig !== null) ? createHandler(storageConfig) : (_, res) => res.status(501).send('Not a storage node')
+    const handler = (storageConfig !== null) ? createHandler(storageConfig) : (_: Todo, res: Todo) => res.status(501).send('Not a storage node')
     router.get('/streams/:id/storage/partitions/:partition', handler)
     return router
 }

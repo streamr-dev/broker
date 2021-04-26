@@ -1,17 +1,20 @@
-const express = require('express')
-const bodyParser = require('body-parser')
-const { Protocol } = require('streamr-network')
+import express from 'express'
+import bodyParser from 'body-parser'
+import { Protocol } from 'streamr-network'
+import getLogger from '../helpers/logger'
+import { FailedToPublishError } from '../errors/FailedToPublishError'
+import { partition } from '../helpers/partition'
+import { authenticator } from './RequestAuthenticatorMiddleware'
+import { StreamFetcher } from '../StreamFetcher'
+import { Publisher } from '../Publisher'
+import { Todo } from '../types'
+
+const logger = getLogger('streamr:http:DataProduceEndpoints')
 
 const { StreamMessage, MessageID, MessageRef } = Protocol.MessageLayer
 const { InvalidJsonError, ValidationError } = Protocol.Errors
 
-const logger = require('../helpers/logger')('streamr:http:DataProduceEndpoints')
-const { FailedToPublishError } = require('../errors/FailedToPublishError')
-const { partition } = require('../helpers/partition')
-
-const authenticationMiddleware = require('./RequestAuthenticatorMiddleware')
-
-function parsePositiveInteger(n) {
+function parsePositiveInteger(n: string) {
     const parsed = parseInt(n)
     if (!Number.isInteger(parsed) || parsed < 0) {
         throw new Error(`${n} is not a valid positive integer`)
@@ -19,7 +22,7 @@ function parsePositiveInteger(n) {
     return parsed
 }
 
-function parseTimestamp(millisOrString) {
+function parseTimestamp(millisOrString: number|string) {
     if (typeof millisOrString === 'number') {
         return millisOrString
     }
@@ -39,7 +42,7 @@ function parseTimestamp(millisOrString) {
 /**
  * Endpoint for POSTing data to streams
  */
-module.exports = (streamFetcher, publisher, partitionFn = partition) => {
+export const router = (streamFetcher: StreamFetcher, publisher: Publisher, partitionFn = partition) => {
     if (!streamFetcher) {
         throw new Error('No StreamFetcher given! Must use: new StreamrDataApi(streamrUrl)')
     }
@@ -57,9 +60,9 @@ module.exports = (streamFetcher, publisher, partitionFn = partition) => {
             type() { return true },
         }),
         // Check write permission using middleware, writes req.stream
-        authenticationMiddleware(streamFetcher, 'stream_publish'),
+        authenticator(streamFetcher, 'stream_publish'),
         // Produce request handler
-        async (req, res) => {
+        async (req: Todo, res: Todo) => {
             // Validate body
             if (!req.body || !req.body.length) {
                 const errMsg = 'No request body or invalid request body.'

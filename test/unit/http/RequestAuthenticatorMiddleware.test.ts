@@ -1,16 +1,18 @@
+import { Todo } from '../../types'
+
 const assert = require('assert')
 
 const sinon = require('sinon')
 
-const authenticationMiddleware = require('../../../src/http/RequestAuthenticatorMiddleware')
+const { authenticator } = require('../../../src/http/RequestAuthenticatorMiddleware')
 const { HttpError } = require('../../../src/errors/HttpError')
 
 describe('AuthenticationMiddleware', () => {
-    let request
-    let response
-    let next
-    let streamFetcherStub
-    let middlewareInstance
+    let request: Todo
+    let response: Todo
+    let next: Todo
+    let streamFetcherStub: Todo
+    let middlewareInstance: Todo
 
     beforeEach(() => {
         request = {
@@ -26,7 +28,7 @@ describe('AuthenticationMiddleware', () => {
         response.status.returns(response)
         next = sinon.spy()
         streamFetcherStub = {}
-        middlewareInstance = authenticationMiddleware(streamFetcherStub)
+        middlewareInstance = authenticator(streamFetcherStub)
     })
 
     describe('given no authorization token', () => {
@@ -85,7 +87,7 @@ describe('AuthenticationMiddleware', () => {
             streamFetcherStub.authenticate = sinon.stub()
             streamFetcherStub.authenticate.returns(Promise.resolve({}))
 
-            middlewareInstance = authenticationMiddleware(streamFetcherStub, 'stream_publish')
+            middlewareInstance = authenticator(streamFetcherStub, 'stream_publish')
             middlewareInstance(request, response, next)
 
             sinon.assert.calledOnce(streamFetcherStub.authenticate)
@@ -143,7 +145,7 @@ describe('AuthenticationMiddleware', () => {
 
         describe('given streamFetcher#authenticate authenticates successfully', () => {
             beforeEach(() => {
-                streamFetcherStub.authenticate = (streamId) => Promise.resolve({
+                streamFetcherStub.authenticate = (streamId: string) => Promise.resolve({
                     id: streamId,
                     partitions: 5,
                     name: 'my stream',

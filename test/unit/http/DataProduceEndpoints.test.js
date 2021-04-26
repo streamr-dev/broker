@@ -3,7 +3,7 @@ const express = require('express')
 const request = require('supertest')
 const { StreamMessage, MessageID, MessageRef } = require('streamr-network').Protocol.MessageLayer
 
-const router = require('../../../src/http/DataProduceEndpoints')
+const { router } = require('../../../src/http/DataProduceEndpoints')
 
 describe('DataProduceEndpoints', () => {
     const stream = {
