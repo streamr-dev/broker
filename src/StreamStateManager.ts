@@ -1,19 +1,28 @@
-const logger = require('./helpers/logger')('streamr:StreamStateManager')
-const Stream = require('./Stream')
+import { Stream } from './Stream'
+import getLogger from './helpers/logger'
+import { Todo } from './types'
 
-function getStreamLookupKey(streamId, streamPartition) {
+const logger = getLogger('streamr:StreamStateManager')
+
+function getStreamLookupKey(streamId: string, streamPartition: number) {
     return `${streamId}::${streamPartition}`
 }
 
-module.exports = class StreamStateManager {
-    constructor(msgHandler, gapHander) {
+export class StreamStateManager {
+
+    _streams: Record<string,Stream>
+    _timeouts: Record<string,NodeJS.Timeout>
+    msgHandler: Todo
+    gapHandler: Todo
+
+    constructor(msgHandler?: Todo, gapHander?: Todo) {
         this._streams = {}
         this._timeouts = {}
         this.msgHandler = msgHandler
         this.gapHandler = gapHander
     }
 
-    getOrCreate(streamId, streamPartition, name = '') {
+    getOrCreate(streamId: string, streamPartition: number, name = '') {
         const stream = this.get(streamId, streamPartition)
         if (stream) {
             return stream
@@ -21,11 +30,11 @@ module.exports = class StreamStateManager {
         return this.create(streamId, streamPartition, name)
     }
 
-    get(streamId, streamPartition) {
+    get(streamId: string, streamPartition: number) {
         return this._streams[getStreamLookupKey(streamId, streamPartition)]
     }
 
-    getByName(name) {
+    getByName(name: string) {
         const streamId = Object.keys(this._streams)
             .find((key) => { return this._streams[key].getName() === name })
         return streamId ? this._streams[streamId] : null
@@ -34,7 +43,7 @@ module.exports = class StreamStateManager {
     /**
      * Creates and returns a Stream object, holding the Stream subscription state.
      * */
-    create(streamId, streamPartition, name = '') {
+    create(streamId: string, streamPartition: number, name = '') {
         if (streamId == null || streamPartition == null) {
             throw new Error('streamId or streamPartition not given!')
         }
@@ -68,7 +77,7 @@ module.exports = class StreamStateManager {
         return stream
     }
 
-    delete(streamId, streamPartition) {
+    delete(streamId: string, streamPartition: number) {
         if (streamId == null || streamPartition == null) {
             throw new Error('streamId or streamPartition not given!')
         }
@@ -85,7 +94,7 @@ module.exports = class StreamStateManager {
     }
 
     close() {
-        Object.values(this._streams).forEach((stream) => {
+        Object.values(this._streams).forEach((stream: Stream) => {
             stream.clearOrderingUtil()
         })
         Object.values(this._timeouts).forEach((timeout) => {

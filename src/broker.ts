@@ -1,36 +1,36 @@
-const { startNetworkNode, startStorageNode, Protocol, MetricsContext } = require('streamr-network')
-const pino = require('pino')
-const StreamrClient = require('streamr-client')
-const publicIp = require('public-ip')
-const Sentry = require('@sentry/node')
-const ethers = require('ethers')
-
-const CURRENT_VERSION = require('../package.json').version
-
-const logger = require('./helpers/logger')('streamr:broker')
-const { StreamFetcher } = require('./StreamFetcher')
-const { startCassandraStorage } = require('./storage/Storage')
-const { Publisher } = require('./Publisher')
-const VolumeLogger = require('./VolumeLogger')
-const { SubscriptionManager } = require('./SubscriptionManager')
-const { MissingConfigError } = require('./errors/MissingConfigError')
-const adapterRegistry = require('./adapterRegistry')
-const { validateConfig } = require('./helpers/validateConfig')
-const { StorageConfig } = require('./storage/StorageConfig')
-
+import { startNetworkNode, startStorageNode, Protocol, MetricsContext } from 'streamr-network'
+import pino from 'pino'
+import StreamrClient from 'streamr-client'
+import publicIp from 'public-ip'
+import Sentry from '@sentry/node'
+import ethers, { Wallet } from 'ethers'
+import getLogger from './helpers/logger'
+import { StreamFetcher } from './StreamFetcher'
+import { startCassandraStorage } from './storage/Storage'
+import { Publisher } from './Publisher'
+import { VolumeLogger } from './VolumeLogger'
+import { SubscriptionManager } from './SubscriptionManager'
+import { MissingConfigError } from './errors/MissingConfigError'
+import { startAdapter } from './adapterRegistry'
+import { validateConfig } from './helpers/validateConfig'
+import { StorageConfig } from './storage/StorageConfig'
+import { version as CURRENT_VERSION } from '../package.json'
+import { Todo } from './types';
 const { Utils } = Protocol
 
-module.exports = async (config) => {
+const logger = getLogger('streamr:broker')
+
+export const startBroker = async (config: Todo) => {
     validateConfig(config)
 
     logger.info(`Starting broker version ${CURRENT_VERSION}`)
 
     const networkNodeName = config.network.name
     const metricsContext = new MetricsContext(networkNodeName)
-    const storages = []
+    const storages: Todo[] = []
 
     // Ethereum wallet retrieval
-    const wallet = new ethers.Wallet(config.ethereumPrivateKey)
+    const wallet = new Wallet(config.ethereumPrivateKey)
     if (!wallet) {
         throw new Error('Could not resolve Ethereum address from given config.ethereumPrivateKey')
     }
@@ -43,7 +43,7 @@ module.exports = async (config) => {
 
     const storageConfig = config.network.isStorageNode ? await createStorageConfig() : null
 
-    let cassandraStorage
+    let cassandraStorage: Todo
     // Start cassandra storage
     if (config.cassandra) {
         logger.info(`Starting Cassandra with hosts ${config.cassandra.hosts} and keyspace ${config.cassandra.keyspace}`)
@@ -56,7 +56,7 @@ module.exports = async (config) => {
             opts: {
                 useTtl: !config.network.isStorageNode
             },
-            storageConfig
+            storageConfig: storageConfig!
         })
         cassandraStorage.enableMetrics(metricsContext)
         storages.push(cassandraStorage)
@@ -88,6 +88,7 @@ module.exports = async (config) => {
         name: networkNodeName,
         trackers,
         storages,
+        // @ts-expect-error
         storageConfig,
         advertisedWsUrl,
         location: config.network.location,
@@ -105,6 +106,7 @@ module.exports = async (config) => {
         Sentry.init({
             dsn: config.reporting.sentry,
             integrations: [
+                // @ts-expect-error
                 new Sentry.Integrations.Console({
                     levels: ['error']
                 })
@@ -123,7 +125,7 @@ module.exports = async (config) => {
     }
 
     // Set up reporting to Streamr stream
-    let client
+    let client: StreamrClient|undefined
 
     const streamIds = {
         metricsStreamId: null,
@@ -141,13 +143,16 @@ module.exports = async (config) => {
             restUrl: config.reporting.perNodeMetrics ? (config.reporting.perNodeMetrics.httpUrl || undefined) : undefined
         })
 
-        const createMetricsStream = async (path) => {
+        const createMetricsStream = async (path: string) => {
+            // @ts-expect-error
             const metricsStream = await client.getOrCreateStream({
                 name: `Metrics ${path} for broker ${brokerAddress}`,
                 id: brokerAddress + path
             })
 
+            // @ts-expect-error
             await metricsStream.grantPermission('stream_get', null)
+            // @ts-expect-error
             await metricsStream.grantPermission('stream_subscribe', null)
             return metricsStream.id
         }
@@ -180,6 +185,7 @@ module.exports = async (config) => {
         config.reporting.intervalInSeconds,
         metricsContext,
         client,
+        // @ts-expect-error
         streamIds
     )
 
@@ -196,10 +202,12 @@ module.exports = async (config) => {
     const publisher = new Publisher(networkNode, streamMessageValidator, metricsContext)
     const subscriptionManager = new SubscriptionManager(networkNode)
 
+    // @ts-expect-error
     // Start up adapters one-by-one, storing their close functions for further use
     const closeAdapterFns = config.adapters.map(({ name, ...adapterConfig }, index) => {
         try {
-            return adapterRegistry.startAdapter(name, adapterConfig, {
+            // @ts-expect-error
+            return startAdapter(name, adapterConfig, {
                 networkNode,
                 publisher,
                 streamFetcher,
@@ -222,7 +230,7 @@ module.exports = async (config) => {
     logger.info(`Ethereum address ${brokerAddress}`)
     logger.info(`Configured with trackers: ${trackers.join(', ')}`)
     logger.info(`Configured with Streamr: ${config.streamrUrl}`)
-    logger.info(`Adapters: ${JSON.stringify(config.adapters.map((a) => a.name))}`)
+    logger.info(`Adapters: ${JSON.stringify(config.adapters.map((a: Todo) => a.name))}`)
     if (config.cassandra) {
         logger.info(`Configured with Cassandra: hosts=${config.cassandra.hosts} and keyspace=${config.cassandra.keyspace}`)
     }
@@ -235,7 +243,7 @@ module.exports = async (config) => {
         getStreams: () => networkNode.getStreams(),
         close: () => Promise.all([
             networkNode.stop(),
-            ...closeAdapterFns.map((close) => close()),
+            ...closeAdapterFns.map((close: Todo) => close()),
             ...storages.map((storage) => storage.close()),
             volumeLogger.close(),
             (storageConfig !== null) ? storageConfig.cleanup() : undefined

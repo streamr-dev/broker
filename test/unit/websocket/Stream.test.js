@@ -1,6 +1,6 @@
 const assert = require('assert')
 
-const Stream = require('../../../src/Stream')
+const { Stream } = require('../../../src/Stream')
 
 describe('Stream', () => {
     it('addConnection adds connections', () => {

@@ -1,24 +1,34 @@
-const { Utils } = require('streamr-network').Protocol
+import { Protocol } from 'streamr-network'
+import getLogger from './helpers/logger'
+import { Todo } from './types'
 
-const logger = require('./helpers/logger')('streamr:Stream')
+const logger = getLogger('streamr:Stream')
 
-module.exports = class Stream {
-    constructor(id, partition, name, msgHandler, gapHandler) {
+export class Stream {
+
+    id: Todo
+    name: Todo
+    partition: Todo
+    state: Todo
+    connections: Todo
+    orderingUtil: Todo
+
+    constructor(id: string, partition: number, name: string, msgHandler: Todo, gapHandler: Todo) {
         this.id = id
         this.name = name
         this.partition = partition
         this.state = 'init'
         this.connections = []
-        this.orderingUtil = new Utils.OrderingUtil(id, partition, msgHandler, (...args) => {
+        this.orderingUtil = new Protocol.Utils.OrderingUtil(id, partition, msgHandler, (...args: Todo[]) => {
             gapHandler(id, partition, ...args)
         })
-        this.orderingUtil.on('error', (err) => {
+        this.orderingUtil.on('error', (err: Todo) => {
             // attach error handler in attempt to avoid uncaught exceptions
             logger.warn(err)
         })
     }
 
-    passToOrderingUtil(streamMessage) {
+    passToOrderingUtil(streamMessage: Todo) {
         this.orderingUtil.add(streamMessage)
     }
 
@@ -26,18 +36,18 @@ module.exports = class Stream {
         this.orderingUtil.clearGaps()
     }
 
-    addConnection(connection) {
+    addConnection(connection: Todo) {
         this.connections.push(connection)
     }
 
-    removeConnection(connection) {
+    removeConnection(connection: Todo) {
         const index = this.connections.indexOf(connection)
         if (index > -1) {
             this.connections.splice(index, 1)
         }
     }
 
-    forEachConnection(cb) {
+    forEachConnection(cb: Todo) {
         this.getConnections().forEach(cb)
     }
 

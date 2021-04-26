@@ -1,5 +1,5 @@
 const { Connection } = require('../../../src/websocket/Connection')
-const Stream = require('../../../src/Stream.js')
+const { Stream } = require('../../../src/Stream')
 
 let controlLayerVersion
 let messageLayerVersion
