@@ -200,6 +200,7 @@ module.exports = async (config) => {
     const closeAdapterFns = config.adapters.map(({ name, ...adapterConfig }, index) => {
         try {
             return adapterRegistry.startAdapter(name, adapterConfig, {
+                config,
                 networkNode,
                 publisher,
                 streamFetcher,

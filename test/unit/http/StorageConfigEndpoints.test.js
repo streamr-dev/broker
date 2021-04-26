@@ -31,10 +31,4 @@ describe('StorageConfigEndpoints', () => {
         app.use('/api/v1', storageConfigEndpoints(storageConfig))
         await createRequest('foo', 'bar', app).expect(400, 'Partition is not a number: bar')
     })
-
-    it('not storage node', async () => {
-        const app = express()
-        app.use('/api/v1', storageConfigEndpoints(null))
-        await createRequest('foobar', 0, app).expect(501, 'Not a storage node')
-    })
 })

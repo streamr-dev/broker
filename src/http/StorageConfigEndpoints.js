@@ -22,7 +22,7 @@ const createHandler = (storageConfig) => {
 
 module.exports = (storageConfig) => {
     const router = express.Router()
-    const handler = (storageConfig !== null) ? createHandler(storageConfig) : (_, res) => res.status(501).send('Not a storage node')
+    const handler = createHandler(storageConfig)
     router.get('/streams/:id/storage/partitions/:partition', handler)
     return router
 }

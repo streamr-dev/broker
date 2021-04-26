@@ -3,7 +3,7 @@ import { Server as HttpServer } from 'http'
 import https, { Server as HttpsServer } from 'https'
 import { AddressInfo } from 'net'
 import cors from 'cors'
-import express from 'express'
+import express, { Request, Response } from 'express'
 import getLogger from '../helpers/logger'
 import { router as dataQueryEndpoints } from './DataQueryEndpoints'
 import dataProduceEndpoints from './DataProduceEndpoints'
@@ -17,7 +17,7 @@ const logger = getLogger('streamr:httpAdapter')
 
 export const start = (
     { port, privateKeyFileName, certFileName }: AdapterConfig, 
-    { networkNode, publisher, streamFetcher, metricsContext, cassandraStorage, storageConfig}: BrokerUtils
+    { config, networkNode, publisher, streamFetcher, metricsContext, cassandraStorage, storageConfig}: BrokerUtils
 ) => {
     const app = express()
 
@@ -25,12 +25,18 @@ export const start = (
     app.use(cors())
 
     // Rest endpoints
-    app.use('/api/v1', dataQueryEndpoints(networkNode, streamFetcher, metricsContext))
     app.use('/api/v1', dataProduceEndpoints(streamFetcher, publisher))
     app.use('/api/v1', volumeEndpoint(metricsContext))
 
-    app.use('/api/v1', dataMetadataEndpoint(cassandraStorage))
-    app.use('/api/v1', storageConfigEndpoints(storageConfig))
+    if (config.network.isStorageNode) {
+        app.use('/api/v1', dataQueryEndpoints(networkNode, streamFetcher, metricsContext))
+        app.use('/api/v1', dataMetadataEndpoint(cassandraStorage))
+        app.use('/api/v1', storageConfigEndpoints(storageConfig))    
+    }
+
+    app.use('*', (_req: Request, res: Response) => {
+        return res.status(501).send('Unknown route')
+    })
 
     let httpServer: HttpServer|HttpsServer
     if (privateKeyFileName && certFileName) {
