@@ -13,9 +13,9 @@ const { startCassandraStorage } = require('./storage/Storage')
 const { Publisher } = require('./Publisher')
 const VolumeLogger = require('./VolumeLogger')
 const { SubscriptionManager } = require('./SubscriptionManager')
-const MissingConfigError = require('./errors/MissingConfigError')
+const { MissingConfigError } = require('./errors/MissingConfigError')
 const adapterRegistry = require('./adapterRegistry')
-const validateConfig = require('./helpers/validateConfig')
+const { validateConfig } = require('./helpers/validateConfig')
 const { StorageConfig } = require('./storage/StorageConfig')
 
 const { Utils } = Protocol

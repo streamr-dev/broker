@@ -1,6 +1,6 @@
-const crypto = require('crypto')
+import crypto from 'crypto'
 
-module.exports = function partition(partitionCount, partitionKey) {
+export const partition = (partitionCount: number, partitionKey: string) => {
     if (!partitionCount) {
         throw new Error('partitionCount is falsey!')
     } else if (partitionCount === 1) {
