@@ -12,14 +12,10 @@ export class StreamStateManager {
 
     _streams: Record<string,Stream>
     _timeouts: Record<string,NodeJS.Timeout>
-    msgHandler: Todo
-    gapHandler: Todo
 
-    constructor(msgHandler?: Todo, gapHander?: Todo) {
+    constructor() {
         this._streams = {}
         this._timeouts = {}
-        this.msgHandler = msgHandler
-        this.gapHandler = gapHander
     }
 
     getOrCreate(streamId: string, streamPartition: number, name = '') {
@@ -53,7 +49,7 @@ export class StreamStateManager {
             throw new Error(`stream already exists for ${key}`)
         }
 
-        const stream = new Stream(streamId, streamPartition, name, this.msgHandler, this.gapHandler)
+        const stream = new Stream(streamId, streamPartition, name)
         this._streams[key] = stream
 
         /*
@@ -94,9 +90,6 @@ export class StreamStateManager {
     }
 
     close() {
-        Object.values(this._streams).forEach((stream: Stream) => {
-            stream.clearOrderingUtil()
-        })
         Object.values(this._timeouts).forEach((timeout) => {
             clearTimeout(timeout)
         })

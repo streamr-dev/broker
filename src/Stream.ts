@@ -1,4 +1,3 @@
-import { Protocol } from 'streamr-network'
 import { getLogger } from './helpers/logger'
 import { Todo } from './types'
 
@@ -11,29 +10,13 @@ export class Stream {
     partition: Todo
     state: Todo
     connections: Todo
-    orderingUtil: Todo
 
-    constructor(id: string, partition: number, name: string, msgHandler: Todo, gapHandler: Todo) {
+    constructor(id: string, partition: number, name: string) {
         this.id = id
         this.name = name
         this.partition = partition
         this.state = 'init'
         this.connections = []
-        this.orderingUtil = new Protocol.Utils.OrderingUtil(id, partition, msgHandler, (...args: Todo[]) => {
-            gapHandler(id, partition, ...args)
-        })
-        this.orderingUtil.on('error', (err: Todo) => {
-            // attach error handler in attempt to avoid uncaught exceptions
-            logger.warn(err)
-        })
-    }
-
-    passToOrderingUtil(streamMessage: Todo) {
-        this.orderingUtil.add(streamMessage)
-    }
-
-    clearOrderingUtil() {
-        this.orderingUtil.clearGaps()
     }
 
     addConnection(connection: Todo) {
