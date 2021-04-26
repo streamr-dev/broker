@@ -2,10 +2,11 @@
  * Endpoints for RESTful data requests
  */
 import express, { Request, Response } from 'express'
-import { MetricsContext, NetworkNode } from 'streamr-network'
+import { MetricsContext, Protocol } from 'streamr-network'
 import { Metrics } from 'streamr-network/dist/helpers/MetricsContext'
 import { getLogger } from '../helpers/logger'
 import { Todo } from '../types'
+import { Storage } from '../storage/Storage'
 import { authenticator } from './RequestAuthenticatorMiddleware'
 
 const logger = getLogger('streamr:http:DataQueryEndpoints')
@@ -21,8 +22,7 @@ const onStarted = (res: Response) => {
     res.write('[')
 }
 
-const onRow = (res: Response, unicastMessage: Todo, delimiter: Todo, format = 'object', version: Todo, metrics: Metrics) => {
-    const { streamMessage } = unicastMessage
+const onRow = (res: Response, streamMessage: Protocol.StreamMessage, delimiter: Todo, format = 'object', version: Todo, metrics: Metrics) => {
     res.write(delimiter) // because can't have trailing comma in JSON array
     res.write(format === 'protocol' ? JSON.stringify(streamMessage.serialize(version)) : JSON.stringify(streamMessage.toObject()))
     metrics.record('outBytes', streamMessage.getSerializedContent().length)
@@ -58,16 +58,7 @@ function parseIntIfExists(x: Todo) {
     return x === undefined ? undefined : parseInt(x)
 }
 
-function generateSubId() {
-    let result = ''
-    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
-    for (let i = 0; i < characters.length; i++) {
-        result += characters.charAt(Math.floor(Math.random() * characters.length))
-    }
-    return result
-}
-
-export const router = (networkNode: NetworkNode, streamFetcher: Todo, metricsContext: MetricsContext) => {
+export const router = (storage: Storage, streamFetcher: Todo, metricsContext: MetricsContext) => {
     const router = express.Router()
     const metrics = metricsContext.create('broker/http')
         .addRecordedMetric('outBytes')
@@ -108,10 +99,9 @@ export const router = (networkNode: NetworkNode, streamFetcher: Todo, metricsCon
                 error: errMsg,
             })
         } else {
-            const streamingData = networkNode.requestResendLast(
+            const streamingData = storage.requestLast(
                 req.params.id,
                 partition,
-                generateSubId(),
                 count,
             )
 
@@ -142,10 +132,9 @@ export const router = (networkNode: NetworkNode, streamFetcher: Todo, metricsCon
                 error: errMsg
             })
         } else {
-            const streamingData = networkNode.requestResendFrom(
+            const streamingData = storage.requestFrom(
                 req.params.id,
                 partition,
-                generateSubId(),
                 fromTimestamp,
                 fromSequenceNumber,
                 (publisherId as string) || null,
@@ -204,10 +193,9 @@ export const router = (networkNode: NetworkNode, streamFetcher: Todo, metricsCon
                 error: errMsg
             })
         } else {
-            const streamingData = networkNode.requestResendRange(
+            const streamingData = storage.requestRange(
                 req.params.id,
                 partition,
-                generateSubId(),
                 fromTimestamp,
                 fromSequenceNumber,
                 toTimestamp,
