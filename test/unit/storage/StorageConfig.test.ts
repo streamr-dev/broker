@@ -1,11 +1,12 @@
 /* eslint-disable no-underscore-dangle, object-curly-newline */
-const { StorageConfig } = require('../../../src/storage/StorageConfig')
+import { StorageConfig, StorageConfigListener } from '../../../src/storage/StorageConfig'
 
 describe('StorageConfig', () => {
-    let config
-    let listener
+    let config: StorageConfig
+    let listener: StorageConfigListener
 
     beforeEach(() => {
+        // @ts-expect-error
         config = new StorageConfig()
         config._setStreams(new Set(['existing1::0', 'existing2::0', 'existing2::1', 'existing3::0']))
         listener = {

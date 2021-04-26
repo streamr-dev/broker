@@ -1,7 +1,9 @@
-const { startTracker } = require('streamr-network')
-const { wait, waitForCondition } = require('streamr-test-utils')
-
-const { startBroker, createMockUser, createClient, createMqttClient } = require('../utils')
+import { AsyncMqttClient } from 'async-mqtt'
+import StreamrClient, { Stream } from 'streamr-client'
+import { startTracker } from 'streamr-network'
+import { wait, waitForCondition } from 'streamr-test-utils'
+import { Todo } from '../types'
+import { startBroker, createMockUser, createClient, createMqttClient } from '../utils'
 
 const httpPort1 = 12381
 const httpPort2 = 12382
@@ -21,23 +23,18 @@ const broker2Key = '0xd2672dce1578d6b75a58e11fa96c978b3b500750be287fc4e7f1e894eb
 const broker3Key = '0xa417da20e3afeb69544585c6b44b95ad4d987f38cf257f4a53eab415cc12334f'
 
 describe('mqtt: end-to-end', () => {
-    let tracker
-
-    let broker1
-    let broker2
-    let broker3
-
+    let tracker: Todo
+    let broker1: Todo
+    let broker2: Todo
+    let broker3: Todo
     const mockUser = createMockUser()
-
-    let client1
-    let client2
-    let client3
-
-    let freshStream1
-
-    let mqttClient1
-    let mqttClient2
-    let mqttClient3
+    let client1: StreamrClient
+    let client2: StreamrClient
+    let client3: StreamrClient
+    let freshStream1: Stream
+    let mqttClient1: AsyncMqttClient
+    let mqttClient2: AsyncMqttClient
+    let mqttClient3: AsyncMqttClient
 
     beforeEach(async () => {
         tracker = await startTracker({
@@ -103,9 +100,9 @@ describe('mqtt: end-to-end', () => {
     }, 15000)
 
     it('happy-path: real-time mqtt plain text producing and consuming', async () => {
-        const client1Messages = []
-        const client2Messages = []
-        const client3Messages = []
+        const client1Messages: Todo[] = []
+        const client2Messages: Todo[] = []
+        const client3Messages: Todo[] = []
 
         await waitForCondition(() => mqttClient1.connected)
         await waitForCondition(() => mqttClient2.connected)
@@ -189,8 +186,8 @@ describe('mqtt: end-to-end', () => {
     }, 15000)
 
     it('happy-path: real-time mqtt json producing and consuming', async () => {
-        const client1Messages = []
-        const client2Messages = []
+        const client1Messages: Todo[] = []
+        const client2Messages: Todo[] = []
 
         await waitForCondition(() => mqttClient1.connected)
         await waitForCondition(() => mqttClient2.connected)
@@ -244,10 +241,10 @@ describe('mqtt: end-to-end', () => {
     }, 15000)
 
     it('happy-path: real-time mqtt and websocket producing and consuming', async () => {
-        const client1Messages = []
-        const client2Messages = []
-        const client3Messages = []
-        const client4Messages = []
+        const client1Messages: Todo[] = []
+        const client2Messages: Todo[] = []
+        const client3Messages: Todo[] = []
+        const client4Messages: Todo[] = []
 
         await waitForCondition(() => mqttClient1.connected)
 

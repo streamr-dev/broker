@@ -1,6 +1,7 @@
-const { startTracker } = require('streamr-network')
-
-const { startBroker, createClient, STREAMR_DOCKER_DEV_HOST } = require('../utils')
+import StreamrClient, { Stream } from 'streamr-client'
+import { startTracker } from 'streamr-network'
+import { Todo } from '../types'
+import { startBroker, createClient, STREAMR_DOCKER_DEV_HOST } from '../utils'
 
 const httpPort1 = 12741
 const wsPort1 = 12751
@@ -9,10 +10,10 @@ const trackerPort = 12970
 const broker1Key = '0x241b3f241b110ff7b3e6d52e74fea922006a83e33ff938e6e3cba8a460c02513'
 
 describe('metricsStream', () => {
-    let tracker
-    let broker1
-    let client1
-    let legacyStream
+    let tracker: Todo
+    let broker1: Todo
+    let client1: StreamrClient
+    let legacyStream: Stream
 
     beforeEach(async () => {
         client1 = createClient(wsPort1)
@@ -20,7 +21,9 @@ describe('metricsStream', () => {
         legacyStream = await client1.getOrCreateStream({
             name: 'per-node-stream-metrics.test.js-legacyStream'
         })
+        // @ts-expect-error
         await legacyStream.grantPermission('stream_get', null)
+        // @ts-expect-error
         await legacyStream.grantPermission('stream_publish', '0xc59b3658d22e0716726819a56e164ee6825e21c2')
 
         tracker = await startTracker({

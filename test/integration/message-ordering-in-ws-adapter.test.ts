@@ -1,10 +1,10 @@
-const { startTracker, startNetworkNode, startStorageNode, Protocol } = require('streamr-network')
-const intoStream = require('into-stream')
-const { wait, waitForCondition } = require('streamr-test-utils')
-
-const { startBroker, createMockUser, createClient } = require('../utils')
-
-const { createMockStorageConfig } = require('./storage/MockStorageConfig')
+import { startTracker, startNetworkNode, startStorageNode, Protocol } from 'streamr-network'
+import intoStream from 'into-stream'
+import { wait, waitForCondition } from 'streamr-test-utils'
+import { startBroker, createMockUser, createClient } from '../utils'
+import { createMockStorageConfig } from './storage/MockStorageConfig'
+import StreamrClient, { Stream } from 'streamr-client'
+import { Todo } from '../types'
 
 const { StreamMessage, MessageID, MessageRef } = Protocol.MessageLayer
 
@@ -14,7 +14,7 @@ const networkPort2 = 11403
 const networkPort3 = 11404
 const wsPort = 11401
 
-function createStreamMessage(streamId, idx, prevIdx) {
+function createStreamMessage(streamId: string, idx: number, prevIdx: number|null) {
     return new StreamMessage({
         messageId: new MessageID(streamId, 0, idx, 0, 'publisherId', 'msgChainId'),
         prevMsgRef: prevIdx != null ? new MessageRef(prevIdx, 0) : null,
@@ -25,13 +25,13 @@ function createStreamMessage(streamId, idx, prevIdx) {
 }
 
 describe('message ordering and gap filling in websocket adapter', () => {
-    let tracker
-    let publisherNode
-    let nodeWithMissingMessages
-    let broker
-    let subscriber
-    let freshStream
-    let freshStreamId
+    let tracker: Todo
+    let publisherNode: Todo
+    let nodeWithMissingMessages: Todo
+    let broker: Todo
+    let subscriber: StreamrClient
+    let freshStream: Stream
+    let freshStreamId: string
 
     beforeEach(async () => {
         tracker = await startTracker({
@@ -79,7 +79,7 @@ describe('message ordering and gap filling in websocket adapter', () => {
     })
 
     it('messages received out-of-order are ordered by ws adapter', async () => {
-        const receivedMessages = []
+        const receivedMessages: Todo[] = []
 
         subscriber.subscribe({
             stream: freshStreamId
@@ -122,12 +122,13 @@ describe('message ordering and gap filling in websocket adapter', () => {
 
     it('missing messages are gap filled by ws adapter', async () => {
         // Set up new network node that has missing messages in its storage
-        const resendRequests = []
+        const resendRequests: Todo[] = []
         nodeWithMissingMessages = await startStorageNode({
             host: '127.0.0.1',
             port: networkPort3,
             id: 'missingMessagesNode',
             trackers: [tracker.getAddress()],
+            // @ts-expect-error
             storages: [{
                 store() {},
                 requestRange(...args) {
@@ -138,6 +139,7 @@ describe('message ordering and gap filling in websocket adapter', () => {
                     ])
                 }
             }],
+            // @ts-expect-error
             storageConfig: createMockStorageConfig([{
                 id: freshStreamId,
                 partition: 0
@@ -146,7 +148,7 @@ describe('message ordering and gap filling in websocket adapter', () => {
         nodeWithMissingMessages.subscribe(freshStreamId, 0)
         nodeWithMissingMessages.start()
 
-        const receivedMessages = []
+        const receivedMessages: Todo[] = []
         subscriber.subscribe({
             stream: freshStreamId
         }, (message, metadata) => {

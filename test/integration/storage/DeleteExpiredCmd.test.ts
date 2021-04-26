@@ -1,8 +1,10 @@
-const cassandra = require('cassandra-driver')
-const { TimeUuid } = require('cassandra-driver').types
-
-const { DeleteExpiredCmd } = require('../../../src/storage/DeleteExpiredCmd')
-const { createMockUser, createClient, STREAMR_DOCKER_DEV_HOST } = require('../../utils')
+import { Wallet } from '@ethersproject/wallet'
+import { Client, types as cassandraTypes } from 'cassandra-driver'
+import StreamrClient from 'streamr-client'
+import { BucketId } from '../../storage/Bucket'
+import { DeleteExpiredCmd } from "../../../src/storage/DeleteExpiredCmd";
+import { createMockUser, createClient, STREAMR_DOCKER_DEV_HOST } from "../../utils";
+const { TimeUuid } = cassandraTypes
 
 const contactPoints = [STREAMR_DOCKER_DEV_HOST]
 const localDataCenter = 'datacenter1'
@@ -10,7 +12,7 @@ const keyspace = 'streamr_dev_v2'
 
 const DAY_IN_MS = 1000 * 60 * 60 * 24
 
-const insertBucket = async (cassandraClient, streamId, dateCreate) => {
+const insertBucket = async (cassandraClient: Client, streamId: string, dateCreate: number) => {
     const bucketId = TimeUuid.fromDate(new Date(dateCreate)).toString()
     const query = 'INSERT INTO bucket (stream_id, partition, date_create, id, records, size)'
         + 'VALUES (?, 0, ?, ?, 1, 1)'
@@ -20,7 +22,7 @@ const insertBucket = async (cassandraClient, streamId, dateCreate) => {
     return bucketId
 }
 
-const insertData = async (cassandraClient, streamId, bucketId, ts) => {
+const insertData = async (cassandraClient: Client, streamId: string, bucketId: BucketId, ts: number) => {
     const insert = 'INSERT INTO stream_data '
         + '(stream_id, partition, bucket_id, ts, sequence_no, publisher_id, msg_chain_id, payload) '
         + 'VALUES (?, 0, ?, ?, 0, ?, ?, ?)'
@@ -31,7 +33,7 @@ const insertData = async (cassandraClient, streamId, bucketId, ts) => {
     })
 }
 
-const checkDBCount = async (cassandraClient, streamId) => {
+const checkDBCount = async (cassandraClient: Client, streamId: string) => {
     const countBuckets = 'SELECT COUNT(*) FROM bucket WHERE stream_id = ? AND partition = 0 ALLOW FILTERING'
     const bucketResult = await cassandraClient.execute(countBuckets, [streamId], {
         prepare: true
@@ -47,13 +49,13 @@ const checkDBCount = async (cassandraClient, streamId) => {
 }
 
 describe('DeleteExpiredCmd', () => {
-    let mockUser
-    let client
-    let cassandraClient
-    let deleteExpiredCmd
+    let mockUser: Wallet
+    let client: StreamrClient
+    let cassandraClient: Client
+    let deleteExpiredCmd: DeleteExpiredCmd
 
     beforeEach(async () => {
-        cassandraClient = new cassandra.Client({
+        cassandraClient = new Client({
             contactPoints,
             localDataCenter,
             keyspace,
@@ -99,6 +101,7 @@ describe('DeleteExpiredCmd', () => {
             await insertData(cassandraClient, streamId, bucketId4, Date.now() - 3 * DAY_IN_MS)
 
             await deleteExpiredCmd.run()
+            // @ts-expect-error
             const counts = await checkDBCount(cassandraClient, streamId, days)
             expect(counts).toEqual({
                 bucketCount: days,

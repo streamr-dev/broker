@@ -1,11 +1,8 @@
 import { Todo } from '../../types'
-
-const assert = require('assert')
-
-const sinon = require('sinon')
-
-const { authenticator } = require('../../../src/http/RequestAuthenticatorMiddleware')
-const { HttpError } = require('../../../src/errors/HttpError')
+import assert from 'assert'
+import sinon from 'sinon'
+import { authenticator } from '../../../src/http/RequestAuthenticatorMiddleware'
+import { HttpError } from '../../../src/errors/HttpError'
 
 describe('AuthenticationMiddleware', () => {
     let request: Todo

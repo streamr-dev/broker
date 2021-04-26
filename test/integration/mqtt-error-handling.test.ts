@@ -1,20 +1,19 @@
-const net = require('net')
-
-const { startTracker } = require('streamr-network')
-
-const { startBroker, createMqttClient } = require('../utils')
+import { AsyncMqttClient } from 'async-mqtt'
+import net from 'net'
+import { startTracker } from 'streamr-network'
+import { Todo } from '../types'
+import { startBroker, createMqttClient } from '../utils'
 
 const trackerPort = 12411
 const networkPort = 12412
 const mqttPort = 12413
 
 describe('MQTT error handling', () => {
-    let tracker
-    let broker
-
-    let socket
-    let newSocket
-    let mqttClient
+    let tracker: Todo
+    let broker: Todo
+    let socket: Todo
+    let newSocket: Todo
+    let mqttClient: AsyncMqttClient
 
     async function setUpBroker(broken = false) {
         broker = await startBroker({
@@ -62,13 +61,13 @@ describe('MQTT error handling', () => {
                 }
             })
 
-            socket.on('close', (hadError) => {
+            socket.on('close', (hadError: boolean) => {
                 // Make sure we didn't close with error
                 expect(hadError).toEqual(false)
 
                 // Ensure that server is indeed still up
                 newSocket = new net.Socket()
-                newSocket.on('error', (err) => {
+                newSocket.on('error', (err: Todo) => {
                     done(err)
                 })
                 newSocket.connect(mqttPort, '127.0.0.1', () => {
@@ -80,7 +79,7 @@ describe('MQTT error handling', () => {
 
     it('test no password given', (done) => {
         setUpBroker(false).then(() => {
-            mqttClient = createMqttClient(mqttPort, 'localhost', null)
+            mqttClient = createMqttClient(mqttPort, 'localhost', null as any)
             mqttClient.on('error', (err) => {
                 expect(err.message).toEqual('Connection refused: Bad username or password')
                 mqttClient.end(true)

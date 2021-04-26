@@ -1,7 +1,9 @@
-const { startTracker } = require('streamr-network')
-const { wait, waitForCondition } = require('streamr-test-utils')
-
-const { startBroker, createMockUser, createClient, createMqttClient } = require('../utils')
+import { AsyncMqttClient } from 'async-mqtt'
+import StreamrClient, { Stream } from 'streamr-client'
+import { startTracker } from 'streamr-network'
+import { wait, waitForCondition } from 'streamr-test-utils'
+import { Todo } from '../types'
+import { startBroker, createMockUser, createClient, createMqttClient } from '../utils'
 
 const trackerPort = 17711
 const httpPort = 17712
@@ -10,19 +12,15 @@ const networkPort = 17701
 const mqttPort = 17751
 
 describe('local propagation', () => {
-    let tracker
-    let broker
-
+    let tracker: Todo
+    let broker: Todo
     const mockUser = createMockUser()
-
-    let client1
-    let client2
-
-    let freshStream
-    let freshStreamId
-
-    let mqttClient1
-    let mqttClient2
+    let client1: StreamrClient
+    let client2: StreamrClient
+    let freshStream: Stream
+    let freshStreamId: string
+    let mqttClient1: AsyncMqttClient
+    let mqttClient2: AsyncMqttClient
 
     beforeEach(async () => {
         tracker = await startTracker({
@@ -67,8 +65,8 @@ describe('local propagation', () => {
     })
 
     test('local propagation using StreamrClients', async () => {
-        const client1Messages = []
-        const client2Messages = []
+        const client1Messages: Todo[] = []
+        const client2Messages: Todo[] = []
 
         client1.subscribe({
             stream: freshStreamId
@@ -123,8 +121,8 @@ describe('local propagation', () => {
     })
 
     test('local propagation using mqtt clients', async () => {
-        const client1Messages = []
-        const client2Messages = []
+        const client1Messages: Todo[] = []
+        const client2Messages: Todo[] = []
 
         await waitForCondition(() => mqttClient1.connected)
         await waitForCondition(() => mqttClient2.connected)
@@ -174,10 +172,10 @@ describe('local propagation', () => {
     }, 10000)
 
     test('local propagation using StreamrClients and mqtt clients', async () => {
-        const client1Messages = []
-        const client2Messages = []
-        const client3Messages = []
-        const client4Messages = []
+        const client1Messages: Todo[] = []
+        const client2Messages: Todo[] = []
+        const client3Messages: Todo[] = []
+        const client4Messages: Todo[] = []
 
         await waitForCondition(() => mqttClient1.connected)
         await waitForCondition(() => mqttClient2.connected)

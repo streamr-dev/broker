@@ -1,13 +1,13 @@
-const url = require('url')
-
-const WebSocket = require('ws')
-const fetch = require('node-fetch')
-const { startTracker, Protocol } = require('streamr-network')
-const { StreamMessage, MessageIDStrict } = require('streamr-network').Protocol.MessageLayer
+import url from 'url'
+import WebSocket from 'ws'
+import fetch from 'node-fetch'
+import { startTracker, Protocol } from 'streamr-network'
+import { startBroker, createClient } from '../utils'
+import StreamrClient from 'streamr-client'
+import { Todo } from '../types'
 
 const { ControlLayer } = Protocol
-
-const { startBroker, createClient } = require('../utils')
+const { StreamMessage, MessageIDStrict } = Protocol.MessageLayer
 
 const trackerPort = 19420
 const networkPort = 19421
@@ -18,10 +18,10 @@ const mqttPort = 19424
 const thresholdForFutureMessageSeconds = 5 * 60
 
 function buildMsg(
-    streamId,
-    streamPartition,
-    timestamp,
-    sequenceNumber,
+    streamId: string,
+    streamPartition: number,
+    timestamp: number,
+    sequenceNumber: number,
     publisherId = 'publisher',
     msgChainId = '1',
     content = {}
@@ -33,11 +33,11 @@ function buildMsg(
 }
 
 describe('broker drops future messages', () => {
-    let tracker
-    let broker
-    let streamId
-    let client
-    let token
+    let tracker: Todo
+    let broker: Todo
+    let streamId: string
+    let client: StreamrClient
+    let token: string
 
     beforeEach(async () => {
         tracker = await startTracker({
@@ -60,6 +60,7 @@ describe('broker drops future messages', () => {
             name: 'broker-drops-future-messages' + Date.now()
         })
         streamId = freshStream.id
+        // @ts-expect-error
         token = await client.session.getSessionToken()
     })
 

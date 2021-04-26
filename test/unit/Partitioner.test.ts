@@ -1,11 +1,10 @@
-const assert = require('assert')
-
-const { partition } = require('../../src/helpers/partition')
+import assert from 'assert'
+import { partition } from '../../src/helpers/partition'
 
 describe('partition', () => {
     it('should throw if partition count is not defined', () => {
         assert.throws(() => {
-            partition(undefined, 'foo')
+            partition(undefined as any, 'foo')
         })
     })
 

@@ -1,9 +1,9 @@
-const assert = require('assert')
-
-const { Stream } = require('../../../src/Stream')
+import assert from 'assert'
+import { Stream } from '../../../src/Stream'
 
 describe('Stream', () => {
     it('addConnection adds connections', () => {
+        // @ts-expect-error
         const stream = new Stream('id', 0)
         stream.addConnection('a')
         stream.addConnection('b')
@@ -12,9 +12,10 @@ describe('Stream', () => {
     })
 
     describe('removeConnection', () => {
-        let stream
+        let stream: Stream
 
         beforeEach(() => {
+            // @ts-expect-error
             stream = new Stream('id', 0)
             stream.addConnection('a')
             stream.addConnection('b')

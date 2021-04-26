@@ -1,11 +1,12 @@
-const { Connection } = require('../../../src/websocket/Connection')
-const { Stream } = require('../../../src/Stream')
+import { Connection } from '../../../src/websocket/Connection'
+import { Stream } from '../../../src/Stream'
+import { Todo } from '../../types'
 
-let controlLayerVersion
-let messageLayerVersion
+let controlLayerVersion: number
+let messageLayerVersion: number
 
 describe('Connection', () => {
-    let connection
+    let connection: Connection
 
     beforeEach(() => {
         controlLayerVersion = 2
@@ -20,7 +21,9 @@ describe('Connection', () => {
     describe('stream management', () => {
         describe('addStream', () => {
             it('adds stream to the connection', () => {
+                // @ts-expect-error
                 const stream0 = new Stream('stream', 0)
+                // @ts-expect-error
                 const stream2 = new Stream('stream', 1)
                 connection.addStream(stream0)
                 connection.addStream(stream2)
@@ -29,13 +32,16 @@ describe('Connection', () => {
         })
 
         describe('removeStream', () => {
-            let stream1
-            let stream2
-            let stream3
+            let stream1: Stream
+            let stream2: Stream
+            let stream3: Stream
 
             beforeEach(() => {
+                // @ts-expect-error
                 stream1 = new Stream('stream1', 0)
+                // @ts-expect-error
                 stream2 = new Stream('stream2', 0)
+                // @ts-expect-error
                 stream3 = new Stream('stream3', 0)
                 connection.addStream(stream1)
                 connection.addStream(stream2)
@@ -55,10 +61,14 @@ describe('Connection', () => {
 
         describe('getStreams', () => {
             it('returns a copy of the array', () => {
+                // @ts-expect-error
                 connection.addStream(new Stream('stream1', 0))
+                // @ts-expect-error
                 connection.addStream(new Stream('stream2', 0))
+                // @ts-expect-error
                 connection.addStream(new Stream('stream3', 0))
 
+                // @ts-expect-error
                 connection.getStreams().push(new Stream('stream4', 0))
                 expect(connection.getStreams()).toHaveLength(3)
             })
@@ -66,8 +76,11 @@ describe('Connection', () => {
 
         describe('streamsAsString', () => {
             it('returns an array of string representation of the streams', () => {
+                // @ts-expect-error
                 connection.addStream(new Stream('stream1', 0))
+                // @ts-expect-error
                 connection.addStream(new Stream('stream2', 0))
+                // @ts-expect-error
                 connection.addStream(new Stream('stream3', 0))
                 expect(connection.streamsAsString()).toEqual([
                     'stream1::0',
@@ -79,7 +92,7 @@ describe('Connection', () => {
     })
 
     describe('send()', () => {
-        let sendFn
+        let sendFn: Todo
 
         beforeEach(() => {
             sendFn = jest.fn()
@@ -90,7 +103,7 @@ describe('Connection', () => {
 
         it('sends a serialized message to the socket', () => {
             const msg = {
-                serialize: (controlVersion, messageVersion) => `msg:${controlVersion}:${messageVersion}`,
+                serialize: (controlVersion: number, messageVersion: number) => `msg:${controlVersion}:${messageVersion}`,
             }
             connection.send(msg)
 

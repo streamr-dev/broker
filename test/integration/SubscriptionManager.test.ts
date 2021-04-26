@@ -1,7 +1,9 @@
-const { startTracker } = require('streamr-network')
-const { wait, waitForCondition } = require('streamr-test-utils')
-
-const { startBroker, createMockUser, createClient, createMqttClient } = require('../utils')
+import { AsyncMqttClient } from 'async-mqtt'
+import StreamrClient, { Stream } from 'streamr-client'
+import { startTracker } from 'streamr-network'
+import { wait, waitForCondition } from 'streamr-test-utils'
+import { Todo } from '../types'
+import { startBroker, createMockUser, createClient, createMqttClient } from '../utils'
 
 const httpPort1 = 13381
 const httpPort2 = 13382
@@ -14,21 +16,16 @@ const mqttPort1 = 13551
 const mqttPort2 = 13552
 
 describe('SubscriptionManager', () => {
-    let tracker
-
-    let broker1
-    let broker2
-
+    let tracker: Todo
+    let broker1: Todo
+    let broker2: Todo
     const mockUser = createMockUser()
-
-    let client1
-    let client2
-
-    let freshStream1
-    let freshStream2
-
-    let mqttClient1
-    let mqttClient2
+    let client1: StreamrClient
+    let client2: StreamrClient
+    let freshStream1: Stream
+    let freshStream2: Stream
+    let mqttClient1: AsyncMqttClient
+    let mqttClient2: AsyncMqttClient
 
     beforeEach(async () => {
         tracker = await startTracker({
@@ -124,6 +121,7 @@ describe('SubscriptionManager', () => {
         expect(broker1.getStreams()).toEqual([freshStream1.id + '::0', freshStream2.id + '::0'].sort())
         expect(broker2.getStreams()).toEqual([freshStream1.id + '::0', freshStream2.id + '::0'].sort())
 
+        // @ts-expect-error
         await client1.unsubscribe(freshStream1.id)
 
         await waitForCondition(() => broker1.getStreams().length === 1)
@@ -132,6 +130,7 @@ describe('SubscriptionManager', () => {
         expect(broker1.getStreams()).toEqual([freshStream2.id + '::0'])
         expect(broker2.getStreams()).toEqual([freshStream1.id + '::0', freshStream2.id + '::0'].sort())
 
+        // @ts-expect-error
         await client1.unsubscribe(freshStream2.id)
 
         await waitForCondition(() => broker1.getStreams().length === 0)

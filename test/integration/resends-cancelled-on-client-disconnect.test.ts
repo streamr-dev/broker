@@ -1,16 +1,15 @@
-const { Readable } = require('stream')
-
-const { startTracker, startStorageNode, Protocol, MetricsContext } = require('streamr-network')
-const { waitForCondition } = require('streamr-test-utils')
-const ws = require('uWebSockets.js')
-
-const { WebsocketServer } = require('../../src/websocket/WebsocketServer')
-const { createClient, STREAMR_DOCKER_DEV_HOST } = require('../utils')
-const { StreamFetcher } = require('../../src/StreamFetcher')
-const { Publisher } = require('../../src/Publisher')
-const { SubscriptionManager } = require('../../src/SubscriptionManager')
-
-const { createMockStorageConfig } = require('./storage/MockStorageConfig')
+import { Readable } from 'stream'
+import { startTracker, startStorageNode, Protocol, MetricsContext, NetworkNode } from 'streamr-network'
+import { waitForCondition } from 'streamr-test-utils'
+import ws from 'uWebSockets.js'
+import { WebsocketServer } from '../../src/websocket/WebsocketServer'
+import { createClient, STREAMR_DOCKER_DEV_HOST } from '../utils'
+import { StreamFetcher } from '../../src/StreamFetcher'
+import { Publisher } from '../../src/Publisher'
+import { SubscriptionManager } from '../../src/SubscriptionManager'
+import { createMockStorageConfig } from './storage/MockStorageConfig'
+import { Todo } from '../types'
+import StreamrClient, { Stream } from 'streamr-client'
 
 const { StreamMessage, MessageID } = Protocol.MessageLayer
 
@@ -19,12 +18,12 @@ const networkNodePort = 17752
 const wsPort = 17753
 
 describe('resend cancellation', () => {
-    let tracker
-    let metricsContext
-    let websocketServer
-    let networkNode
-    let client
-    let freshStream
+    let tracker: Todo
+    let metricsContext: MetricsContext
+    let websocketServer: WebsocketServer
+    let networkNode: NetworkNode
+    let client: StreamrClient
+    let freshStream: Stream
     let timeoutCleared = false
 
     beforeEach(async () => {
@@ -32,7 +31,7 @@ describe('resend cancellation', () => {
         freshStream = await client.createStream({
             name: 'resends-cancelled-on-client-disconnect.test.js-' + Date.now()
         })
-        metricsContext = new MetricsContext(null)
+        metricsContext = new MetricsContext(null as any)
         tracker = await startTracker({
             host: '127.0.0.1',
             port: trackerPort,
@@ -44,6 +43,7 @@ describe('resend cancellation', () => {
             id: 'networkNode',
             trackers: [tracker.getAddress()],
             storages: [
+                // @ts-expect-error
                 {
                     requestLast: (streamId, streamPartition, n) => {
                         const stream = new Readable({
@@ -71,6 +71,7 @@ describe('resend cancellation', () => {
                     store: () => {}
                 }
             ],
+            // @ts-expect-error
             storageConfig: createMockStorageConfig([{
                 id: freshStream.id,
                 partition: 0

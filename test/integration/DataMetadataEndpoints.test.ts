@@ -1,10 +1,10 @@
-const http = require('http')
-
-const { startTracker, startNetworkNode } = require('streamr-network')
-const { wait } = require('streamr-test-utils')
-const ethers = require('ethers')
-
-const { startBroker, createClient, StorageAssignmentEventManager, waitForStreamPersistedInStorageNode } = require('../utils')
+import http from 'http'
+import { startTracker, startNetworkNode } from 'streamr-network'
+import { wait } from 'streamr-test-utils'
+import ethers, { Wallet } from 'ethers'
+import { startBroker, createClient, StorageAssignmentEventManager, waitForStreamPersistedInStorageNode } from '../utils'
+import { Todo } from '../types'
+import StreamrClient, { Stream } from 'streamr-client'
 
 const httpPort1 = 12371
 const wsPort1 = 12372
@@ -12,7 +12,7 @@ const networkPort1 = 12373
 const networkPort2 = 12374
 const trackerPort = 12375
 
-const httpGet = (url) => {
+const httpGet = (url: string) => {
     return new Promise((resolve, reject) => {
         http.get(url, (res) => {
             res.setEncoding('utf8')
@@ -28,17 +28,17 @@ const httpGet = (url) => {
 const WAIT_TIME_TO_LAND_IN_STORAGE = 3000
 
 describe('DataMetadataEndpoints', () => {
-    let tracker
-    let storageNode
-    let client1
-    let publisherNode
-    let freshStream
-    let freshStreamId
-    const storageNodeAccount = ethers.Wallet.createRandom()
-    let assignmentEventManager
+    let tracker: Todo
+    let storageNode: Todo
+    let client1: StreamrClient
+    let publisherNode: Todo
+    let freshStream: Stream
+    let freshStreamId: string
+    const storageNodeAccount = Wallet.createRandom()
+    let assignmentEventManager: StorageAssignmentEventManager
 
     beforeAll(async () => {
-        const engineAndEditorAccount = ethers.Wallet.createRandom()
+        const engineAndEditorAccount = Wallet.createRandom()
         tracker = await startTracker({
             host: '127.0.0.1',
             port: trackerPort,
@@ -85,7 +85,7 @@ describe('DataMetadataEndpoints', () => {
     })
 
     it('should fetch empty metadata from Cassandra', async () => {
-        const json = await httpGet(`http://localhost:${httpPort1}/api/v1/streams/0/metadata/partitions/0`)
+        const json: any = await httpGet(`http://localhost:${httpPort1}/api/v1/streams/0/metadata/partitions/0`)
         const res = JSON.parse(json)
 
         expect(res.totalBytes).toEqual(0)
@@ -100,8 +100,7 @@ describe('DataMetadataEndpoints', () => {
         })
         await wait(WAIT_TIME_TO_LAND_IN_STORAGE)
 
-        const json = await httpGet(`http://localhost:${httpPort1}/api/v1/streams/${freshStreamId}/metadata/partitions/0`)
-
+        const json: any = await httpGet(`http://localhost:${httpPort1}/api/v1/streams/${freshStreamId}/metadata/partitions/0`)
         const res = JSON.parse(json)
 
         expect(res.totalBytes).toEqual(290)
@@ -125,8 +124,7 @@ describe('DataMetadataEndpoints', () => {
 
         await wait(WAIT_TIME_TO_LAND_IN_STORAGE)
 
-        const json = await httpGet(`http://localhost:${httpPort1}/api/v1/streams/${freshStreamId}/metadata/partitions/0`)
-
+        const json: any = await httpGet(`http://localhost:${httpPort1}/api/v1/streams/${freshStreamId}/metadata/partitions/0`)
         const res = JSON.parse(json)
 
         expect(res.totalBytes).toEqual(1199)

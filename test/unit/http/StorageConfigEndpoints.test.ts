@@ -1,10 +1,10 @@
-const express = require('express')
-const request = require('supertest')
+import express from 'express'
+import request from 'supertest'
+import { router } from '../../../src/http/StorageConfigEndpoints'
+import { createMockStorageConfig } from '../../integration/storage/MockStorageConfig'
+import { Todo } from '../../types'
 
-const { router } = require('../../../src/http/StorageConfigEndpoints')
-const { createMockStorageConfig } = require('../../integration/storage/MockStorageConfig')
-
-const createRequest = (streamId, partition, app) => {
+const createRequest = (streamId: string, partition: number, app: Todo) => {
     return request(app).get(`/api/v1/streams/${streamId}/storage/partitions/${partition}`)
 }
 
@@ -16,24 +16,28 @@ describe('StorageConfigEndpoints', () => {
 
     it('stream in storage config', async () => {
         const app = express()
+        // @ts-expect-error
         app.use('/api/v1', router(storageConfig))
         await createRequest('existing', 123, app).expect(200)
     })
 
     it('stream not in storage config', async () => {
         const app = express()
+        // @ts-expect-error
         app.use('/api/v1', router(storageConfig))
         await createRequest('non-existing', 456, app).expect(404)
     })
 
     it('invalid partition', async () => {
         const app = express()
+        // @ts-expect-error
         app.use('/api/v1', router(storageConfig))
-        await createRequest('foo', 'bar', app).expect(400, 'Partition is not a number: bar')
+        await createRequest('foo', 'bar' as any, app).expect(400, 'Partition is not a number: bar')
     })
 
     it('not storage node', async () => {
         const app = express()
+        // @ts-expect-error
         app.use('/api/v1', router(null))
         await createRequest('foobar', 0, app).expect(501, 'Not a storage node')
     })

@@ -1,4 +1,4 @@
-const { HttpError } = require('../../../src/errors/HttpError')
+import { HttpError } from '../../../src/errors/HttpError'
 
 describe('HttpError', () => {
     it('has expected message', () => {

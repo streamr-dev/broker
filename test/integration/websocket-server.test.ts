@@ -1,11 +1,11 @@
-const WebSocket = require('ws')
-const { waitForCondition } = require('streamr-test-utils')
-
-const { startBroker, getWsUrlWithControlAndMessageLayerVersions } = require('../utils')
+import WebSocket from 'ws'
+import { waitForCondition } from 'streamr-test-utils'
+import { startBroker, getWsUrlWithControlAndMessageLayerVersions } from '../utils'
+import { Todo } from 'streamr-client'
 
 describe('websocket server', () => {
-    let ws
-    let broker
+    let ws: WebSocket
+    let broker: Todo
 
     afterEach(async () => {
         if (ws) {
@@ -57,7 +57,7 @@ describe('websocket server', () => {
     })
 
     describe('rejections', () => {
-        const testRejection = async (connectionUrl) => {
+        const testRejection = async (connectionUrl: string) => {
             broker = await startBroker({
                 name: 'broker',
                 privateKey: '0xf3b269f5d8066bcf23a384937c0cd693cfbb8ff90a1055d4e47047150f5482c4',

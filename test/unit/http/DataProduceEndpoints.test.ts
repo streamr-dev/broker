@@ -1,9 +1,11 @@
-const sinon = require('sinon')
-const express = require('express')
-const request = require('supertest')
-const { StreamMessage, MessageID, MessageRef } = require('streamr-network').Protocol.MessageLayer
+import sinon from 'sinon'
+import express from 'express'
+import request from 'supertest'
+import { Protocol } from 'streamr-network'
+import { router } from '../../../src/http/DataProduceEndpoints'
+import { Todo } from '../../types'
 
-const { router } = require('../../../src/http/DataProduceEndpoints')
+const { StreamMessage, MessageID, MessageRef } = Protocol.MessageLayer
 
 describe('DataProduceEndpoints', () => {
     const stream = {
@@ -11,9 +13,9 @@ describe('DataProduceEndpoints', () => {
         partitions: 1,
     }
 
-    let app
+    let app: Todo
     let streamFetcher
-    let publisherMock
+    let publisherMock: Todo
 
     function postRequest(overridingOptions = {}) {
         const opts = {
@@ -27,6 +29,7 @@ describe('DataProduceEndpoints', () => {
 
         const headers = {
             'Content-Type': 'application/json',
+            // @ts-expect-error
             Authorization: `Bearer ${opts.sessionToken}`,
             ...opts.headers
         }
@@ -37,6 +40,7 @@ describe('DataProduceEndpoints', () => {
             .send(opts.body)
 
         Object.keys(headers).forEach((key) => {
+            // @ts-expect-error
             req.set(key, headers[key])
         })
 
@@ -54,6 +58,7 @@ describe('DataProduceEndpoints', () => {
             validateAndPublish: sinon.stub().resolves(),
         }
 
+        // @ts-expect-error
         app.use(router(streamFetcher, publisherMock, () => 0))
     })
 
@@ -106,8 +111,8 @@ describe('DataProduceEndpoints', () => {
             query: {
                 ts: streamMessage.getTimestamp(),
                 seq: streamMessage.messageId.sequenceNumber,
-                prev_ts: streamMessage.prevMsgRef.timestamp,
-                prev_seq: streamMessage.prevMsgRef.sequenceNumber,
+                prev_ts: streamMessage.prevMsgRef!.timestamp,
+                prev_seq: streamMessage.prevMsgRef!.sequenceNumber,
                 address: 'publisherId',
                 signatureType: streamMessage.signatureType,
                 signature: streamMessage.signature,
@@ -182,6 +187,7 @@ describe('DataProduceEndpoints', () => {
     it('should return 413 (Payload Too Large) if body too large', (done) => {
         const body = {}
         for (let i = 0; i < 20000; ++i) {
+            // @ts-expect-error
             body[`key-${i}`] = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.'
         }
         postRequest({

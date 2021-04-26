@@ -1,18 +1,17 @@
-const http = require('http')
-
-const { startTracker } = require('streamr-network')
-
-const { startBroker, createClient } = require('../utils')
+import http from 'http'
+import { startTracker } from 'streamr-network'
+import { Todo } from '../types'
+import { startBroker, createClient } from '../utils'
 
 const trackerPort = 12420
 const networkPort = 12421
 const httpPort = 12422
 
 describe('broker resistance to invalid data', () => {
-    let tracker
-    let broker
-    let streamId
-    let sessionToken
+    let tracker: Todo
+    let broker: Todo
+    let streamId: string
+    let sessionToken: string
 
     beforeEach(async () => {
         tracker = await startTracker({
@@ -35,6 +34,7 @@ describe('broker resistance to invalid data', () => {
         })
         streamId = freshStream.id
         await client.ensureDisconnected()
+        // @ts-expect-error
         sessionToken = await client.session.getSessionToken()
     })
 

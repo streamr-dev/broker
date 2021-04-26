@@ -1,10 +1,12 @@
-const sinon = require('sinon')
-const { StreamMessage, MessageID } = require('streamr-network').Protocol.MessageLayer
-const { MetricsContext } = require('streamr-network')
+import sinon from 'sinon'
+import { NetworkNode, Protocol } from 'streamr-network'
+import { MetricsContext } from 'streamr-network'
+import { Publisher } from '../../src/Publisher'
+import { Todo } from '../types'
 
-const { Publisher } = require('../../src/Publisher')
+const { StreamMessage, MessageID } = Protocol.MessageLayer
 
-function formMessage(timestamp) {
+function formMessage(timestamp: number) {
     return new StreamMessage({
         messageId: new MessageID('streamId', 0, timestamp, 0, 'publisherId', 'msgChainId'),
         content: {
@@ -14,18 +16,19 @@ function formMessage(timestamp) {
 }
 
 describe('Publisher', () => {
-    let networkNode
-    let validator
-    let publisher
+    let networkNode: NetworkNode
+    let validator: Todo
+    let publisher: Publisher
 
     beforeEach(() => {
+        // @ts-expect-error
         networkNode = {
             publish: sinon.stub().resolves()
         }
         validator = {
             validate: sinon.stub().resolves()
         }
-        publisher = new Publisher(networkNode, validator, new MetricsContext(null))
+        publisher = new Publisher(networkNode, validator, new MetricsContext(null as any))
     })
 
     describe('validateAndPublish', () => {
@@ -46,7 +49,7 @@ describe('Publisher', () => {
 
         it('should call NetworkNode.publish with correct values', async () => {
             await publisher.validateAndPublish(formMessage(135135135))
-            expect(networkNode.publish.calledWith(formMessage(135135135))).toBe(true)
+            expect((networkNode.publish as any).calledWith(formMessage(135135135))).toBe(true)
         })
     })
 })

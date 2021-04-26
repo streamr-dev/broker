@@ -1,11 +1,11 @@
-const assert = require('assert')
-
-const { StreamStateManager } = require('../../../src/StreamStateManager')
+import assert from 'assert'
+import { StreamStateManager } from '../../../src/StreamStateManager'
+import { Stream } from '../../../src/Stream'
 
 jest.useFakeTimers()
 
 describe('StreamStateManager', () => {
-    let streams
+    let streams: StreamStateManager
 
     beforeEach(() => {
         streams = new StreamStateManager()
@@ -30,7 +30,7 @@ describe('StreamStateManager', () => {
     })
 
     describe('get', () => {
-        let stream
+        let stream: Stream
         beforeEach(() => {
             stream = streams.create('streamId', 4)
         })
@@ -70,7 +70,7 @@ describe('StreamStateManager', () => {
     })
 
     describe('timeout behavior', () => {
-        let stream
+        let stream: Stream
 
         beforeEach(() => {
             stream = streams.create('streamId', 0)
