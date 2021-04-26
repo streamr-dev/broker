@@ -1,6 +1,6 @@
 import net from 'net'
 import { MissingConfigError } from '../errors/MissingConfigError'
-import getLogger from '../helpers/logger'
+import { getLogger } from '../helpers/logger'
 import { MqttServer } from './MqttServer'
 import { BrokerUtils } from '../types'
 import { AdapterConfig } from '../Adapter'

@@ -1,7 +1,7 @@
 import express from 'express'
 import bodyParser from 'body-parser'
 import { Protocol } from 'streamr-network'
-import getLogger from '../helpers/logger'
+import { getLogger } from '../helpers/logger'
 import { FailedToPublishError } from '../errors/FailedToPublishError'
 import { partition } from '../helpers/partition'
 import { authenticator } from './RequestAuthenticatorMiddleware'

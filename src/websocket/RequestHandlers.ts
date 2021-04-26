@@ -4,7 +4,7 @@ import { NetworkNode, Protocol } from 'streamr-network'
 const { ControlLayer, Utils } = Protocol
 import { HttpError } from '../errors/HttpError'
 import { FailedToPublishError } from '../errors/FailedToPublishError'
-import getLogger from '../helpers/logger'
+import { getLogger } from '../helpers/logger'
 import { StreamStateManager } from '../StreamStateManager' 
 import { Metrics } from 'streamr-network/dist/helpers/MetricsContext'
 import { Publisher } from '../Publisher'

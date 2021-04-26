@@ -1,7 +1,7 @@
 import cassandra, { Client } from 'cassandra-driver'
 import fetch from 'node-fetch'
 import pLimit, { Limit } from 'p-limit'
-import getLogger from '../helpers/logger'
+import { getLogger } from '../helpers/logger'
 import { Todo } from '../types'
 import { Bucket } from './Bucket'
 

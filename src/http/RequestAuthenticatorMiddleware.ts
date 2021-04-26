@@ -1,6 +1,6 @@
 import { Todo } from '../types'
 import { HttpError } from '../errors/HttpError'
-import getLogger from '../helpers/logger'
+import { getLogger } from '../helpers/logger'
 import { StreamFetcher } from '../StreamFetcher'
 
 const logger = getLogger('streamr:http:RequestAuthenticatorMiddleware')

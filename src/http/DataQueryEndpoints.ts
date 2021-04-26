@@ -4,7 +4,7 @@
 import express, { Request, Response } from 'express'
 import { MetricsContext, NetworkNode } from 'streamr-network'
 import { Metrics } from 'streamr-network/dist/helpers/MetricsContext'
-import getLogger from '../helpers/logger'
+import { getLogger } from '../helpers/logger'
 import { Todo } from '../types'
 import { authenticator } from './RequestAuthenticatorMiddleware'
 

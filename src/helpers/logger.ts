@@ -1,6 +1,6 @@
 const pino = require('pino')
 
-const getLogger = (name) => pino({
+export const getLogger = (name: string) => pino({
     name,
     enabled: !process.env.NOLOG,
     level: process.env.LOG_LEVEL || 'info',
@@ -9,5 +9,3 @@ const getLogger = (name) => pino({
         translateTime: true
     }
 })
-
-module.exports = getLogger

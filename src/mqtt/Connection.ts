@@ -1,5 +1,5 @@
 import events from 'events'
-import getLogger from '../helpers/logger'
+import { getLogger } from '../helpers/logger'
 import { Todo } from '../types'
 
 const logger = getLogger('streamr:MqttServer:Connection')
