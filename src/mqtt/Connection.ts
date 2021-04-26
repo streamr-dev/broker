@@ -1,9 +1,18 @@
-const events = require('events')
+import events from 'events'
+import getLogger from '../helpers/logger'
+import { Todo } from '../types'
 
-const logger = require('../helpers/logger')('streamr:MqttServer:Connection')
+const logger = getLogger('streamr:MqttServer:Connection')
 
-module.exports = class Connection extends events.EventEmitter {
-    constructor(client, clientId = '', token = '') {
+export class Connection extends events.EventEmitter {
+
+    id: Todo
+    client: Todo
+    token: Todo
+    streams: Todo
+    dead: Todo
+
+    constructor(client: Todo, clientId = '', token = '') {
         super()
 
         this.id = clientId
@@ -12,14 +21,14 @@ module.exports = class Connection extends events.EventEmitter {
         this.streams = []
         this.dead = false
 
-        this.client.once('connect', (packet) => this.emit('connect', packet))
+        this.client.once('connect', (packet: Todo) => this.emit('connect', packet))
         this.client.once('close', () => this.emit('close'))
-        this.client.on('error', (err) => this.emit('error', err))
+        this.client.on('error', (err: Todo) => this.emit('error', err))
         this.client.once('disconnect', () => this.emit('disconnect'))
 
-        this.client.on('publish', (packet) => this.emit('publish', packet))
-        this.client.on('subscribe', (packet) => this.emit('subscribe', packet))
-        this.client.on('unsubscribe', (packet) => this.emit('unsubscribe', packet))
+        this.client.on('publish', (packet: Todo) => this.emit('publish', packet))
+        this.client.on('subscribe', (packet: Todo) => this.emit('subscribe', packet))
+        this.client.on('unsubscribe', (packet: Todo) => this.emit('unsubscribe', packet))
 
         this.client.on('pingreq', () => this.client.pingresp())
     }
@@ -61,7 +70,7 @@ module.exports = class Connection extends events.EventEmitter {
         }
     }
 
-    sendUnsubscribe(packet) {
+    sendUnsubscribe(packet: Todo) {
         try {
             if (!this.isDead()) {
                 this.client.unsubscribe(packet)
@@ -71,12 +80,12 @@ module.exports = class Connection extends events.EventEmitter {
         }
     }
 
-    setClientId(clientId) {
+    setClientId(clientId: Todo) {
         this.id = clientId
         return this
     }
 
-    setToken(token) {
+    setToken(token: Todo) {
         this.token = token
         return this
     }
@@ -91,18 +100,18 @@ module.exports = class Connection extends events.EventEmitter {
         this.streams = []
     }
 
-    addStream(stream) {
+    addStream(stream: Todo) {
         this.streams.push(stream)
     }
 
-    removeStream(streamId, streamPartition) {
-        const i = this.streams.findIndex((s) => s.id === streamId && s.partition === streamPartition)
+    removeStream(streamId: string, streamPartition: number) {
+        const i = this.streams.findIndex((s: Todo) => s.id === streamId && s.partition === streamPartition)
         if (i !== -1) {
             this.streams.splice(i, 1)
         }
     }
 
-    forEachStream(cb) {
+    forEachStream(cb: Todo) {
         this.getStreams().forEach(cb)
     }
 
@@ -111,7 +120,7 @@ module.exports = class Connection extends events.EventEmitter {
     }
 
     streamsAsString() {
-        return this.streams.map((s) => s.toString())
+        return this.streams.map((s: Todo) => s.toString())
     }
 }
 

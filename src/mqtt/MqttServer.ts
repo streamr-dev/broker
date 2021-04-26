@@ -1,19 +1,24 @@
-const events = require('events')
+import events from 'events'
+// @ts-expect-error
+import mqttCon from 'mqtt-connection'
+import { MetricsContext, NetworkNode, Protocol } from 'streamr-network'
+import { Metrics } from 'streamr-network/dist/helpers/MetricsContext'
+import getLogger from '../helpers/logger'
+import { partition } from '../helpers/partition'
+import { Publisher } from '../Publisher'
+import { StreamFetcher } from '../StreamFetcher'
+import StreamStateManager from '../StreamStateManager'
+import { SubscriptionManager } from '../SubscriptionManager'
+import { Todo } from '../types'
+import { Connection } from './Connection'
 
-const mqttCon = require('mqtt-connection')
-const { MessageLayer } = require('streamr-network').Protocol
+const logger = getLogger('streamr:MqttServer')
 
-const logger = require('../helpers/logger')('streamr:MqttServer')
-const { partition } = require('../helpers/partition')
-const StreamStateManager = require('../StreamStateManager')
-
-const Connection = require('./Connection')
-
-const { StreamMessage, MessageID } = MessageLayer
+const { StreamMessage, MessageID } = Protocol.MessageLayer
 
 let sequenceNumber = 0
 
-function mqttPayloadToObject(payload) {
+function mqttPayloadToObject(payload: Todo) {
     try {
         JSON.parse(payload)
     } catch (e) {
@@ -24,15 +29,27 @@ function mqttPayloadToObject(payload) {
     return payload
 }
 
-module.exports = class MqttServer extends events.EventEmitter {
+export class MqttServer extends events.EventEmitter {
+
+    mqttServer: Todo
+    streamsTimeout: Todo
+    networkNode: NetworkNode
+    streamFetcher: StreamFetcher
+    publisher: Publisher
+    partitionFn: Todo
+    subscriptionManager: Todo
+    connections: Todo
+    streams: Todo
+    metrics: Metrics
+
     constructor(
-        mqttServer,
-        streamsTimeout,
-        networkNode,
-        streamFetcher,
-        publisher,
-        metricsContext,
-        subscriptionManager,
+        mqttServer: Todo,
+        streamsTimeout: Todo,
+        networkNode: NetworkNode,
+        streamFetcher: StreamFetcher,
+        publisher: Publisher,
+        metricsContext: MetricsContext,
+        subscriptionManager: SubscriptionManager,
         partitionFn = partition,
     ) {
         super()
@@ -59,20 +76,21 @@ module.exports = class MqttServer extends events.EventEmitter {
 
     close() {
         this.streams.close()
-        this.connections.forEach((connection) => this._closeConnection(connection))
+        this.connections.forEach((connection: Todo) => this._closeConnection(connection))
 
         return new Promise((resolve, reject) => {
-            this.mqttServer.close((err) => {
+            this.mqttServer.close((err: Todo) => {
                 if (err) {
                     reject(err)
                 } else {
+                    // @ts-expect-error
                     resolve()
                 }
             })
         })
     }
 
-    _createNewConnection(client) {
+    _createNewConnection(client: Todo) {
         const connection = new Connection(client)
 
         connection.on('close', () => {
@@ -107,7 +125,7 @@ module.exports = class MqttServer extends events.EventEmitter {
         return connection
     }
 
-    onNewClientConnection(mqttStream) {
+    onNewClientConnection(mqttStream: Todo) {
         const connection = this._createNewConnection(mqttCon(mqttStream))
         this.connections.add(connection)
 
@@ -144,7 +162,7 @@ module.exports = class MqttServer extends events.EventEmitter {
         })
     }
 
-    async handlePublishRequest(connection, packet) {
+    async handlePublishRequest(connection: Todo, packet: Todo) {
         logger.debug('publish request %o', packet)
 
         const { topic, payload, qos } = packet
@@ -178,7 +196,7 @@ module.exports = class MqttServer extends events.EventEmitter {
         }
     }
 
-    handleUnsubscribeRequest(connection, packet) {
+    handleUnsubscribeRequest(connection: Todo, packet: Todo) {
         logger.debug('unsubscribe request %o', packet)
 
         const topic = packet.unsubscriptions[0]
@@ -192,7 +210,7 @@ module.exports = class MqttServer extends events.EventEmitter {
         }
     }
 
-    async handleSubscribeRequest(connection, packet) {
+    async handleSubscribeRequest(connection: Todo, packet: Todo) {
         logger.debug('subscribe request %o', packet)
 
         const { topic } = packet.subscriptions[0]
@@ -227,12 +245,12 @@ module.exports = class MqttServer extends events.EventEmitter {
         }
     }
 
-    _closeConnection(connection) {
+    _closeConnection(connection: Todo) {
         this.connections.delete(connection)
         logger.debug('closing client "%s" on streams "%o"', connection.id, connection.streamsAsString())
 
         // Unsubscribe from all streams
-        connection.forEachStream((stream) => {
+        connection.forEachStream((stream: Todo) => {
             const object = {
                 messageId: 0,
                 unsubscriptions: [stream.getName()]
@@ -260,7 +278,7 @@ module.exports = class MqttServer extends events.EventEmitter {
         connection.close()
     }
 
-    broadcastMessage(streamMessage) {
+    broadcastMessage(streamMessage: Todo) {
         const streamId = streamMessage.getStreamId()
         const streamPartition = streamMessage.getStreamPartition()
         const stream = this.streams.get(streamId, 0)
@@ -272,7 +290,7 @@ module.exports = class MqttServer extends events.EventEmitter {
                 payload: JSON.stringify(streamMessage.getParsedContent())
             }
 
-            stream.forEachConnection((connection) => {
+            stream.forEachConnection((connection: Todo) => {
                 connection.client.publish(object, () => {})
             })
 
