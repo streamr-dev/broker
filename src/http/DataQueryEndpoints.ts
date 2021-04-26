@@ -96,8 +96,7 @@ export const router = (networkNode: NetworkNode, streamFetcher: Todo, metricsCon
 
     router.get('/streams/:id/data/partitions/:partition/last', (req: Request, res: Response) => {
         const partition = parseInt(req.params.partition)
-        // @ts-expect-error
-        const count = req.query.count === undefined ? 1 : parseInt(req.query.count)
+        const count = req.query.count === undefined ? 1 : parseInt(req.query.count as string)
         const version = parseIntIfExists(req.query.version)
         metrics.record('lastRequests', 1)
 
@@ -116,8 +115,7 @@ export const router = (networkNode: NetworkNode, streamFetcher: Todo, metricsCon
                 count,
             )
 
-            // @ts-expect-error
-            streamData(res, streamingData, req.query.format, version, metrics)
+            streamData(res, streamingData, (req.query.format as string), version, metrics)
         }
     })
 
@@ -150,13 +148,11 @@ export const router = (networkNode: NetworkNode, streamFetcher: Todo, metricsCon
                 generateSubId(),
                 fromTimestamp,
                 fromSequenceNumber,
-                // @ts-expect-error
-                publisherId || null,
+                (publisherId as string) || null,
                 null,
             )
 
-            // @ts-expect-error
-            streamData(res, streamingData, req.query.format, version, metrics)
+            streamData(res, streamingData, (req.query.format as string), version, metrics)
         }
     })
 
@@ -216,13 +212,11 @@ export const router = (networkNode: NetworkNode, streamFetcher: Todo, metricsCon
                 fromSequenceNumber,
                 toTimestamp,
                 toSequenceNumber,
-                // @ts-expect-error
-                publisherId || null,
+                (publisherId as string) || null,
                 null,
             )
 
-            // @ts-expect-error
-            streamData(res, streamingData, req.query.format, version, metrics)
+            streamData(res, streamingData, (req.query.format as string), version, metrics)
         }
     })
 
