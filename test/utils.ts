@@ -76,7 +76,7 @@ export function formConfig({
             keyspace: 'streamr_dev_v2',
         } : null,
         storageConfig: enableCassandra ? {
-            refreshInterval: 999999999
+            refreshInterval: 0
         } : null,
         reporting: reporting || {
             sentry: null,
