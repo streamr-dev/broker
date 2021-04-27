@@ -4,8 +4,14 @@ import { WebsocketServer } from './WebsocketServer'
 import { AdapterConfig } from '../Adapter'
 import { BrokerUtils } from '../types'
 
+export interface WsAdapterConfig extends AdapterConfig {
+    privateKeyFileName: string|null, 
+    certFileName: string|null,
+    pingInterval: number
+}
+
 export const start = (
-    { port, privateKeyFileName, certFileName, pingInterval }: AdapterConfig, 
+    { port, privateKeyFileName, certFileName, pingInterval }: WsAdapterConfig, 
     { networkNode, publisher, streamFetcher, metricsContext, subscriptionManager}: BrokerUtils
 ) => {
     if (port === undefined) {

@@ -16,11 +16,12 @@ import { validateConfig } from './helpers/validateConfig'
 import { StorageConfig } from './storage/StorageConfig'
 import { version as CURRENT_VERSION } from '../package.json'
 import { Todo } from './types';
+import { Config, TrackerRegistry } from './config'
 const { Utils } = Protocol
 
 const logger = getLogger('streamr:broker')
 
-export const startBroker = async (config: Todo) => {
+export const startBroker = async (config: Config) => {
     validateConfig(config)
 
     logger.info(`Starting broker version ${CURRENT_VERSION}`)
@@ -37,8 +38,7 @@ export const startBroker = async (config: Todo) => {
     const brokerAddress = wallet.address
 
     const createStorageConfig = async () => {
-        const pollInterval = (config.storageConfig && config.storageConfig.refreshInterval) || 10 * 60 * 1000
-        return StorageConfig.createInstance(brokerAddress, config.streamrUrl + '/api/v1', pollInterval)
+        return StorageConfig.createInstance(brokerAddress, config.streamrUrl + '/api/v1', config.storageConfig!.refreshInterval)
     }
 
     const storageConfig = config.network.isStorageNode ? await createStorageConfig() : null
@@ -66,10 +66,10 @@ export const startBroker = async (config: Todo) => {
 
     // Form tracker list
     let trackers
-    if (config.network.trackers.registryAddress) {
+    if ((config.network.trackers as TrackerRegistry).registryAddress) {
         const registry = await Protocol.Utils.getTrackerRegistryFromContract({
-            contractAddress: config.network.trackers.registryAddress,
-            jsonRpcProvider: config.network.trackers.jsonRpcProvider
+            contractAddress: (config.network.trackers as TrackerRegistry).registryAddress,
+            jsonRpcProvider: (config.network.trackers as TrackerRegistry).jsonRpcProvider
         })
         trackers = registry.getAllTrackers().map((record) => record.ws)
     } else {
@@ -86,7 +86,7 @@ export const startBroker = async (config: Todo) => {
         port: config.network.port,
         id: brokerAddress,
         name: networkNodeName,
-        trackers,
+        trackers: trackers as string[],
         storages,
         // @ts-expect-error
         storageConfig,
@@ -127,7 +127,7 @@ export const startBroker = async (config: Todo) => {
     // Set up reporting to Streamr stream
     let client: StreamrClient|undefined
 
-    const streamIds = {
+    const streamIds: Todo = {
         metricsStreamId: null,
         secStreamId: null,
         minStreamId: null,
@@ -185,7 +185,6 @@ export const startBroker = async (config: Todo) => {
         config.reporting.intervalInSeconds,
         metricsContext,
         client,
-        // @ts-expect-error
         streamIds
     )
 
@@ -202,7 +201,6 @@ export const startBroker = async (config: Todo) => {
     const publisher = new Publisher(networkNode, streamMessageValidator, metricsContext)
     const subscriptionManager = new SubscriptionManager(networkNode)
 
-    // @ts-expect-error
     // Start up adapters one-by-one, storing their close functions for further use
     const closeAdapterFns = config.adapters.map(({ name, ...adapterConfig }, index) => {
         try {
@@ -228,6 +226,7 @@ export const startBroker = async (config: Todo) => {
 
     logger.info(`Network node '${networkNodeName}' running on ${config.network.hostname}:${config.network.port}`)
     logger.info(`Ethereum address ${brokerAddress}`)
+    // @ts-expect-error TODO doesn't work if trackers is TrackerRegistry
     logger.info(`Configured with trackers: ${trackers.join(', ')}`)
     logger.info(`Configured with Streamr: ${config.streamrUrl}`)
     logger.info(`Adapters: ${JSON.stringify(config.adapters.map((a: Todo) => a.name))}`)

@@ -15,8 +15,13 @@ import { BrokerUtils } from '../types'
 
 const logger = getLogger('streamr:httpAdapter')
 
+export interface HttpAdapterConfig extends AdapterConfig {
+    privateKeyFileName: string|null, 
+    certFileName: string|null
+}
+
 export const start = (
-    { port, privateKeyFileName, certFileName }: AdapterConfig, 
+    { port, privateKeyFileName, certFileName }: HttpAdapterConfig, 
     { networkNode, publisher, streamFetcher, metricsContext, cassandraStorage, storageConfig}: BrokerUtils
 ) => {
     const app = express()

@@ -7,9 +7,13 @@ import { AdapterConfig } from '../Adapter'
 
 const logger = getLogger('streamr:mqttAdapter')
 
+export interface MqttAdapterConfig extends AdapterConfig {
+    streamsTimeout: number|null
+}
+
 // eslint-disable-next-line max-len
 export const start = (
-    { port, streamsTimeout }: AdapterConfig, 
+    { port, streamsTimeout }: MqttAdapterConfig, 
     { networkNode, publisher, streamFetcher, metricsContext, subscriptionManager}: BrokerUtils
 ) => {
     if (port === undefined) {
