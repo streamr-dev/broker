@@ -1,9 +1,8 @@
 import { AdapterConfig } from './Adapter';
-import { EthereumAddress, PrivateKey, Url } from './types';
 
 export interface TrackerRegistry {
-    registryAddress: EthereumAddress
-    jsonRpcProvider: Url
+    registryAddress: string
+    jsonRpcProvider: string
 }
 
 export interface NetworkConfig {
@@ -12,7 +11,7 @@ export interface NetworkConfig {
     port: number,
     advertisedWsUrl: string | null,
     isStorageNode: boolean,
-    trackers: Url[] | TrackerRegistry,
+    trackers: string[] | TrackerRegistry,
     location: {
         latitude: number,
         longitude: number,
@@ -22,7 +21,7 @@ export interface NetworkConfig {
 }
 
 export interface Config {
-    ethereumPrivateKey: PrivateKey
+    ethereumPrivateKey: string
     network: NetworkConfig,
     cassandra: {
         hosts: string[],
@@ -36,18 +35,18 @@ export interface Config {
     } | null,
     reporting: {
         intervalInSeconds: number,
-        sentry: Url | null,
+        sentry: string | null,
         streamr: {
         streamId: string
     } | null,
         perNodeMetrics: {
         enabled: boolean
-        wsUrl: Url | null
-        httpUrl: Url | null
+        wsUrl: string | null
+        httpUrl: string | null
         } | null
     },
-    streamrUrl: Url,
-    streamrAddress: EthereumAddress,
+    streamrUrl: string,
+    streamrAddress: string,
     adapters: AdapterConfig[]
 }
 

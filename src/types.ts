@@ -5,12 +5,6 @@ import { SubscriptionManager } from './SubscriptionManager'
 
 export type Todo = any
 
-export type EthereumAddress = string
-
-export type PrivateKey = string
-
-export type Url = string
-
 export interface StreamPart {
     id: string
     partition: number
