@@ -1,6 +1,6 @@
 {
   "name": "streamr-broker",
-  "version": "19.0.2",
+  "version": "19.0.3",
   "description": "A full-featured broker node implementation for the Streamr Network.",
   "repository": {
     "type": "git",
@@ -14,10 +14,11 @@
   "main": "bin/broker.js",
   "scripts": {
     "prepare": "tsc -p tsconfig-build.json",
-    "test": "eslint . && jest",
+    "test": "eslint . && jest test/unit test/integration && npm run test-sequential",
     "build": "tsc -p tsconfig-build.json --incremental",
     "test-unit": "jest test/unit",
-    "test-integration": "jest --forceExit test/integration",
+    "test-sequential": "jest --maxWorkers=1 test/sequential # always run sequential tests with maxWorkers=1",
+    "test-integration": "jest --forceExit test/integration && npm run test-sequential",
     "eslint": "eslint ."
   },
   "author": "Streamr Network AG <contact@streamr.com>",
@@ -63,7 +64,7 @@
     "pump": "^3.0.0",
     "qs": "^6.10.1",
     "streamr-client": "^5.2.1",
-    "streamr-network": "^24.1.9",
+    "streamr-network": "^24.1.10",
     "ts-jest": "^26.5.4",
     "typescript": "^4.2.4",
     "uWebSockets.js": "github:uNetworking/uWebSockets.js#v18.14.0",
@@ -83,7 +84,7 @@
     "jest-circus": "^26.6.3",
     "sinon": "^10.0.0",
     "stream-to-array": "^2.3.0",
-    "streamr-test-utils": "^1.3.1",
+    "streamr-test-utils": "^1.3.2",
     "supertest": "^6.1.3"
   }
 }

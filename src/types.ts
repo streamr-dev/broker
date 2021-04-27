@@ -12,6 +12,7 @@ export interface StreamPart {
 }
 
 export interface BrokerUtils {
+    config: Todo
     networkNode: NetworkNode
     publisher: Publisher
     streamFetcher: StreamFetcher
