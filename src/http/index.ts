@@ -34,10 +34,6 @@ export const start = (
         app.use('/api/v1', storageConfigEndpoints(storageConfig))    
     }
 
-    app.use('*', (_req: Request, res: Response) => {
-        return res.status(501).send('Unknown route')
-    })
-
     let httpServer: HttpServer|HttpsServer
     if (privateKeyFileName && certFileName) {
         httpServer = https.createServer({
