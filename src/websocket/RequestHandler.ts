@@ -159,7 +159,7 @@ export class RequestHandler {
                     r.msgChainId,
                 )
             default: 
-                throw new Error('Assertion failed')
+                throw new Error('Assertion failed: request.type=' + request.type)
         }
     }
 
