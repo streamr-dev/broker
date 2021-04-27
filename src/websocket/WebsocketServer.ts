@@ -175,7 +175,7 @@ export class WebsocketServer extends EventEmitter {
 
                     const msg = copy(message)
 
-                    setImmediate(() => {
+                    setImmediate(async () => {
                         if (connection.isDead()) {
                             return
                         }
@@ -195,8 +195,7 @@ export class WebsocketServer extends EventEmitter {
 
                         try {
                             logger.debug('socket "%s" sent request "%s" with contents "%o"', connection.id, request.type, request)
-                            // TODO we should await this handling so that the catch block will catch any errors?
-                            this.requestHandler.handleRequest(connection, request)
+                            await this.requestHandler.handleRequest(connection, request)
                         } catch (err) {
                             connection.send(new ControlLayer.ErrorResponse({
                                 version: request.version,
