@@ -20,6 +20,9 @@ export const startAdapter = (name: string, adapterConfig: AdapterConfig, brokerU
     return registry[name](adapterConfig, brokerUtils)
 }
 
+// @ts-expect-error
 register('http', startHttp)
+// @ts-expect-error
 register('ws', startWs)
+// @ts-expect-error
 register('mqtt', startMqtt)
