@@ -133,7 +133,7 @@ export class RequestHandler {
                 )
             case ControlLayer.ControlMessage.TYPES.ResendFromRequest: 
                 r = request as ResendFromRequest
-                this.networkNode.requestResendFrom(
+                return this.networkNode.requestResendFrom(
                     r.streamId,
                     r.streamPartition,
                     uuidv4(),
@@ -146,7 +146,7 @@ export class RequestHandler {
                 )
             case ControlLayer.ControlMessage.TYPES.ResendRangeRequest: 
                 r = request as ResendRangeRequest
-                this.networkNode.requestResendRange(
+                return this.networkNode.requestResendRange(
                     r.streamId,
                     r.streamPartition,
                     uuidv4(),
