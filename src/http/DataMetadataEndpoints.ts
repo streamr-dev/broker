@@ -1,7 +1,7 @@
 import express, { Request, Response } from 'express'
 import { Storage } from '../storage/Storage'
 
-const parseIntIfExists = (x: string) => {
+const parseIntIfExists = (x: string|undefined) => {
     return x === undefined ? undefined : parseInt(x)
 }
 
