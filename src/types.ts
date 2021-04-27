@@ -2,6 +2,8 @@ import { MetricsContext, NetworkNode } from 'streamr-network'
 import { Publisher } from './Publisher'
 import { StreamFetcher } from './StreamFetcher'
 import { SubscriptionManager } from './SubscriptionManager'
+import { Storage } from './storage/Storage'
+import { Config } from './config'
 
 export type Todo = any
 
@@ -11,11 +13,12 @@ export interface StreamPart {
 }
 
 export interface BrokerUtils {
+    config: Config
     networkNode: NetworkNode
     publisher: Publisher
     streamFetcher: StreamFetcher
     metricsContext: MetricsContext
     subscriptionManager: SubscriptionManager
-    cassandraStorage?: Todo
+    cassandraStorage?: Storage
     storageConfig?: Todo
 }

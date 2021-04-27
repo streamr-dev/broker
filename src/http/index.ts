@@ -22,7 +22,7 @@ export interface HttpAdapterConfig extends AdapterConfig {
 
 export const start: AdapterStartFn<HttpAdapterConfig> = (
     { port, privateKeyFileName, certFileName }: HttpAdapterConfig, 
-    { networkNode, publisher, streamFetcher, metricsContext, cassandraStorage, storageConfig}: BrokerUtils
+    { config, publisher, streamFetcher, metricsContext, cassandraStorage, storageConfig}: BrokerUtils
  ): () => Promise<any> => {
     const app = express()
 
@@ -30,12 +30,14 @@ export const start: AdapterStartFn<HttpAdapterConfig> = (
     app.use(cors())
 
     // Rest endpoints
-    app.use('/api/v1', dataQueryEndpoints(networkNode, streamFetcher, metricsContext))
     app.use('/api/v1', dataProduceEndpoints(streamFetcher, publisher))
     app.use('/api/v1', volumeEndpoint(metricsContext))
 
-    app.use('/api/v1', dataMetadataEndpoint(cassandraStorage))
-    app.use('/api/v1', storageConfigEndpoints(storageConfig))
+    if (config.network.isStorageNode) {
+        app.use('/api/v1', dataQueryEndpoints(cassandraStorage!, streamFetcher, metricsContext))
+        app.use('/api/v1', dataMetadataEndpoint(cassandraStorage!))
+        app.use('/api/v1', storageConfigEndpoints(storageConfig))    
+    }
 
     let httpServer: HttpServer|HttpsServer
     if (privateKeyFileName && certFileName) {
