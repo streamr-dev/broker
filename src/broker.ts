@@ -65,7 +65,7 @@ export const startBroker = async (config: Config) => {
     }
 
     // Form tracker list
-    let trackers
+    let trackers: string[]
     if ((config.network.trackers as TrackerRegistry).registryAddress) {
         const registry = await Protocol.Utils.getTrackerRegistryFromContract({
             contractAddress: (config.network.trackers as TrackerRegistry).registryAddress,
@@ -73,7 +73,7 @@ export const startBroker = async (config: Config) => {
         })
         trackers = registry.getAllTrackers().map((record) => record.ws)
     } else {
-        trackers = config.network.trackers
+        trackers = config.network.trackers as string[]
     }
 
     // Start network node
@@ -227,7 +227,6 @@ export const startBroker = async (config: Config) => {
 
     logger.info(`Network node '${networkNodeName}' running on ${config.network.hostname}:${config.network.port}`)
     logger.info(`Ethereum address ${brokerAddress}`)
-    // @ts-expect-error TODO doesn't work if trackers is TrackerRegistry
     logger.info(`Configured with trackers: ${trackers.join(', ')}`)
     logger.info(`Configured with Streamr: ${config.streamrUrl}`)
     logger.info(`Adapters: ${JSON.stringify(config.adapters.map((a: Todo) => a.name))}`)
