@@ -168,12 +168,10 @@ export class RequestHandler {
         request: ResendFromRequest|ResendLastRequest|ResendRangeRequest,
         streamingStorageData: NodeJS.ReadableStream
     ) {
-        let nothingToResend = true
         let sentMessages = 0
     
         const msgHandler = (unicastMessage: UnicastMessage) => {
-            if (nothingToResend) {
-                nothingToResend = false
+            if (sentMessages === 0) {
                 connection.send(new ControlLayer.ResendResponseResending(request))
             }
     
@@ -190,7 +188,7 @@ export class RequestHandler {
     
         const doneHandler = () => {
             logger.info('Finished resend %s for stream %s with a total of %d sent messages', request.requestId, request.streamId, sentMessages)
-            if (nothingToResend) {
+            if (sentMessages === 0) {
                 connection.send(new ControlLayer.ResendResponseNoResend({
                     version: request.version,
                     requestId: request.requestId,
