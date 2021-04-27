@@ -3,7 +3,7 @@ import { MissingConfigError } from '../errors/MissingConfigError'
 import { getLogger } from '../helpers/logger'
 import { MqttServer } from './MqttServer'
 import { BrokerUtils } from '../types'
-import { AdapterConfig } from '../Adapter'
+import { AdapterConfig, AdapterStartFn } from '../Adapter'
 
 const logger = getLogger('streamr:mqttAdapter')
 
@@ -12,10 +12,10 @@ export interface MqttAdapterConfig extends AdapterConfig {
 }
 
 // eslint-disable-next-line max-len
-export const start = (
+export const start: AdapterStartFn<MqttAdapterConfig> = (
     { port, streamsTimeout }: MqttAdapterConfig, 
     { networkNode, publisher, streamFetcher, metricsContext, subscriptionManager}: BrokerUtils
-) => {
+): () => Promise<any> => {
     if (port === undefined) {
         throw new MissingConfigError('port')
     }
