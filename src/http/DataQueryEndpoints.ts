@@ -8,6 +8,7 @@ import { getLogger } from '../helpers/logger'
 import { Todo } from '../types'
 import { Storage } from '../storage/Storage'
 import { authenticator } from './RequestAuthenticatorMiddleware'
+import { Format, getFormat } from './DataQueryFormat'
 
 const logger = getLogger('streamr:http:DataQueryEndpoints')
 
@@ -15,35 +16,36 @@ const logger = getLogger('streamr:http:DataQueryEndpoints')
 export const MIN_SEQUENCE_NUMBER_VALUE = 0
 export const MAX_SEQUENCE_NUMBER_VALUE = 2147483647
 
-const onStarted = (res: Response) => {
+const onStarted = (res: Response, format: Format) => {
     res.writeHead(200, {
-        'Content-Type': 'application/json'
+        'Content-Type': format.contentType
     })
-    res.write('[')
+    res.write(format.header)
 }
 
-const onRow = (res: Response, streamMessage: Protocol.StreamMessage, delimiter: Todo, format = 'object', version: Todo, metrics: Metrics) => {
+const onRow = (res: Response, streamMessage: Protocol.StreamMessage, delimiter: Todo, format: Format, version: number|undefined, metrics: Metrics) => {
     res.write(delimiter) // because can't have trailing comma in JSON array
-    res.write(format === 'protocol' ? JSON.stringify(streamMessage.serialize(version)) : JSON.stringify(streamMessage.toObject()))
-    metrics.record('outBytes', streamMessage.getSerializedContent().length)
+    const messageAsString = format.getMessageAsString(streamMessage, version)
+    res.write(messageAsString)
+    metrics.record('outBytes', streamMessage.getSerializedContent().length) // TODO this should the actual byte count (messageAsString.length)?
     metrics.record('outMessages', 1)
 }
 
-const streamData = (res: Response, stream: NodeJS.ReadableStream, format: string, version: Todo, metrics: Metrics) => {
+const streamData = (res: Response, stream: NodeJS.ReadableStream, format: Format, version: Todo, metrics: Metrics) => {
     let delimiter = ''
     stream.on('data', (row) => {
         // first row
         if (delimiter === '') {
-            onStarted(res)
+            onStarted(res, format)
         }
         onRow(res, row, delimiter, format, version, metrics)
-        delimiter = ','
+        delimiter = format.delimiter
     })
     stream.on('end', () => {
         if (delimiter === '') {
-            onStarted(res)
+            onStarted(res, format)
         }
-        res.write(']')
+        res.write(format.footer)
         res.end()
     })
     stream.on('error', (err: Todo) => {
@@ -105,7 +107,7 @@ export const router = (storage: Storage, streamFetcher: Todo, metricsContext: Me
                 count,
             )
 
-            streamData(res, streamingData, (req.query.format as string), version, metrics)
+            streamData(res, streamingData, getFormat(req.query.format as string), version, metrics)
         }
     })
 
@@ -141,7 +143,7 @@ export const router = (storage: Storage, streamFetcher: Todo, metricsContext: Me
                 null,
             )
 
-            streamData(res, streamingData, (req.query.format as string), version, metrics)
+            streamData(res, streamingData, getFormat(req.query.format as string), version, metrics)
         }
     })
 
@@ -201,10 +203,11 @@ export const router = (storage: Storage, streamFetcher: Todo, metricsContext: Me
                 toTimestamp,
                 toSequenceNumber,
                 (publisherId as string) || null,
+                // TODO should add query parameter for msgChainId? (NET-281)
                 null,
             )
 
-            streamData(res, streamingData, (req.query.format as string), version, metrics)
+            streamData(res, streamingData, getFormat(req.query.format as string), version, metrics)
         }
     })
 

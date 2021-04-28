@@ -118,6 +118,12 @@ describe('DataQueryEndpoints', () => {
                     .expect(streamMessages.map((msg) => msg.serialize(30)), done)
             })
 
+            it('responds with raw format', (done) => {
+                testGetRequest('/api/v1/streams/streamId/data/partitions/0/last?count=2&format=raw&version=30')
+                    .expect('Content-Type', 'text/plain')
+                    .expect(streamMessages.map((msg) => msg.serialize(30)).join('\n'), done)
+            })
+
             it('invokes networkNode#requestResendLast once with correct arguments', (done) => {
                 testGetRequest('/api/v1/streams/streamId/data/partitions/0/last')
                     .then(() => {
