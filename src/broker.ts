@@ -86,7 +86,7 @@ export const startBroker = async (config: Config) => {
         port: config.network.port,
         id: brokerAddress,
         name: networkNodeName,
-        trackers: trackers as string[],
+        trackers,
         storages,
         // @ts-expect-error
         storageConfig,
