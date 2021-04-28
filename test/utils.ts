@@ -8,7 +8,7 @@ import { startBroker as createBroker } from '../src/broker'
 import { StorageConfig } from '../src/storage/StorageConfig'
 import { Todo } from './types'
 
-export const STREAMR_DOCKER_DEV_HOST = process.env.STREAMR_DOCKER_DEV_HOST || '10.200.10.1'
+export const STREAMR_DOCKER_DEV_HOST = process.env.STREAMR_DOCKER_DEV_HOST || '127.0.0.1'
 const API_URL = `http://${STREAMR_DOCKER_DEV_HOST}/api/v1`
 
 export function formConfig({
