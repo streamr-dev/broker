@@ -197,6 +197,9 @@ export class WebsocketServer extends EventEmitter {
                             logger.debug('socket "%s" sent request "%s" with contents "%o"', connection.id, request.type, request)
                             await this.requestHandler.handleRequest(connection, request)
                         } catch (err) {
+                            if (connection.isDead()) {
+                                return
+                            }
                             connection.send(new ControlLayer.ErrorResponse({
                                 version: request.version,
                                 requestId: request.requestId,
