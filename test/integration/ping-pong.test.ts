@@ -43,7 +43,7 @@ describe('ping-pong test between broker and clients', () => {
             uWS.App(),
             wsPort,
             networkNode,
-            new StreamFetcher('http://localhost:8081/streamr-core'),
+            new StreamFetcher('http://10.200.10.1'),
             new Publisher(networkNode, {}, metricsContext),
             metricsContext,
             new SubscriptionManager(networkNode)

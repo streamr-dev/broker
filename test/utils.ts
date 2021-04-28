@@ -8,7 +8,7 @@ import { startBroker as createBroker } from '../src/broker'
 import { StorageConfig } from '../src/storage/StorageConfig'
 import { Todo } from './types'
 
-export const STREAMR_DOCKER_DEV_HOST = process.env.STREAMR_DOCKER_DEV_HOST || '127.0.0.1'
+export const STREAMR_DOCKER_DEV_HOST = process.env.STREAMR_DOCKER_DEV_HOST || '10.200.10.1'
 const API_URL = `http://${STREAMR_DOCKER_DEV_HOST}/api/v1`
 
 export function formConfig({
@@ -23,7 +23,7 @@ export function formConfig({
     privateKeyFileName = null,
     certFileName = null,
     streamrAddress = '0xFCAd0B19bB29D4674531d6f115237E16AfCE377c',
-    streamrUrl = `http://${STREAMR_DOCKER_DEV_HOST}:8081/streamr-core`,
+    streamrUrl = `http://${STREAMR_DOCKER_DEV_HOST}`,
     reporting = false
 }: Todo) {
     const adapters = []
@@ -123,7 +123,7 @@ export function createClient(wsPort: number, privateKey = fastPrivateKey(), clie
             privateKey
         },
         url: getWsUrl(wsPort),
-        restUrl: `http://${STREAMR_DOCKER_DEV_HOST}:8081/streamr-core/api/v1`,
+        restUrl: `http://${STREAMR_DOCKER_DEV_HOST}/api/v1`,
         ...clientOptions,
     })
 }
