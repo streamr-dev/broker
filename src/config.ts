@@ -39,7 +39,7 @@ export interface Config {
         streamr: {
         streamId: string
     } | null,
-        perNodeMetrics: {
+    perNodeMetrics: {
         enabled: boolean
         wsUrl: string | null
         httpUrl: string | null
