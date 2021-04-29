@@ -194,7 +194,7 @@ export const router = (storage: Storage, streamFetcher: Todo, metricsContext: Me
             })
         } else {
             if ((publisherId && !msgChainId) || (!publisherId && msgChainId)) {
-                res.status(422).send({
+                res.status(400).send({
                     error: 'Invalid combination of "publisherId" and "msgChainId"'
                 })
                 return
