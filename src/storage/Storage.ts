@@ -73,7 +73,7 @@ export class Storage extends EventEmitter {
             if (bucketId) {
                 logger.debug(`found bucketId: ${bucketId}`)
 
-                this.bucketManager.incrementBucket(bucketId, Buffer.from(streamMessage.serialize()).length)
+                this.bucketManager.incrementBucket(bucketId, Buffer.byteLength(streamMessage.serialize()))
                 setImmediate(() => this.batchManager.store(bucketId, streamMessage, (err?: Error) => {
                     if (err) {
                         reject(err)

@@ -125,7 +125,7 @@ export class Batch extends EventEmitter {
 
     push(streamMessage: Protocol.StreamMessage, doneCb?: DoneCallback): void {
         this.streamMessages.push(streamMessage)
-        this.size += Buffer.from(streamMessage.serialize()).length
+        this.size += Buffer.byteLength(streamMessage.serialize())
         if (doneCb) {
             this.doneCbs.push(doneCb)
         }
