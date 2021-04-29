@@ -54,9 +54,9 @@ export class BatchManager extends EventEmitter {
         }
 
         // bucketId => batch
-        this.batches = {}
+        this.batches = Object.create(null)
         // batchId => batch
-        this.pendingBatches = {}
+        this.pendingBatches = Object.create(null)
 
         this.cassandraClient = cassandraClient
         this.insertStatement = this.opts.useTtl ? INSERT_STATEMENT_WITH_TTL : INSERT_STATEMENT
@@ -92,8 +92,8 @@ export class BatchManager extends EventEmitter {
 
     stop(): void {
         const { batches, pendingBatches } = this
-        this.batches = {}
-        this.pendingBatches = {}
+        this.batches = Object.create(null)
+        this.pendingBatches = Object.create(null)
         Object.values(batches).forEach((batch) => batch.clear())
         Object.values(pendingBatches).forEach((batch) => batch.clear())
     }
