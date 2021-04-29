@@ -97,7 +97,7 @@ describe('DataQueryEndpoints', () => {
             it('responds 422 publisherId+msgChainId combination is invalid in range request', async () => {
                 const base = '/api/v1/streams/streamId/data/partitions/0/range?fromTimestamp=1000&toTimestamp=2000&fromSequenceNumber=1&toSequenceNumber=2'
                 const suffixes = ['publisherId=foo', 'msgChainId=bar']
-                for (let suffix of suffixes) {
+                for (const suffix of suffixes) {
                     await testGetRequest(`${base}&${suffix}`)
                         .expect('Content-Type', /json/)
                         .expect(422, {
