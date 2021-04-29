@@ -44,8 +44,8 @@ export class StorageConfig {
     listeners: StorageConfigListener[]
     nodeId: string
     apiUrl: string
-    _poller?: NodeJS.Timeout
-    _stopPoller: boolean
+    private _poller?: NodeJS.Timeout
+    private _stopPoller: boolean
 
     // use createInstance method instead: it fetches the up-to-date config from API
     constructor(nodeId: string, apiUrl: string) {
@@ -57,7 +57,7 @@ export class StorageConfig {
         this._stopPoller = false
     }
 
-    static async createInstance(nodeId: string, apiUrl: string, pollInterval: number) {
+    static async createInstance(nodeId: string, apiUrl: string, pollInterval: number): Promise<StorageConfig> {
         const instance = new StorageConfig(nodeId, apiUrl)
         // eslint-disable-next-line no-underscore-dangle
         if (pollInterval !== 0) {
@@ -66,7 +66,7 @@ export class StorageConfig {
         return instance
     }
 
-    async _poll(pollInterval: number) {
+    private async _poll(pollInterval: number): Promise<void> {
         try {
             await this.refresh()
         } catch (e) {
@@ -78,20 +78,19 @@ export class StorageConfig {
         }
     }
 
-    hasStream(stream: StreamPart) {
+    hasStream(stream: StreamPart): boolean {
         const key = getKeyFromStream(stream.id, stream.partition)
         return this.streamKeys.has(key)
     }
 
-    getStreams() {
         return Array.from(this.streamKeys.values()).map((key) => getStreamFromKey(key))
+    getStreams(): StreamPart[] {
     }
 
-    addChangeListener(listener: StorageConfigListener) {
+    addChangeListener(listener: StorageConfigListener): void {
         this.listeners.push(listener)
     }
 
-    refresh() {
         return fetch(`${this.apiUrl}/storageNodes/${this.nodeId}/streams`)
             .then((res) => res.json())
             .then((json) => {
@@ -102,38 +101,40 @@ export class StorageConfig {
                 this._setStreams(streamKeys)
                 return undefined
             })
+    async refresh(): Promise<void> {
     }
 
-    _setStreams(streamKeys: Set<StreamKey>) {
+    private _setStreams(newKeys: Set<StreamKey>): void {
         const oldKeys = this.streamKeys
-        const newKeys = streamKeys
         const added = new Set([...newKeys].filter((x) => !oldKeys.has(x)))
         const removed = new Set([...oldKeys].filter((x) => !newKeys.has(x)))
+
         if (added.size > 0) {
             this._addStreams(added)
         }
+
         if (removed.size > 0) {
             this._removeStreams(removed)
         }
     }
 
-    _addStreams(streamKeys: Set<StreamKey>) {
-        logger.info('Add stream to storage config: ' + Array.from(streamKeys).join())
+    private _addStreams(streamKeys: Set<StreamKey>): void {
+        logger.info('Add streams to storage config: %o', streamKeys)
         this.streamKeys = new Set([...this.streamKeys, ...streamKeys])
         this.listeners.forEach((listener) => {
             streamKeys.forEach((key: StreamKey) => listener.onStreamAdded(getStreamFromKey(key)))
         })
     }
 
-    _removeStreams(streamKeys: Set<StreamKey>) {
-        logger.info('Remove stream to storage config: ' + Array.from(streamKeys).join())
+    private _removeStreams(streamKeys: Set<StreamKey>): void {
+        logger.info('Remove streams from storage config: %o', streamKeys)
         this.streamKeys = new Set([...this.streamKeys].filter((x) => !streamKeys.has(x)))
         this.listeners.forEach((listener) => {
             streamKeys.forEach((key: StreamKey) => listener.onStreamRemoved(getStreamFromKey(key)))
         })
     }
 
-    startAssignmentEventListener(streamrAddress: string, networkNode: NetworkNode) {
+    startAssignmentEventListener(streamrAddress: string, networkNode: NetworkNode): void {
         const assignmentStreamId = streamrAddress + StorageConfig.ASSIGNMENT_EVENT_STREAM_ID_SUFFIX
         networkNode.addMessageListener((msg) => {
             if (msg.messageId.streamId === assignmentStreamId) {
@@ -149,7 +150,7 @@ export class StorageConfig {
         networkNode.subscribe(assignmentStreamId, 0)
     }
 
-    cleanup() {
+    cleanup(): void {
         this._stopPoller = true
         if (this._poller !== undefined) {
             clearTimeout(this._poller)
