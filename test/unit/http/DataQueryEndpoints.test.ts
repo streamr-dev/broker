@@ -93,6 +93,14 @@ describe('DataQueryEndpoints', () => {
                         error: 'Query parameter "count" not a number: sixsixsix',
                     }, done)
             })
+
+            it('responds 400 and error message if format parameter is invalid', (done) => {
+                testGetRequest('/api/v1/streams/streamId/data/partitions/0/last?format=foobar')
+                    .expect('Content-Type', /json/)
+                    .expect(400, {
+                        error: 'Query parameter "format" is invalid: foobar',
+                    }, done)
+            })
         })
 
         describe('GET /api/v1/streams/streamId/data/partitions/0/last', () => {
