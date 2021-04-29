@@ -103,7 +103,7 @@ export class Storage extends EventEmitter {
             limit = MAX_RESEND_LAST
         }
 
-        logger.debug(`requestLast, streamId: "${streamId}", partition: "${partition}", limit: "${limit}"`)
+        logger.debug('requestLast %o', { streamId, partition, limit })
 
         const GET_LAST_N_MESSAGES = 'SELECT payload FROM stream_data WHERE '
             + 'stream_id = ? AND partition = ? AND bucket_id IN ? '
@@ -193,10 +193,9 @@ export class Storage extends EventEmitter {
     }
 
     requestFrom(streamId: string, partition: number, fromTimestamp: number, fromSequenceNo: number, publisherId: string|null, msgChainId: string|null): Readable {
-        //TODO: msgChainId is always null, remove on NET-143
-        logger.debug(`requestFrom, streamId: "${streamId}", partition: "${partition}", fromTimestamp: "${fromTimestamp}", fromSequenceNo: `
-            + `"${fromSequenceNo}", publisherId: "${publisherId}", msgChainId: "${msgChainId}"`)
+        logger.debug('requestFrom %o', { streamId, partition, fromTimestamp, fromSequenceNo, publisherId, msgChainId })
 
+        //TODO: msgChainId is always null, remove on NET-143
         if (publisherId != null && msgChainId != null) {
             return this._fetchFromMessageRefForPublisher(streamId, partition, fromTimestamp,
                 fromSequenceNo, publisherId, msgChainId)
@@ -209,8 +208,7 @@ export class Storage extends EventEmitter {
     }
 
     requestRange(streamId: string, partition: number, fromTimestamp: number, fromSequenceNo: number, toTimestamp: number, toSequenceNo: number, publisherId: string|null, msgChainId: string|null): Readable {
-        logger.debug(`requestRange, streamId: "${streamId}", partition: "${partition}", fromTimestamp: "${fromTimestamp}", fromSequenceNo: "${fromSequenceNo}"`
-            + `, toTimestamp: "${toTimestamp}", toSequenceNo: "${toSequenceNo}", publisherId: "${publisherId}", msgChainId: "${msgChainId}"`)
+        logger.debug('requestRange %o', { streamId, partition, fromTimestamp, fromSequenceNo, toTimestamp, toSequenceNo, publisherId, msgChainId })
 
         if (publisherId != null && msgChainId != null) {
             return this._fetchBetweenMessageRefsForPublisher(streamId, partition, fromTimestamp,
