@@ -200,7 +200,7 @@ export class Storage extends EventEmitter {
         if (publisherId != null && msgChainId != null) {
             return this._fetchFromMessageRefForPublisher(streamId, partition, fromTimestamp,
                 fromSequenceNo, publisherId, msgChainId)
-        } 
+        }
         if (publisherId == null && msgChainId == null) { // TODO should add fromSequenceNo to this call (NET-268)
             return this._fetchFromTimestamp(streamId, partition, fromTimestamp)
         }
@@ -216,7 +216,8 @@ export class Storage extends EventEmitter {
             return this._fetchBetweenMessageRefsForPublisher(streamId, partition, fromTimestamp,
                 fromSequenceNo, toTimestamp, toSequenceNo, publisherId, msgChainId)
         }
-        if (publisherId == null && msgChainId == null) {  
+
+        if (publisherId == null && msgChainId == null) {
             return this._fetchBetweenTimestamps(streamId, partition, fromTimestamp, toTimestamp) // TODO should add fromSequenceNo and toSequenceNo to this call (NET-268)
         }
 
@@ -261,7 +262,7 @@ export class Storage extends EventEmitter {
 
         this.bucketManager.getBucketsByTimestamp(streamId, partition, fromTimestamp).then((buckets: Bucket[]) => {
             if (buckets.length === 0) { // TODO not an error as there is no data: do not throw
-                throw new Error('Failed to find buckets')
+                throw new Error(`_fetchFromTimestamp: Failed to find buckets: ${streamId} ${partition}`)
             }
 
             const bucketsForQuery = bucketsToIds(buckets)
@@ -299,7 +300,7 @@ export class Storage extends EventEmitter {
 
         this.bucketManager.getBucketsByTimestamp(streamId, partition, fromTimestamp).then((buckets: Bucket[]) => {
             if (buckets.length === 0) { // TODO not an error as there is no data: do not throw
-                throw new Error('Failed to find buckets')
+                throw new Error(`_fetchFromMessageRefForPublisher: Failed to find buckets: ${streamId} ${partition}`)
             }
 
             const bucketsForQuery = bucketsToIds(buckets)
@@ -337,7 +338,7 @@ export class Storage extends EventEmitter {
 
         this.bucketManager.getBucketsByTimestamp(streamId, partition, fromTimestamp, toTimestamp).then((buckets: Bucket[]) => {
             if (buckets.length === 0) { // TODO not an error as there is no data: do not throw
-                throw new Error('Failed to find buckets')
+                throw new Error(`_fetchBetweenTimestamps: Failed to find buckets: ${streamId} ${partition}`)
             }
 
             const bucketsForQuery = bucketsToIds(buckets)
@@ -377,7 +378,7 @@ export class Storage extends EventEmitter {
 
         this.bucketManager.getBucketsByTimestamp(streamId, partition, fromTimestamp, toTimestamp).then((buckets: Bucket[]) => {
             if (buckets.length === 0) { // TODO not an error as there is no data: do not throw
-                throw new Error('Failed to find buckets')
+                throw new Error(`_fetchBetweenMessageRefsForPublisher: Failed to find buckets: ${streamId} ${partition}`)
             }
 
             const bucketsForQuery = bucketsToIds(buckets)
