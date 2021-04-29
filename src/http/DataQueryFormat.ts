@@ -40,7 +40,7 @@ const FORMATS: Record<string,Format> = {
     'raw': createPlainTextFormat((streamMessage: Protocol.StreamMessage, version: number|undefined) => streamMessage.serialize(version))
 }
 
-export const getFormat = (id: string|undefined) => {
+export const getFormat = (id: string|undefined): Format => {
     const key = id ?? 'object'
     const result = FORMATS[key]
     if (result === undefined) {
