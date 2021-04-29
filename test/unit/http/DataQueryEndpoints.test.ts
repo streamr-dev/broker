@@ -94,6 +94,14 @@ describe('DataQueryEndpoints', () => {
                     }, done)
             })
 
+            it('responds 400 and error message if format parameter is invalid', (done) => {
+                testGetRequest('/api/v1/streams/streamId/data/partitions/0/last?format=foobar')
+                    .expect('Content-Type', /json/)
+                    .expect(400, {
+                        error: 'Query parameter "format" is invalid: foobar',
+                    }, done)
+            })
+
             it('responds 400 and error message if publisherId+msgChainId combination is invalid in range request', async () => {
                 const base = '/api/v1/streams/streamId/data/partitions/0/range?fromTimestamp=1000&toTimestamp=2000&fromSequenceNumber=1&toSequenceNumber=2'
                 const suffixes = ['publisherId=foo', 'msgChainId=bar']
@@ -128,6 +136,12 @@ describe('DataQueryEndpoints', () => {
             it('responds with specific version protocol serialization of messages given format=protocol&version=30', (done) => {
                 testGetRequest('/api/v1/streams/streamId/data/partitions/0/last?format=protocol&version=30')
                     .expect(streamMessages.map((msg) => msg.serialize(30)), done)
+            })
+
+            it('responds with raw format', (done) => {
+                testGetRequest('/api/v1/streams/streamId/data/partitions/0/last?count=2&format=raw&version=30')
+                    .expect('Content-Type', 'text/plain')
+                    .expect(streamMessages.map((msg) => msg.serialize(30)).join('\n'), done)
             })
 
             it('invokes networkNode#requestResendLast once with correct arguments', (done) => {
