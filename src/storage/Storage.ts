@@ -62,10 +62,11 @@ export class Storage extends EventEmitter {
         this.messageFilter = messageFilter
     }
 
-    store(streamMessage: Protocol.StreamMessage) {
+    async store(streamMessage: Protocol.StreamMessage): Promise<boolean> {
         if (this.messageFilter(streamMessage) === false) {
-            return Promise.resolve(undefined)
+            return false
         }
+
         const bucketId = this.bucketManager.getBucketId(streamMessage.getStreamId(), streamMessage.getStreamPartition(), streamMessage.getTimestamp())
 
         return new Promise((resolve, reject) => {
@@ -73,14 +74,12 @@ export class Storage extends EventEmitter {
                 logger.debug(`found bucketId: ${bucketId}`)
 
                 this.bucketManager.incrementBucket(bucketId, Buffer.from(streamMessage.serialize()).length)
-                // @ts-expect-error
-                setImmediate(() => this.batchManager.store(bucketId, streamMessage, (err: Todo) => {
+                setImmediate(() => this.batchManager.store(bucketId, streamMessage, (err?: Error) => {
                     if (err) {
                         reject(err)
                     } else {
                         this.emit('write', streamMessage)
-                        // @ts-expect-error
-                        resolve()
+                        resolve(true)
                     }
                 }))
             } else {
@@ -90,9 +89,8 @@ export class Storage extends EventEmitter {
                 const uuid = uuidv1()
                 const timeout = setTimeout(() => {
                     this.pendingStores.delete(uuid)
-                    this.store(streamMessage)
-                        .then(resolve)
-                        .catch(reject)
+                    // eslint-disable-next-line promise/catch-or-return
+                    this.store(streamMessage).then(resolve, reject)
                 }, this.opts.retriesIntervalMilliseconds)
                 this.pendingStores.set(uuid, timeout)
             }

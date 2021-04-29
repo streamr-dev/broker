@@ -7,7 +7,7 @@ import { BucketId } from './Bucket'
 
 export type BatchId = string
 export type State = string
-export type DoneCallback = () => void
+export type DoneCallback = (err?: Error) => void
 
 export class Batch extends EventEmitter {
 
