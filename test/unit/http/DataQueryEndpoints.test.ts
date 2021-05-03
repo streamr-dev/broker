@@ -1,7 +1,7 @@
 import { Protocol, MetricsContext } from 'streamr-network'
 import express from 'express'
 import request from 'supertest'
-import intoStream from 'into-stream'
+import { toReadableStream} from 'streamr-test-utils'
 import { router as restEndpointRouter, MIN_SEQUENCE_NUMBER_VALUE, MAX_SEQUENCE_NUMBER_VALUE } from '../../../src/http/DataQueryEndpoints'
 import { Storage } from '../../../src/storage/Storage'
 import { HttpError } from '../../../src/errors/HttpError'
@@ -66,7 +66,7 @@ describe('DataQueryEndpoints', () => {
                     world: 2,
                 }),
             ]
-            storage.requestLast = jest.fn().mockReturnValue(intoStream.object(streamMessages))
+            storage.requestLast = jest.fn().mockReturnValue(toReadableStream(...streamMessages))
         })
 
         describe('user errors', () => {
@@ -156,9 +156,8 @@ describe('DataQueryEndpoints', () => {
                     .catch(done)
             })
 
-            // TODO: see comment about .on('error') error handling in DataQueryEndpoints.ts
-            it.skip('responds 500 and error message if networkNode signals error', (done) => {
-                storage.requestLast = () => intoStream.object(Promise.reject(new Error('error')))
+            it('responds 500 and error message if storage signals error', (done) => {
+                storage.requestLast = () => toReadableStream(new Error('error'))
 
                 testGetRequest('/api/v1/streams/streamId/data/partitions/0/last')
                     .expect('Content-Type', /json/)
@@ -194,7 +193,7 @@ describe('DataQueryEndpoints', () => {
                     z: 'z',
                 }),
             ]
-            storage.requestFrom = () => intoStream.object(streamMessages)
+            storage.requestFrom = () => toReadableStream(...streamMessages)
         })
 
         describe('?fromTimestamp=1496408255672', () => {
@@ -225,9 +224,8 @@ describe('DataQueryEndpoints', () => {
                 )
             })
 
-            // TODO: see comment about .on('error') error handling in DataQueryEndpoints.ts
-            it.skip('responds 500 and error message if networkNode signals error', (done) => {
-                storage.requestFrom = () => intoStream.object(Promise.reject(new Error('error')))
+            it('responds 500 and error message if storage signals error', (done) => {
+                storage.requestFrom = () => toReadableStream(new Error('error'))
 
                 testGetRequest('/api/v1/streams/streamId/data/partitions/0/from?fromTimestamp=1496408255672')
                     .expect('Content-Type', /json/)
@@ -267,9 +265,8 @@ describe('DataQueryEndpoints', () => {
                 )
             })
 
-            // TODO: see comment about .on('error') error handling in DataQueryEndpoints.ts
-            it.skip('responds 500 and error message if networkNode signals error', (done) => {
-                storage.requestFrom = () => intoStream.object(Promise.reject(new Error('error')))
+            it('responds 500 and error message if storage signals error', (done) => {
+                storage.requestFrom = () => toReadableStream(new Error('error'))
 
                 testGetRequest(`/api/v1/streams/streamId/data/partitions/0/from?${query}`)
                     .expect('Content-Type', /json/)
@@ -337,7 +334,7 @@ describe('DataQueryEndpoints', () => {
                         '6': '6',
                     }),
                 ]
-                storage.requestRange = () => intoStream.object(streamMessages)
+                storage.requestRange = () => toReadableStream(...streamMessages)
             })
 
             it('responds 200 and Content-Type JSON', (done) => {
@@ -372,9 +369,8 @@ describe('DataQueryEndpoints', () => {
                 )
             })
 
-            // TODO: see comment about .on('error') error handling in DataQueryEndpoints.ts
-            it.skip('responds 500 and error message if networkNode signals error', (done) => {
-                storage.requestRange = () => intoStream.object(Promise.reject(new Error('error')))
+            it('responds 500 and error message if storage signals error', (done) => {
+                storage.requestRange = () => toReadableStream(new Error('error'))
 
                 // eslint-disable-next-line max-len
                 testGetRequest('/api/v1/streams/streamId/data/partitions/0/range?fromTimestamp=1496408255672&toTimestamp=1496415670909')
@@ -420,7 +416,7 @@ describe('DataQueryEndpoints', () => {
                         '6': '6',
                     }),
                 ]
-                storage.requestRange = () => intoStream.object(streamMessages)
+                storage.requestRange = () => toReadableStream(...streamMessages)
             })
 
             it('responds 200 and Content-Type JSON', (done) => {
@@ -451,9 +447,8 @@ describe('DataQueryEndpoints', () => {
                 )
             })
 
-            // TODO: see comment about .on('error') error handling in DataQueryEndpoints.ts
-            it.skip('responds 500 and error message if networkNode signals error', (done) => {
-                storage.requestRange = () => intoStream.object(Promise.reject(new Error('error')))
+            it('responds 500 and error message if storage signals error', (done) => {
+                storage.requestRange = () => toReadableStream(new Error('error'))
 
                 testGetRequest(`/api/v1/streams/streamId/data/partitions/0/range?${query}`)
                     .expect('Content-Type', /json/)

@@ -9,7 +9,7 @@ import { Todo } from '../types'
 import { Storage } from '../storage/Storage'
 import { authenticator } from './RequestAuthenticatorMiddleware'
 import { Format, getFormat } from './DataQueryFormat'
-    import { Readable, Transform } from 'stream'
+import { Readable, Transform } from 'stream'
 
 const logger = getLogger('streamr:http:DataQueryEndpoints')
 
@@ -29,12 +29,12 @@ class ResponseTransform extends Transform {
         })
         this.format = format
         this.version = version
-        this.push(format.header)
     }
 
     _transform(input: Protocol.MessageLayer.StreamMessage, _encoding: string, done: () => void) {
         if (this.firstMessage) {
             this.firstMessage = false
+            this.push(this.format.header)
         } else {
             this.push(this.format.delimiter)
         }
@@ -54,7 +54,7 @@ function parseIntIfExists(x: Todo) {
 
 const sendError = (message: string, res: Response) => {
     logger.error(message)
-    res.status(400).send({
+    res.status(400).json({
         error: message
     })
 }
@@ -76,32 +76,19 @@ const createEndpointRoute = (
             const version = parseIntIfExists(req.query.version)
             processRequest(req, streamId, partition, 
                 (data: Readable) => {
-                    res.writeHead(200, {
-                        'Content-Type': format.contentType
+                    data.once('data', () => {
+                        res.writeHead(200, {
+                            'Content-Type': format.contentType
+                        })
                     })
-                    /*
-                    TODO What we should do if the data stream emits an error?
-                    Previosly there was a handler:
-                        data.on('error', (err: Todo) => {
-                            logger.error(err)
-                            res.status(500).send({
+                    data.on('error', () => {
+                        logger.error(`Stream error in DataQueryEndpoints: ${streamId}`)
+                        if (!res.headersSent) {
+                            res.status(500).json({
                                 error: 'Failed to fetch data!'
                             })
-                        })
-                    which worked ok if the stream emitted an error before any 'data'
-                    events. But it doesn't work if a 'data' event is emitted before
-                    an 'error' event, because at that moment we have already sent
-                    the HTTP status code (and content type).
-                    We could e.g. call res.destroy(), but it is not possible to
-                    change the HTTP status after we have already sent that.
-                    Possible solutions:
-                    - Allow storage to return object when a data stream is called
-                      (e.g. Promise<Readable> which can reject), and assume
-                      that if we get the readable, we can usually read it successfully.
-                    - Analyze the success status from the first event of the stream:
-                      if it is a data event, we send HTTP 200 (and content type), and
-                      if it is an error event, we send HTTP 500.
-                    See also skipped tests in DataQueryEndpoints.test.ts*/
+                        }
+                    })
                     data.pipe(new ResponseTransform(format, version)).pipe(res)
                     res.on('close', () => {
                         // stops streaming the data if the client aborts fetch
@@ -208,3 +195,4 @@ export const router = (storage: Storage, streamFetcher: Todo, metricsContext: Me
 
     return router
 }
+
