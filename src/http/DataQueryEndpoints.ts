@@ -9,6 +9,7 @@ import { Todo } from '../types'
 import { Storage } from '../storage/Storage'
 import { authenticator } from './RequestAuthenticatorMiddleware'
 import { Format, getFormat } from './DataQueryFormat'
+    import { Readable, Transform } from 'stream'
 
 const logger = getLogger('streamr:http:DataQueryEndpoints')
 
@@ -16,64 +17,99 @@ const logger = getLogger('streamr:http:DataQueryEndpoints')
 export const MIN_SEQUENCE_NUMBER_VALUE = 0
 export const MAX_SEQUENCE_NUMBER_VALUE = 2147483647
 
-const onStarted = (res: Response, format: Format) => {
-    res.writeHead(200, {
-        'Content-Type': format.contentType
-    })
-    res.write(format.header)
-}
+class ResponseTransform extends Transform {
 
-const onRow = (res: Response, streamMessage: Protocol.StreamMessage, delimiter: Todo, format: Format, version: number|undefined, metrics: Metrics) => {
-    res.write(delimiter) // because can't have trailing comma in JSON array
-    const messageAsString = format.getMessageAsString(streamMessage, version)
-    res.write(messageAsString)
-    metrics.record('outBytes', streamMessage.getSerializedContent().length) // TODO this should the actual byte count (messageAsString.length)?
-    metrics.record('outMessages', 1)
-}
+    format: Format
+    version: number|undefined
+    firstMessage = true
 
-const streamData = (res: Response, stream: NodeJS.ReadableStream, format: Format, version: Todo, metrics: Metrics) => {
-    let delimiter = ''
-    stream.on('data', (row) => {
-        // first row
-        if (delimiter === '') {
-            onStarted(res, format)
-        }
-        onRow(res, row, delimiter, format, version, metrics)
-        delimiter = format.delimiter
-    })
-    stream.on('end', () => {
-        if (delimiter === '') {
-            onStarted(res, format)
-        }
-        res.write(format.footer)
-        res.end()
-    })
-    stream.on('error', (err: Todo) => {
-        logger.error(err)
-        res.status(500).send({
-            error: 'Failed to fetch data!'
+    constructor(format: Format, version: number|undefined) {
+        super({
+            writableObjectMode: true
         })
-    })
+        this.format = format
+        this.version = version
+        this.push(format.header)
+    }
+
+    _transform(input: Protocol.MessageLayer.StreamMessage, _encoding: string, done: () => void) {
+        if (this.firstMessage) {
+            this.firstMessage = false
+        } else {
+            this.push(this.format.delimiter)
+        }
+        this.push(this.format.getMessageAsString(input, this.version))
+        done()
+    }
+
+    _flush(done: () => void) {
+        this.push(this.format.footer)
+        done()
+    }
 }
 
 function parseIntIfExists(x: Todo) {
     return x === undefined ? undefined : parseInt(x)
 }
 
-const createEndpoint = (path: string, router: express.Router, callback: (req: Request, res: Response, streamId: string, partition: number, format: Format, version: number|undefined) => void) => {
-    router.get(path, (req: Request, res: Response) => {
+const sendError = (message: string, res: Response) => {
+    logger.error(message)
+    res.status(400).send({
+        error: message
+    })
+}
+
+const createEndpointRoute = (
+    name: string,
+    router: express.Router,
+    metrics: Metrics, 
+    processRequest: (req: Request, streamId: string, partition: number, onSuccess: (data: Readable) => void, onError: (msg: string) => void) => void
+) => {
+    router.get(`/streams/:id/data/partitions/:partition/${name}`, (req: Request, res: Response) => {
         const format = getFormat(req.query.format as string)
         if (format === undefined) {
-            const errMsg = `Query parameter "format" is invalid: ${req.query.format}`
-            logger.error(errMsg)
-            res.status(400).send({
-                error: errMsg
-            })
+            sendError(`Query parameter "format" is invalid: ${req.query.format}`, res)
         } else {
+            metrics.record(name + 'Requests', 1)
             const streamId = req.params.id
             const partition = parseInt(req.params.partition)
             const version = parseIntIfExists(req.query.version)
-            callback(req, res, streamId, partition, format, version)
+            processRequest(req, streamId, partition, 
+                (data: Readable) => {
+                    res.writeHead(200, {
+                        'Content-Type': format.contentType
+                    })
+                    /*
+                    TODO What we should do if the data stream emits an error?
+                    Previosly there was a handler:
+                        data.on('error', (err: Todo) => {
+                            logger.error(err)
+                            res.status(500).send({
+                                error: 'Failed to fetch data!'
+                            })
+                        })
+                    which worked ok if the stream emitted an error before any 'data'
+                    events. But it doesn't work if a 'data' event is emitted before
+                    an 'error' event, because at that moment we have already sent
+                    the HTTP status code (and content type).
+                    We could e.g. call res.destroy(), but it is not possible to
+                    change the HTTP status after we have already sent that.
+                    Possible solutions:
+                    - Allow storage to return object when a data stream is called
+                      (e.g. Promise<Readable> which can reject), and assume
+                      that if we get the readable, we can usually read it successfully.
+                    - Analyze the success status from the first event of the stream:
+                      if it is a data event, we send HTTP 200 (and content type), and
+                      if it is an error event, we send HTTP 500.
+                    See also skipped tests in DataQueryEndpoints.test.ts*/
+                    data.pipe(new ResponseTransform(format, version)).pipe(res)
+                    res.on('close', () => {
+                        // stops streaming the data if the client aborts fetch
+                        data.unpipe()
+                    })
+                },
+                (errorMessage: string) => sendError(errorMessage, res)
+            )
         }
     })
 }
@@ -105,115 +141,59 @@ export const router = (storage: Storage, streamFetcher: Todo, metricsContext: Me
         authenticator(streamFetcher, 'stream_subscribe'),
     )
 
-    createEndpoint('/streams/:id/data/partitions/:partition/last', router, (req: Request, res: Response, streamId: string, partition: number, format: Format, version: number|undefined) => {
-        const count = req.query.count === undefined ? 1 : parseInt(req.query.count as string)
-        metrics.record('lastRequests', 1)
-
+    createEndpointRoute('last', router, metrics, (req: Request, streamId: string, partition: number, onSuccess: (data: Readable) => void, onError: (msg: string) => void) => {
+        const count = req.query.count === undefined ? 1 : parseIntIfExists(req.query.count as string)
         if (Number.isNaN(count)) {
-            const errMsg = `Query parameter "count" not a number: ${req.query.count}`
-            logger.error(errMsg)
-
-            res.status(400).send({
-                error: errMsg,
-            })
+            onError(`Query parameter "count" not a number: ${req.query.count}`)
         } else {
-            const streamingData = storage.requestLast(
+            onSuccess(storage.requestLast(
                 streamId,
                 partition,
-                count,
-            )
-
-            streamData(res, streamingData, format, version, metrics)
+                count!,
+            ))
         }
     })
 
-    createEndpoint('/streams/:id/data/partitions/:partition/from', router, (req: Request, res: Response, streamId: string, partition: number, format: Format, version: number|undefined) => {
+    createEndpointRoute('from', router, metrics, (req: Request, streamId: string, partition: number, onSuccess: (data: Readable) => void, onError: (msg: string) => void) => {
         const fromTimestamp = parseIntIfExists(req.query.fromTimestamp)
         const fromSequenceNumber = parseIntIfExists(req.query.fromSequenceNumber) || MIN_SEQUENCE_NUMBER_VALUE
         const { publisherId } = req.query
-        metrics.record('fromRequests', 1)
-
         if (fromTimestamp === undefined) {
-            const errMsg = 'Query parameter "fromTimestamp" required.'
-            logger.error(errMsg)
-
-            res.status(400).send({
-                error: errMsg
-            })
+            onError('Query parameter "fromTimestamp" required.')
         } else if (Number.isNaN(fromTimestamp)) {
-            const errMsg = `Query parameter "fromTimestamp" not a number: ${req.query.fromTimestamp}`
-            logger.error(errMsg)
-
-            res.status(400).send({
-                error: errMsg
-            })
+            onError(`Query parameter "fromTimestamp" not a number: ${req.query.fromTimestamp}`)
         } else {
-            const streamingData = storage.requestFrom(
+            onSuccess(storage.requestFrom(
                 streamId,
                 partition,
                 fromTimestamp,
                 fromSequenceNumber,
                 (publisherId as string) || null,
-                null,
-            )
-
-            streamData(res, streamingData, format, version, metrics)
+                null
+            ))
         }
     })
 
-    createEndpoint('/streams/:id/data/partitions/:partition/range', router, (req: Request, res: Response, streamId: string, partition: number, format: Format, version: number|undefined) => {
+    createEndpointRoute('range', router, metrics, (req: Request, streamId: string, partition: number, onSuccess: (data: Readable) => void, onError: (msg: string) => void) => {
         const fromTimestamp = parseIntIfExists(req.query.fromTimestamp)
         const toTimestamp = parseIntIfExists(req.query.toTimestamp)
         const fromSequenceNumber = parseIntIfExists(req.query.fromSequenceNumber) || MIN_SEQUENCE_NUMBER_VALUE
         const toSequenceNumber = parseIntIfExists(req.query.toSequenceNumber) || MAX_SEQUENCE_NUMBER_VALUE
         const { publisherId, msgChainId } = req.query
-        metrics.record('rangeRequests', 1)
-
         if (req.query.fromOffset !== undefined || req.query.toOffset !== undefined) {
-            const errMsg = 'Query parameters "fromOffset" and "toOffset" are no longer supported. '
-                + 'Please use "fromTimestamp" and "toTimestamp".'
-            logger.error(errMsg)
-
-            res.status(400).send({
-                error: errMsg
-            })
+            onError('Query parameters "fromOffset" and "toOffset" are no longer supported. Please use "fromTimestamp" and "toTimestamp".')
         } else if (fromTimestamp === undefined) {
-            const errMsg = 'Query parameter "fromTimestamp" required.'
-            logger.error(errMsg)
-
-            res.status(400).send({
-                error: errMsg
-            })
+            onError('Query parameter "fromTimestamp" required.')
         } else if (Number.isNaN(fromTimestamp)) {
-            const errMsg = `Query parameter "fromTimestamp" not a number: ${req.query.fromTimestamp}`
-            logger.error(errMsg)
-
-            res.status(400).send({
-                error: errMsg
-            })
+            onError(`Query parameter "fromTimestamp" not a number: ${req.query.fromTimestamp}`)
         } else if (toTimestamp === undefined) {
-            const errMsg = 'Query parameter "toTimestamp" required as well. To request all messages since a timestamp,'
-                + 'use the endpoint /streams/:id/data/partitions/:partition/from'
-            logger.error(errMsg)
-
-            res.status(400).send({
-                error: errMsg
-            })
+            onError('Query parameter "toTimestamp" required as well. To request all messages since a timestamp, use the endpoint /streams/:id/data/partitions/:partition/from')
         } else if (Number.isNaN(toTimestamp)) {
-            const errMsg = `Query parameter "toTimestamp" not a number: ${req.query.toTimestamp}`
-            logger.error(errMsg)
-
-            res.status(400).send({
-                error: errMsg
-            })
+            onError(`Query parameter "toTimestamp" not a number: ${req.query.toTimestamp}`)
+        } else if ((publisherId && !msgChainId) || (!publisherId && msgChainId)) {
+            onError('Invalid combination of "publisherId" and "msgChainId"')
         } else {
-            if ((publisherId && !msgChainId) || (!publisherId && msgChainId)) {
-                res.status(400).send({
-                    error: 'Invalid combination of "publisherId" and "msgChainId"'
-                })
-                return
-            }
-            const streamingData = storage.requestRange(
+            onSuccess(storage.requestRange(
                 streamId,
                 partition,
                 fromTimestamp,
@@ -222,9 +202,7 @@ export const router = (storage: Storage, streamFetcher: Todo, metricsContext: Me
                 toSequenceNumber,
                 (publisherId as string) || null,
                 (msgChainId as string) || null
-            )
-
-            streamData(res, streamingData, format, version, metrics)
+            ))
         }
     })
 

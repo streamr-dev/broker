@@ -126,7 +126,7 @@ export class StorageConfig {
     }
 
     _removeStreams(streamKeys: Set<StreamKey>) {
-        logger.info('Remove stream to storage config: ' + Array.from(streamKeys).join())
+        logger.info('Remove stream from storage config: ' + Array.from(streamKeys).join())
         this.streamKeys = new Set([...this.streamKeys].filter((x) => !streamKeys.has(x)))
         this.listeners.forEach((listener) => {
             streamKeys.forEach((key: StreamKey) => listener.onStreamRemoved(getStreamFromKey(key)))
