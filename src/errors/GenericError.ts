@@ -1,9 +1,9 @@
 export class GenericError extends Error {
 
-    errorCode: string
+    code: string
 
-    constructor(message: string, errorCode: string) {
+    constructor(message: string, code: string) {
         super(message)
-        this.errorCode = errorCode
+        this.code = code
     }
 }

@@ -201,17 +201,16 @@ export class RequestHandler {
     }
 
     private sendError(e: Error, request: Protocol.ControlMessage, connection: Connection) {
-        if ((e instanceof GenericError)) {
+        if (e instanceof GenericError) {
             logger.warn(e.message)
             connection.send(new ControlLayer.ErrorResponse({
                 version: request.version,
                 requestId: request.requestId,
                 errorMessage: e.message,
-                // @ts-expect-error
-                errorCode: e.errorCode,
+                errorCode: e.code as any,
             }))
         } else {
-            logger.error(`Assertion failed: unknown error "${e.message}":`)
+            logger.error(`Assertion failed: unknown error "${e.message}"`)
             throw e
         }
     }
