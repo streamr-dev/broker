@@ -6,10 +6,12 @@
   "required": [
     "adapters",
     "cassandra",
+    "storageConfig",
     "ethereumPrivateKey",
     "network",
     "reporting",
-    "streamrUrl"
+    "streamrUrl",
+    "streamrAddress"
   ],
   "additionalProperties": false,
   "properties": {
@@ -57,6 +59,18 @@
           "type": "string"
         }
       }
+    },
+    "storageConfig": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "refreshInterval": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false
     },
     "ethereumPrivateKey": {
       "type": "string",
@@ -218,10 +232,6 @@
               "streamId": {
                 "type": "string",
                 "description": "Stream identifier"
-              },
-              "apiKey": {
-                "type": "string",
-                "description": "API key for publishing to Stream"
               }
             }
         },
@@ -290,6 +300,11 @@
       "type": "string",
       "description": "Base URL of Core (E&E) API to use",
       "format": "uri"
+    },
+    "streamrAddress": {
+      "type": "string",
+      "description": "Ethereum address Core (E&E)",
+      "pattern": "^0x[a-fA-F0-9]{40}$"
     }
   },
   "definitions": {
