@@ -31,6 +31,15 @@ describe('StorageNodeRegistry', () => {
     let registry: StorageNodeRegistry
     let mockCoreApiServer: Server
 
+    beforeAll(async () => {
+        mockCoreApiServer = await createMockCoreApiServer()
+    })
+
+    afterAll(async () => {
+        mockCoreApiServer.close()
+        await once(mockCoreApiServer, 'close')
+    })
+    
     beforeEach(() => {
         const config = {
             storageNodeRegistry: [{
@@ -40,16 +49,6 @@ describe('StorageNodeRegistry', () => {
             streamrUrl: `http://127.0.0.1:${mockCoreApiServerPort}`
         } as Config
         registry = StorageNodeRegistry.createInstance(config)!
-    })
-
-    beforeAll(async () => {
-
-        mockCoreApiServer = await createMockCoreApiServer()
-    })
-
-    afterAll(async () => {
-        mockCoreApiServer.close()
-        await once(mockCoreApiServer, 'close')
     })
 
     it('get url by address', () => {

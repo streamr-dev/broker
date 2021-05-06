@@ -28,8 +28,6 @@ const MOCK_DATA_MESSAGE_COUNT = 100
 
 class MockStorageData extends PassThrough {
 
-    static MIN_READ_INTERVAL = 200
-
     paused = false
 
     constructor(opts: any) {
