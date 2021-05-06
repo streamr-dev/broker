@@ -54,15 +54,15 @@ export class RequestHandler {
 
     handleRequest(connection: Connection, request: Todo): Promise<any> {
         switch (request.type) {
-            case ControlLayer.ControlMessage.TYPES.SubscribeRequest: 
+            case ControlLayer.ControlMessage.TYPES.SubscribeRequest:
                 return this.subscribe(connection, request)
-            case ControlLayer.ControlMessage.TYPES.UnsubscribeRequest: 
+            case ControlLayer.ControlMessage.TYPES.UnsubscribeRequest:
                 return this.unsubscribe(connection, request)
-            case ControlLayer.ControlMessage.TYPES.PublishRequest: 
+            case ControlLayer.ControlMessage.TYPES.PublishRequest:
                 return this.publish(connection, request)
-            case ControlLayer.ControlMessage.TYPES.ResendLastRequest: 
-            case ControlLayer.ControlMessage.TYPES.ResendFromRequest: 
-            case ControlLayer.ControlMessage.TYPES.ResendRangeRequest: 
+            case ControlLayer.ControlMessage.TYPES.ResendLastRequest:
+            case ControlLayer.ControlMessage.TYPES.ResendFromRequest:
+            case ControlLayer.ControlMessage.TYPES.ResendRangeRequest:
                 return this.resend(connection, request)
             default:
                 connection.send(new ControlLayer.ErrorResponse({

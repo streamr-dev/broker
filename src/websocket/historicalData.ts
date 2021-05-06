@@ -27,12 +27,12 @@ const getDataQueryEndpointUrl = (request: ResendFromRequest|ResendLastRequest|Re
     }
     let r
     switch (request.type) {
-        case ControlLayer.ControlMessage.TYPES.ResendLastRequest: 
+        case ControlLayer.ControlMessage.TYPES.ResendLastRequest:
             r = request as ResendLastRequest
             return createUrl('last', {
                 count: r.numberLast
             })
-        case ControlLayer.ControlMessage.TYPES.ResendFromRequest: 
+        case ControlLayer.ControlMessage.TYPES.ResendFromRequest:
             r = request as ResendFromRequest
             return createUrl('from', {
                 fromTimestamp: r.fromMsgRef.timestamp,
@@ -40,12 +40,12 @@ const getDataQueryEndpointUrl = (request: ResendFromRequest|ResendLastRequest|Re
                 fromSequenceNumber: r.fromMsgRef.sequenceNumber ?? MIN_SEQUENCE_NUMBER_VALUE,
                 publisherId: r.publisherId,
             })
-        case ControlLayer.ControlMessage.TYPES.ResendRangeRequest: 
+        case ControlLayer.ControlMessage.TYPES.ResendRangeRequest:
             r = request as ResendRangeRequest
             return createUrl('range', {
                 fromTimestamp: r.fromMsgRef.timestamp,
                 // TODO client should provide sequenceNumber, remove MIN_SEQUENCE_NUMBER_VALUE&MAX_SEQUENCE_NUMBER_VALUE defaults when NET-267 have been implemented
-                fromSequenceNumber: r.fromMsgRef.sequenceNumber ?? MIN_SEQUENCE_NUMBER_VALUE,  
+                fromSequenceNumber: r.fromMsgRef.sequenceNumber ?? MIN_SEQUENCE_NUMBER_VALUE,
                 toTimestamp: r.toMsgRef.timestamp,
                 toSequenceNumber: r.toMsgRef.sequenceNumber ?? MAX_SEQUENCE_NUMBER_VALUE,
                 publisherId: r.publisherId,
