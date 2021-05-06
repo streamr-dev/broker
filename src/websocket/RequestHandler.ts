@@ -33,7 +33,7 @@ export class RequestHandler {
     metrics: Metrics
     storageNodeRegistry: StorageNodeRegistry
     streamrUrl: string
-    pendingResendResponses: ArrayMultimap<string,HistoricalDataResponse> = new ArrayMultimap()
+    ongoingResendResponses: ArrayMultimap<string,HistoricalDataResponse> = new ArrayMultimap()
 
     constructor(   
         streamFetcher: StreamFetcher,
@@ -125,7 +125,7 @@ export class RequestHandler {
         try {
             const response = await createHistoricalDataResponse(request, this.storageNodeRegistry)
             streamingStorageData = response.data
-            this.pendingResendResponses.put(connection.id, response)
+            this.ongoingResendResponses.put(connection.id, response)
         } catch (e: any) {
             this.sendError(e, request, connection)
             return
@@ -172,7 +172,7 @@ export class RequestHandler {
                     streamPartition: request.streamPartition,
                 }))
             }
-            this.pendingResendResponses.delete(connection.id)
+            this.ongoingResendResponses.delete(connection.id)
         }
     
         try {
@@ -339,11 +339,11 @@ export class RequestHandler {
     }
 
     onConnectionClose(connectionId: string) {
-        const pendingResendResponses = this.pendingResendResponses.get(connectionId)
-        if (pendingResendResponses.length > 0) {
-            logger.info('Abort %s pending resends for connection %s', pendingResendResponses.length, connectionId)
-            pendingResendResponses.forEach((response)=> response.abort())
-            this.pendingResendResponses.delete(connectionId)   
+        const ongoingResendResponses = this.ongoingResendResponses.get(connectionId)
+        if (ongoingResendResponses.length > 0) {
+            logger.info('Abort %s ongoing resends for connection %s', ongoingResendResponses.length, connectionId)
+            ongoingResendResponses.forEach((response)=> response.abort())
+            this.ongoingResendResponses.delete(connectionId)   
         }
     }
 
