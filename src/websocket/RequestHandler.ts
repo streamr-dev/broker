@@ -51,6 +51,20 @@ export class RequestHandler {
         this.metrics = metrics
         this.storageNodeRegistry = storageNodeRegistry,
         this.streamrUrl = streamrUrl
+        this.metrics.addQueriedMetric('numOfOngoingResends', () => this.ongoingResendResponses.size)
+        this.metrics.addQueriedMetric('meanAgeOfOngoingResends', () => {
+            if (this.ongoingResendResponses.size > 0) {
+                const now = Date.now()
+                let sum = 0
+                this.ongoingResendResponses.forEach(response => {
+                    const age = now - response.startTime
+                    sum += age
+                })
+                return sum / this.ongoingResendResponses.size
+            } else {
+                return 0
+            }
+        })
     }
 
     handleRequest(connection: Connection, request: Todo): Promise<any> {

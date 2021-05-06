@@ -13,8 +13,9 @@ type ResendFromRequest = Protocol.ControlLayer.ResendFromRequest
 type ResendRangeRequest = Protocol.ControlLayer.ResendRangeRequest
 
 export interface HistoricalDataResponse {
-    data: NodeJS.ReadableStream,
+    data: NodeJS.ReadableStream
     abort: () => void
+    startTime: number
 }
 
 const getDataQueryEndpointUrl = (request: ResendFromRequest|ResendLastRequest|ResendRangeRequest, baseUrl: string) => {
@@ -76,7 +77,8 @@ export const createResponse = async (
             abort: () => {
                 data.destroy()
                 abortController.abort()
-            }
+            },
+            startTime: Date.now()
         }
     } else {
         return Promise.reject(new GenericError(`Storage node fetch error: ${response.status} ${url}`, 'STORAGE_NODE_FETCH_ERROR'))
