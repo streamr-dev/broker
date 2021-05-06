@@ -95,7 +95,7 @@ const createEndpointRoute = (
                     data.pipe(new ResponseTransform(format, version)).pipe(res)
                     res.on('close', () => {
                         // stops streaming the data if the client aborts fetch
-                        data.unpipe()
+                        data.destroy()
                     })
                 },
                 (errorMessage: string) => sendError(errorMessage, res)

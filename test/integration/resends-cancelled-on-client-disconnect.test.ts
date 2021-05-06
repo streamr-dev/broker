@@ -146,8 +146,9 @@ describe('resend cancellation', () => {
                 last: 1000
             }
         })
-        const p = waitForEvent(mockStorageData, 'pause', 2000)
+        const p = waitForEvent(mockStorageData, 'close', 2000)
         await client.ensureDisconnected()
         await p
+        expect(mockStorageData.destroyed).toBe(true)
     })
 })
