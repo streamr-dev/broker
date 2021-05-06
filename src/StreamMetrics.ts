@@ -19,6 +19,15 @@ class StoppedError extends Error {
     }
 }
 
+export type StreamMetricsOptions = {
+    client: StreamrClient, 
+    metricsContext: MetricsContext, 
+    brokerAddress:string,
+    interval:'sec' | 'min' | 'hour' | 'day', // sec/min/hour/day
+    reportMiliseconds:number, // used to override default in tests,
+    storageNodeAddress:string
+}
+
 export class StreamMetrics {
     stopped = false
     path: string
@@ -43,52 +52,47 @@ export class StreamMetrics {
 
 
     constructor(
-        client: StreamrClient, 
-        metricsContext: MetricsContext, 
-        brokerAddress:string,
-        interval:'sec' | 'min' | 'hour' | 'day', // sec/min/hour/day
-        reportMiliseconds:number, // used to override default in tests,
-        storageNodeAddress:string
+        options:StreamMetricsOptions
     ) {
 
-        this.path = '/streamr/node/metrics/' + interval
+        this.path = '/streamr/node/metrics/' + options.interval
 
-        this.client = client
-        this.metricsContext = metricsContext
+        this.client = options.client
+        this.metricsContext = options.metricsContext
 
-        this.brokerAddress = brokerAddress
+        this.brokerAddress = options.brokerAddress
 
-        this.interval = interval
+        this.interval = options.interval
 
-        this.storageNodeAddress = storageNodeAddress
+        this.storageNodeAddress = options.storageNodeAddress
 
         switch (this.interval) {
             case 'sec':
-                this.reportMiliseconds = reportMiliseconds || 1000
+                this.reportMiliseconds = options.reportMiliseconds || 1000
                 break
             case 'min':
                 this.sourcePath = '/streamr/node/metrics/sec'
                 this.sourceInterval = 60
-                this.reportMiliseconds = reportMiliseconds || 60 * 1000
+                this.reportMiliseconds = options.reportMiliseconds || 60 * 1000
                 break
             case 'hour':
                 this.sourcePath = '/streamr/node/metrics/min'
                 this.sourceInterval = 60
-                this.reportMiliseconds = reportMiliseconds || 60 * 60 * 1000
+                this.reportMiliseconds = options.reportMiliseconds || 60 * 60 * 1000
 
                 break
             case 'day':
                 this.sourcePath = '/streamr/node/metrics/hour'
                 this.sourceInterval = 24
-                this.reportMiliseconds = reportMiliseconds || 24 * 60 * 60 * 1000
+                this.reportMiliseconds = options.reportMiliseconds || 24 * 60 * 60 * 1000
                 break
             default:
                 throw new Error('Unrecognized interval string, should be sec/min/hour/day')
         }
 
         this.report = {
-            peerName: brokerAddress,
-            peerId: brokerAddress,
+            peerName: options.brokerAddress,
+            peerId: options.brokerAddress,
             broker: {
                 messagesToNetworkPerSec: 0,
                 bytesToNetworkPerSec: 0,
@@ -221,22 +225,22 @@ export class StreamMetrics {
             if (this.stopped) {
                 return
             }
-
             this.report.peerName = metricsReport.peerId
             this.report.peerId = /*metricsReport.peerName||*/ metricsReport.peerId
 
             if (this.interval === 'sec') {
                 if (this.report.timestamp === 0) {
+                    this.resetReport()
                     // first iteration, assign values
-
-                    this.report.broker.messagesToNetworkPerSec = metricsReport.metrics['broker/publisher'].messages//.rate
-                    this.report.broker.bytesToNetworkPerSec = metricsReport.metrics['broker/publisher'].bytes//.rate
+                    this.report.broker.messagesToNetworkPerSec = (metricsReport.metrics['broker/publisher'].messages as any).rate
+                    this.report.broker.bytesToNetworkPerSec = (metricsReport.metrics['broker/publisher'].bytes as any).rate
                     this.report.broker.messagesFromNetworkPerSec = 0
                     this.report.broker.bytesFromNetworkPerSec = 0
 
-                    this.report.network.avgLatencyMs = metricsReport.metrics.node.latency//.rate
-                    this.report.network.bytesToPeersPerSec = metricsReport.metrics.WebRtcEndpoint.outSpeed//.rate || 0
-                    this.report.network.bytesFromPeersPerSec = metricsReport.metrics.WebRtcEndpoint.inSpeed//.rate || 0
+
+                    this.report.network.avgLatencyMs = metricsReport.metrics.node.latency as number || 0
+                    this.report.network.bytesToPeersPerSec = (metricsReport.metrics.WebRtcEndpoint.outSpeed as any).rate || 0
+                    this.report.network.bytesFromPeersPerSec = (metricsReport.metrics.WebRtcEndpoint.inSpeed as any).rate || 0
                     this.report.network.connections = metricsReport.metrics.WebRtcEndpoint.connections || 0
 
                     this.report.storage.bytesWrittenPerSec = (metricsReport.metrics['broker/cassandra']) ? metricsReport.metrics['broker/cassandra'].writeBytes : 0
@@ -246,22 +250,24 @@ export class StreamMetrics {
                     this.report.currentTime = metricsReport.currentTime
                     this.report.timestamp = metricsReport.currentTime
                 } else {
+                    
                     // calculate averaged values
-                    this.report.broker.messagesToNetworkPerSec = throttledAvg(this.report.broker.messagesToNetworkPerSec, metricsReport.metrics['broker/publisher'].messages as number)
-                    this.report.broker.bytesToNetworkPerSec = throttledAvg(this.report.broker.bytesToNetworkPerSec, metricsReport.metrics['broker/publisher'].bytes as number)
+                    this.report.broker.messagesToNetworkPerSec = throttledAvg(this.report.broker.messagesToNetworkPerSec, (metricsReport.metrics['broker/publisher'].messages as any).rate)
+                    this.report.broker.bytesToNetworkPerSec = throttledAvg(this.report.broker.bytesToNetworkPerSec, (metricsReport.metrics['broker/publisher'].bytes as any).rate)
 
                     this.report.network.avgLatencyMs = throttledAvg(this.report.network.avgLatencyMs, metricsReport.metrics.node.latency as number)
-                    this.report.network.bytesToPeersPerSec = throttledAvg(this.report.network.bytesToPeersPerSec, metricsReport.metrics.WebRtcEndpoint.outSpeed as number || 0)
-                    this.report.network.bytesFromPeersPerSec = throttledAvg(this.report.network.bytesFromPeersPerSec, metricsReport.metrics.WebRtcEndpoint.inSpeed as number || 0)
-                    this.report.network.connections = throttledAvg(this.report.network.connections, metricsReport.metrics.WebRtcEndpoint.connections as number || 0)
+                    this.report.network.bytesToPeersPerSec = throttledAvg(this.report.network.bytesToPeersPerSec, (metricsReport.metrics.WebRtcEndpoint.outSpeed as any).rate || 0)
+                    this.report.network.bytesFromPeersPerSec = throttledAvg(this.report.network.bytesFromPeersPerSec, (metricsReport.metrics.WebRtcEndpoint.inSpeed as any).rate || 0)
+                    this.report.network.connections = throttledAvg(this.report.network.connections, (metricsReport.metrics.WebRtcEndpoint.connections as any).rate || 0)
 
                     if (metricsReport.metrics['broker/cassandra']) {
-                        this.report.storage.bytesWrittenPerSec = throttledAvg(this.report.storage.bytesWrittenPerSec, (metricsReport.metrics['broker/cassandra']) ? metricsReport.metrics['broker/cassandra'].writeBytes as number: 0)
-                        this.report.storage.bytesReadPerSec = throttledAvg(this.report.storage.bytesReadPerSec, (metricsReport.metrics['broker/cassandra']) ? metricsReport.metrics['broker/cassandra'].readBytes as number : 0)
+                        this.report.storage.bytesWrittenPerSec = throttledAvg(this.report.storage.bytesWrittenPerSec, (metricsReport.metrics['broker/cassandra']) ? (metricsReport.metrics['broker/cassandra'].writeBytes as any).rate: 0)
+                        this.report.storage.bytesReadPerSec = throttledAvg(this.report.storage.bytesReadPerSec, (metricsReport.metrics['broker/cassandra']) ? (metricsReport.metrics['broker/cassandra'].readBytes as any).rate : 0)
                     }
 
                     this.report.currentTime = metricsReport.currentTime
                     this.report.timestamp = metricsReport.currentTime
+                    
                 }
 
                 await this.publishReport()
@@ -274,56 +280,45 @@ export class StreamMetrics {
                     throw new Error(`Cannot report ${this.interval} withour [targetStreamId]`)
                 }
                 const now = Date.now()
-                const messages:Array<any> = await this.getResend(this.sourceStreamId, this.sourceInterval)
+                const messages:Array<any> = await this.getResend(this.sourceStreamId as string, this.sourceInterval)
 
                 if (messages.length === 0) {
                     this.resetReport()
                     await this.publishReport()
                 } else {
-                    const targetMessages:Array<any> = await this.getResend(this.targetStreamId, 1)
+                    const targetMessages:Array<any> = await this.getResend(this.targetStreamId as string, 1)
                     if (targetMessages.length > 0 && (targetMessages[0].timestamp + this.reportMiliseconds - now) < 0) {
                         this.resetReport()
                         for (let i = 0; i < messages.length; i++) {
-                            this.report.broker.messagesToNetworkPerSec += messages[i].broker.messagesToNetworkPerSec
-                            this.report.broker.bytesToNetworkPerSec += messages[i].broker.bytesToNetworkPerSec
-                            this.report.network.avgLatencyMs += messages[i].network.avgLatencyMs
+                            this.report.broker.messagesToNetworkPerSec += messages[i].broker.messagesToNetworkPerSec 
+                            this.report.broker.bytesToNetworkPerSec += messages[i].broker.bytesToNetworkPerSec 
+                            this.report.broker.messagesFromNetworkPerSec += messages[i].broker.messagesFromNetworkPerSec 
+                            this.report.broker.bytesFromNetworkPerSec += messages[i].broker.bytesFromNetworkPerSec 
 
-                            this.report.broker.messagesToNetworkPerSec += messages[i].broker.messagesToNetworkPerSec
-                            this.report.broker.bytesToNetworkPerSec += messages[i].broker.bytesToNetworkPerSec
+                            this.report.network.avgLatencyMs += messages[i].network.avgLatencyMs 
+                            this.report.network.bytesToPeersPerSec += messages[i].network.bytesToPeersPerSec 
+                            this.report.network.bytesFromPeersPerSec += messages[i].network.bytesFromPeersPerSec 
+                            this.report.network.connections += messages[i].network.connections 
 
-                            this.report.network.avgLatencyMs += messages[i].network.avgLatencyMs
-                            this.report.network.bytesToPeersPerSec += messages[i].network.bytesToPeersPerSec
-                            this.report.network.bytesFromPeersPerSec += messages[i].network.bytesFromPeersPerSec
-                            this.report.network.connections += messages[i].network.connections
 
                             if (metricsReport.metrics['broker/cassandra']) {
-                                this.report.storage.bytesWrittenPerSec += messages[i].storage.bytesWrittenPerSec
-                                this.report.storage.bytesReadPerSec += messages[i].storage.bytesReadPerSec
+                                this.report.storage.bytesWrittenPerSec += messages[i].storage.bytesWrittenPerSec 
+                                this.report.storage.bytesReadPerSec += messages[i].storage.bytesReadPerSec 
                             }
+
                         }
 
-                        this.report.broker.messagesToNetworkPerSec /= messages.length
-                        this.report.broker.bytesToNetworkPerSec /= messages.length
-                        this.report.network.avgLatencyMs /= messages.length
 
                         this.report.broker.messagesToNetworkPerSec /= messages.length
                         this.report.broker.bytesToNetworkPerSec /= messages.length
-
-                        this.report.network.avgLatencyMs /= messages.length
-                        this.report.network.bytesToPeersPerSec /= messages.length
-                        this.report.network.bytesFromPeersPerSec /= messages.length
-                        this.report.network.connections /= messages.length
-                        this.report.broker.messagesToNetworkPerSec /= messages.length
-                        this.report.broker.bytesToNetworkPerSec /= messages.length
-                        this.report.network.avgLatencyMs /= messages.length
-
-                        this.report.broker.messagesToNetworkPerSec /= messages.length
-                        this.report.broker.bytesToNetworkPerSec /= messages.length
+                        this.report.broker.messagesFromNetworkPerSec /= messages.length
+                        this.report.broker.bytesFromNetworkPerSec /= messages.length
 
                         this.report.network.avgLatencyMs /= messages.length
                         this.report.network.bytesToPeersPerSec /= messages.length
                         this.report.network.bytesFromPeersPerSec /= messages.length
                         this.report.network.connections /= messages.length
+
 
                         if (metricsReport.metrics['broker/cassandra']) {
                             this.report.storage.bytesWrittenPerSec /= messages.length
@@ -332,6 +327,7 @@ export class StreamMetrics {
 
                         await this.publishReport()
                     }
+                    
                 }
             }
         } catch (e) {
@@ -348,15 +344,8 @@ export class StreamMetrics {
     }
 }
 
-export async function startMetrics(
-    client:StreamrClient, 
-    metricsContext:MetricsContext, 
-    brokerAddress:string, 
-    interval: 'sec' | 'min' | 'hour' | 'day', 
-    reportingIntervalInMs:number, 
-    storageNodeAddress:string
-):Promise<StreamMetrics> {
-    const metrics = new StreamMetrics(client, metricsContext, brokerAddress, interval, reportingIntervalInMs, storageNodeAddress)
+export async function startMetrics(options:StreamMetricsOptions):Promise<StreamMetrics> {
+    const metrics = new StreamMetrics(options)
     metrics.targetStreamId = await metrics.createMetricsStream(metrics.path)
 
     if (metrics.sourcePath) {

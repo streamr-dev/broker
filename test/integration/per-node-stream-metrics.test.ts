@@ -3,7 +3,7 @@ import StreamrClient, { Stream, StreamOperation } from 'streamr-client'
 import { startTracker } from 'streamr-network'
 import { Todo } from '../types'
 import { startBroker, createClient, STREAMR_DOCKER_DEV_HOST } from '../utils'
-import ethers from 'ethers'
+import { Wallet } from 'ethers'
 import { TrackerNode } from 'streamr-network/dist/protocol/TrackerNode'
 
 const httpPort1 = 47741
@@ -59,9 +59,9 @@ describe('metricsStream', () => {
     let nodeAddress: string
     let client2: StreamrClient
     beforeEach(async () => {
-        client1 = createClient(wsPort1, ethers.Wallet.createRandom().privateKey)
+        client1 = createClient(wsPort1, Wallet.createRandom().privateKey)
 
-        const tmpAccount = ethers.Wallet.createRandom()
+        const tmpAccount = Wallet.createRandom()
 
         nodeAddress = tmpAccount.address
 
@@ -110,7 +110,7 @@ describe('metricsStream', () => {
         })
 
         client2 = createClient(wsPort1,tmpAccount.privateKey)
-    })
+    }, 30 * 1000)
 
     afterEach(async () => {
         await Promise.allSettled([
@@ -119,7 +119,7 @@ describe('metricsStream', () => {
             client1.ensureDisconnected(),
             client2.ensureDisconnected()
         ])
-    })
+    }, 30 * 1000)
 
     it('should ensure the legacy metrics endpoint still works properly', (done) => {
         client1.subscribe({

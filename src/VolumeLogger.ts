@@ -133,38 +133,41 @@ export class VolumeLogger {
             throw new Error('Cannot initialize perStream metrics without valid client, brokerAddress, storageNodeAddress')
         }
         this.perStreamMetrics = {
-            sec: await startMetrics(
-                this.client,
-                this.metricsContext,
-                this.brokerAddress,
-                'sec',
-                (this.perStreamReportingIntervals) ? this.perStreamReportingIntervals.sec : undefined,
-                this.storageNodeAddress
-            ),
-            min: await startMetrics(
-                this.client,
-                this.metricsContext,
-                this.brokerAddress,
-                'min',
-                (this.perStreamReportingIntervals) ? this.perStreamReportingIntervals.min : undefined,
-                this.storageNodeAddress
-            ),
-            hour: await startMetrics(
-                this.client,
-                this.metricsContext,
-                this.brokerAddress,
-                'hour',
-                (this.perStreamReportingIntervals) ? this.perStreamReportingIntervals.hour : undefined,
-                this.storageNodeAddress
-            ),
-            day: await startMetrics(
-                this.client,
-                this.metricsContext,
-                this.brokerAddress,
-                'day',
-                (this.perStreamReportingIntervals) ? this.perStreamReportingIntervals.day : undefined,
-                this.storageNodeAddress
-            )
+
+            
+
+            sec: await startMetrics({
+                client: this.client,
+                metricsContext: this.metricsContext,
+                brokerAddress: this.brokerAddress,
+                interval: 'sec',
+                reportMiliseconds: ((this.perStreamReportingIntervals) ? this.perStreamReportingIntervals.sec :0),
+                storageNodeAddress: this.storageNodeAddress
+            }),
+            min: await startMetrics({
+                client: this.client,
+                metricsContext: this.metricsContext,
+                brokerAddress: this.brokerAddress,
+                interval: 'min',
+                reportMiliseconds: (this.perStreamReportingIntervals) ? this.perStreamReportingIntervals.min : 0,
+                storageNodeAddress: this.storageNodeAddress,
+            }),
+            hour: await startMetrics({
+                client: this.client,
+                metricsContext: this.metricsContext,
+                brokerAddress: this.brokerAddress,
+                interval: 'hour',
+                reportMiliseconds: (this.perStreamReportingIntervals) ? this.perStreamReportingIntervals.hour : 0,
+                storageNodeAddress: this.storageNodeAddress,
+            }),
+            day: await startMetrics({
+                client: this.client,
+                metricsContext: this.metricsContext,
+                brokerAddress: this.brokerAddress,
+                interval: 'day',
+                reportMiliseconds: (this.perStreamReportingIntervals) ? this.perStreamReportingIntervals.day : 0,
+                storageNodeAddress: this.storageNodeAddress,
+            })
         }
     }
 
