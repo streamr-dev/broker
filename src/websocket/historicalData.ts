@@ -73,7 +73,10 @@ export const createResponse = async (
         const data = response.body.pipe(split2((message: string) => Protocol.StreamMessage.deserialize(message)))
         return {
             data,
-            abort: () => abortController.abort()
+            abort: () => {
+                data.destroy()
+                abortController.abort()
+            }
         }
     } else {
         return Promise.reject(new GenericError(`Storage node fetch error: ${response.status} ${url}`, 'STORAGE_NODE_FETCH_ERROR'))

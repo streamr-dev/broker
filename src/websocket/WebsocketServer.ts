@@ -223,7 +223,6 @@ export class WebsocketServer extends EventEmitter {
                 const connection = this.connections.get(ws.connectionId)
                 if (connection) {
                     logger.debug('closing socket "%s" on streams "%o"', connection.id, connection.streamsAsString())
-                    this.requestHandler.onConnectionClose(ws.connectionId)
                     this._removeConnection(connection)
                 }
             },
@@ -276,9 +275,7 @@ export class WebsocketServer extends EventEmitter {
         })
 
         // Cancel all resends
-        connection.getOngoingResends().forEach((resend: Todo) => {
-            resend.destroy()
-        })
+        this.requestHandler.onConnectionClose(connection.id)
 
         connection.markAsDead()
     }

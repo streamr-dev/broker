@@ -181,13 +181,11 @@ export class RequestHandler {
             }
             const pauseHandler = () => streamingStorageData.pause()
             const resumeHandler = () => streamingStorageData.resume()
-            connection.addOngoingResend(streamingStorageData)
             streamingStorageData.on('data', msgHandler)
             streamingStorageData.on('end', doneHandler)
             connection.on('highBackPressure', pauseHandler)
             connection.on('lowBackPressure', resumeHandler)
             streamingStorageData.once('end', () => {
-                connection.removeOngoingResend(streamingStorageData)
                 connection.removeListener('highBackPressure', pauseHandler)
                 connection.removeListener('lowBackPressure', resumeHandler)
             })
