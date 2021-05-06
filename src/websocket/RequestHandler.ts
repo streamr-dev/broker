@@ -1,5 +1,6 @@
 import { Todo } from '../types'
 import { Protocol } from 'streamr-network'
+import { ArrayMultimap } from '@teppeis/multimaps';
 const { ControlLayer, Utils } = Protocol
 import { HttpError } from '../errors/HttpError'
 import { FailedToPublishError } from '../errors/FailedToPublishError'
@@ -32,7 +33,7 @@ export class RequestHandler {
     metrics: Metrics
     storageNodeRegistry: StorageNodeRegistry
     streamrUrl: string
-    pendingResendResponses: Map<string,HistoricalDataResponse> = new Map()
+    pendingResendResponses: ArrayMultimap<string,HistoricalDataResponse> = new ArrayMultimap()
 
     constructor(   
         streamFetcher: StreamFetcher,
@@ -124,7 +125,7 @@ export class RequestHandler {
         try {
             const response = await createHistoricalDataResponse(request, this.storageNodeRegistry)
             streamingStorageData = response.data
-            this.pendingResendResponses.set(connection.id, response)
+            this.pendingResendResponses.put(connection.id, response)
         } catch (e: any) {
             this.sendError(e, request, connection)
             return
@@ -340,9 +341,11 @@ export class RequestHandler {
     }
 
     onConnectionClose(connectionId: string) {
-        const pendingResendResponse = this.pendingResendResponses.get(connectionId)
-        if (pendingResendResponse !== undefined) {
-            pendingResendResponse.abort()
+        const pendingResendResponses = this.pendingResendResponses.get(connectionId)
+        if (pendingResendResponses.length > 0) {
+            logger.info('Abort %s pending resends for connection %s', pendingResendResponses.length, connectionId)
+            pendingResendResponses.forEach((response)=> response.abort())
+            this.pendingResendResponses.delete(connectionId)   
         }
     }
 

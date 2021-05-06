@@ -26,6 +26,7 @@
   "dependencies": {
     "@pm2/io": "^4.3.5",
     "@sentry/node": "^6.2.3",
+    "@teppeis/multimaps": "^2.0.0",
     "@types/cors": "^2.8.10",
     "@types/express": "^4.17.11",
     "@types/heap": "^0.2.28",
