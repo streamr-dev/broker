@@ -43,6 +43,9 @@ class ResponseTransform extends Transform {
     }
 
     _flush(done: () => void) {
+        if (this.firstMessage) {
+            this.push(this.format.header)
+        }
         this.push(this.format.footer)
         done()
     }
