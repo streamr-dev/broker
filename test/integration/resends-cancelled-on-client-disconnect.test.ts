@@ -1,5 +1,5 @@
 import { startTracker, startStorageNode, Protocol, MetricsContext, NetworkNode } from 'streamr-network'
-import { waitForCondition } from 'streamr-test-utils'
+import { waitForCondition, waitForEvent } from 'streamr-test-utils'
 import ws from 'uWebSockets.js'
 import { WebsocketServer } from '../../src/websocket/WebsocketServer'
 import { createClient, StorageAssignmentEventManager, STREAMR_DOCKER_DEV_HOST } from '../utils'
@@ -28,17 +28,12 @@ const MOCK_DATA_MESSAGE_COUNT = 100
 
 class MockStorageData extends PassThrough {
 
-    paused = false
-
     constructor(opts: any) {
         super({
             objectMode: true,
             ...opts
         })
         this.startProducer()
-        this.on('pause', () => {
-            this.paused = true
-        })
     }
 
     async startProducer() {
@@ -145,19 +140,14 @@ describe('resend cancellation', () => {
     })
 
     it('on client disconnect: associated resend is cancelled', async () => {
-        client.resend({
+        await client.resend({
             stream: freshStream.id,
             resend: {
                 last: 1000
             }
         })
-        await wait(500)
+        const p = waitForEvent(mockStorageData, 'pause', 2000)
         await client.ensureDisconnected()
-        const MAX_PAUSE_DELAY = 2000
-        await waitForCondition(
-            () => mockStorageData.paused, 
-            MAX_PAUSE_DELAY,
-            100,
-            () => `Storage stream did not pause within ${MAX_PAUSE_DELAY} ms`)
+        await p
     })
 })
