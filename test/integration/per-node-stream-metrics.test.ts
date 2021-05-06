@@ -40,7 +40,6 @@ describe('metricsStream', () => {
             httpPort: httpPort1,
             wsPort: wsPort1,
             reporting: {
-                sentry: null,
                 streamr: {
                     streamId: legacyStream.id
                 },

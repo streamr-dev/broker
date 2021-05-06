@@ -2,7 +2,6 @@ import { startNetworkNode, startStorageNode, Protocol, MetricsContext } from 'st
 import pino from 'pino'
 import StreamrClient from 'streamr-client'
 import publicIp from 'public-ip'
-import Sentry from '@sentry/node'
 import { Wallet } from 'ethers'
 import { getLogger } from './helpers/logger'
 import { StreamFetcher } from './StreamFetcher'
@@ -98,30 +97,6 @@ export const startBroker = async (config: Config) => {
 
     if ((storageConfig !== null) && (config.streamrAddress !== null)) {
         storageConfig.startAssignmentEventListener(config.streamrAddress, networkNode)
-    }
-
-    // Set up sentry logging
-    if (config.reporting.sentry) {
-        logger.info('Starting Sentry with dns: %s', config.reporting.sentry)
-        Sentry.init({
-            dsn: config.reporting.sentry,
-            integrations: [
-                // @ts-expect-error
-                new Sentry.Integrations.Console({
-                    levels: ['error']
-                })
-            ],
-            environment: config.network.hostname,
-            maxBreadcrumbs: 50,
-            attachStacktrace: true,
-
-        })
-
-        Sentry.configureScope((scope) => {
-            scope.setUser({
-                id: networkNodeName
-            })
-        })
     }
 
     // Set up reporting to Streamr stream
