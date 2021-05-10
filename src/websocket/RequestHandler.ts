@@ -251,7 +251,7 @@ export class RequestHandler {
 
             stream.addConnection(connection)
             connection.addStream(stream)
-            logger.debug(
+            logger.trace(
                 'handleSubscribeRequest: socket "%s" is now subscribed to streams "%o"',
                 connection.id, connection.streamsAsString()
             )
@@ -262,7 +262,7 @@ export class RequestHandler {
                 streamPartition: request.streamPartition,
             }))
         } catch (err) {
-            logger.debug(
+            logger.trace(
                 'handleSubscribeRequest: socket "%s" failed to subscribe to stream %s:%d because of "%o"',
                 connection.id, request.streamId, request.streamPartition, err
             )
@@ -297,24 +297,24 @@ export class RequestHandler {
         const stream = this.streams.get(request.streamId, request.streamPartition)
 
         if (stream) {
-            logger.debug('handleUnsubscribeRequest: socket "%s" unsubscribing from stream "%s:%d"', connection.id,
+            logger.trace('handleUnsubscribeRequest: socket "%s" unsubscribing from stream "%s:%d"', connection.id,
                 request.streamId, request.streamPartition)
 
             stream.removeConnection(connection)
             connection.removeStream(request.streamId, request.streamPartition)
 
-            logger.debug(
+            logger.trace(
                 'handleUnsubscribeRequest: socket "%s" is still subscribed to streams "%o"',
                 connection.id, connection.streamsAsString()
             )
 
             // Unsubscribe from stream if no connections left
-            logger.debug(
+            logger.trace(
                 'checkRoomEmpty: "%d" sockets remaining on stream "%s:%d"',
                 stream.getConnections().length, request.streamId, request.streamPartition
             )
             if (stream.getConnections().length === 0) {
-                logger.debug(
+                logger.trace(
                     'checkRoomEmpty: stream "%s:%d" is empty. Unsubscribing from NetworkNode.',
                     request.streamId, request.streamPartition
                 )
@@ -331,7 +331,7 @@ export class RequestHandler {
                 }))
             }
         } else {
-            logger.debug(
+            logger.trace(
                 'handleUnsubscribeRequest: stream "%s:%d" no longer exists',
                 request.streamId, request.streamPartition
             )

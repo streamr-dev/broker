@@ -99,7 +99,7 @@ export class Connection extends EventEmitter {
 
     send(msg: Todo) {
         const serialized = msg.serialize(this.controlLayerVersion, this.messageLayerVersion)
-        logger.debug('send: %s: %o', this.id, serialized)
+        logger.trace('send: %s: %o', this.id, serialized)
         try {
             this.socket.send(serialized)
             this.evaluateBackPressure()

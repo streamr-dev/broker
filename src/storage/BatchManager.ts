@@ -60,7 +60,7 @@ export class BatchManager extends EventEmitter {
 
         this.cassandraClient = cassandraClient
         this.insertStatement = this.opts.useTtl ? INSERT_STATEMENT_WITH_TTL : INSERT_STATEMENT
-        this.logger.debug('create %o', this.opts)
+        this.logger.trace('create %o', this.opts)
     }
 
     store(bucketId: BucketId, streamMessage: Protocol.StreamMessage, doneCb?: DoneCallback): void {
@@ -71,7 +71,7 @@ export class BatchManager extends EventEmitter {
         }
 
         if (this.batches[bucketId] === undefined) {
-            this.logger.debug('creating new batch')
+            this.logger.trace('creating new batch')
 
             const newBatch = new Batch(
                 bucketId,
@@ -99,7 +99,7 @@ export class BatchManager extends EventEmitter {
     }
 
     private _moveFullBatch(bucketId: BucketId, batch: Batch): void {
-        this.logger.debug('moving batch to pendingBatches')
+        this.logger.trace('moving batch to pendingBatches')
         const batchId = batch.getId()
         this.pendingBatches[batchId] = batch
         batch.scheduleInsert()
@@ -131,12 +131,12 @@ export class BatchManager extends EventEmitter {
                 prepare: true
             })
 
-            this.logger.debug(`inserted batch id:${batch.getId()}`)
+            this.logger.trace(`inserted batch id:${batch.getId()}`)
             batch.done()
             batch.clear()
             delete this.pendingBatches[batch.getId()]
         } catch (err) {
-            this.logger.debug(`failed to insert batch, error ${err}`)
+            this.logger.trace(`failed to insert batch, error ${err}`)
             if (this.opts.logErrors) {
                 this.logger.error(`Failed to insert batchId: (${batchId})`)
                 this.logger.error(err)

@@ -72,7 +72,7 @@ export class Bucket {
         this.dateCreate = dateCreate
 
         this.logger = new Logger(module, `${this.id}`)
-        this.logger.debug(`init bucket: ${this.getId()}, dateCreate: ${this.dateCreate}`)
+        this.logger.trace(`init bucket: ${this.getId()}, dateCreate: ${this.dateCreate}`)
 
         this._maxSize = maxSize
         this._maxRecords = maxRecords
@@ -95,7 +95,7 @@ export class Bucket {
         const maxPercentSize = (this._maxSize * (100 - percentDeduction)) / 100
         const maxRecords = (this._maxRecords * (100 - percentDeduction)) / 100
         const { size, records } = this
-        this.logger.debug(
+        this.logger.trace(
             `_checkSize: ${size >= maxPercentSize || records >= maxRecords} => ${size} >= ${maxPercentSize} || ${records} >= ${maxRecords}`
         )
 
@@ -114,7 +114,7 @@ export class Bucket {
         this.size += size
         this.records += 1
 
-        this.logger.debug(`incremented bucket => size: ${this.size}, records: ${this.records}`)
+        this.logger.trace(`incremented bucket => size: ${this.size}, records: ${this.records}`)
 
         this._stored = false
         this._updateTTL()
@@ -123,13 +123,13 @@ export class Bucket {
     private _updateTTL(): void {
         this.ttl = new Date()
         this.ttl.setSeconds(this.ttl.getSeconds() + this._keepAliveSeconds)
-        this.logger.debug(`new ttl: ${this.ttl}`)
+        this.logger.trace(`new ttl: ${this.ttl}`)
     }
 
     isAlive(): boolean {
         const now = new Date()
         const isAlive = this.ttl >= now
-        this.logger.debug(`isAlive: ${isAlive}, ${this.ttl} >= ${now}`)
+        this.logger.trace(`isAlive: ${isAlive}, ${this.ttl} >= ${now}`)
         return this.ttl >= now
     }
 }

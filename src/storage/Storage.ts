@@ -72,7 +72,7 @@ export class Storage extends EventEmitter {
 
         return new Promise((resolve, reject) => {
             if (bucketId) {
-                logger.debug(`found bucketId: ${bucketId}`)
+                logger.trace(`found bucketId: ${bucketId}`)
 
                 this.bucketManager.incrementBucket(bucketId, Buffer.byteLength(streamMessage.serialize()))
                 setImmediate(() => this.batchManager.store(bucketId, streamMessage, (err?: Error) => {
@@ -85,7 +85,7 @@ export class Storage extends EventEmitter {
                 }))
             } else {
                 const messageId = streamMessage.messageId.serialize()
-                logger.debug(`bucket not found, put ${messageId} to pendingMessages`)
+                logger.trace(`bucket not found, put ${messageId} to pendingMessages`)
 
                 const uuid = uuidv1()
                 const timeout = setTimeout(() => {
@@ -104,7 +104,7 @@ export class Storage extends EventEmitter {
             limit = MAX_RESEND_LAST
         }
 
-        logger.debug('requestLast %o', { streamId, partition, limit })
+        logger.trace('requestLast %o', { streamId, partition, limit })
 
         const GET_LAST_N_MESSAGES = 'SELECT payload FROM stream_data WHERE '
             + 'stream_id = ? AND partition = ? AND bucket_id IN ? '
@@ -194,7 +194,7 @@ export class Storage extends EventEmitter {
     }
 
     requestFrom(streamId: string, partition: number, fromTimestamp: number, fromSequenceNo: number, publisherId: string|null, msgChainId: string|null): Readable {
-        logger.debug('requestFrom %o', { streamId, partition, fromTimestamp, fromSequenceNo, publisherId, msgChainId })
+        logger.trace('requestFrom %o', { streamId, partition, fromTimestamp, fromSequenceNo, publisherId, msgChainId })
 
         //TODO: msgChainId is always null, remove on NET-143
         if (publisherId != null && msgChainId != null) {
@@ -209,7 +209,7 @@ export class Storage extends EventEmitter {
     }
 
     requestRange(streamId: string, partition: number, fromTimestamp: number, fromSequenceNo: number, toTimestamp: number, toSequenceNo: number, publisherId: string|null, msgChainId: string|null): Readable {
-        logger.debug('requestRange %o', { streamId, partition, fromTimestamp, fromSequenceNo, toTimestamp, toSequenceNo, publisherId, msgChainId })
+        logger.trace('requestRange %o', { streamId, partition, fromTimestamp, fromSequenceNo, toTimestamp, toSequenceNo, publisherId, msgChainId })
 
         if (publisherId != null && msgChainId != null) {
             return this._fetchBetweenMessageRefsForPublisher(streamId, partition, fromTimestamp,

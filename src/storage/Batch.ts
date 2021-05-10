@@ -73,11 +73,11 @@ export class Batch extends EventEmitter {
         this._closeTimeout = closeTimeout
 
         this._timeout = setTimeout(() => {
-            this.logger.debug('lock timeout')
+            this.logger.trace('lock timeout')
             this.lock()
         }, this._closeTimeout)
 
-        this.logger.debug('init new batch')
+        this.logger.trace('init new batch')
     }
 
     reachedMaxRetries(): boolean {
@@ -99,7 +99,7 @@ export class Batch extends EventEmitter {
 
     scheduleInsert(): void {
         clearTimeout(this._timeout)
-        this.logger.debug(`scheduleRetry. retries:${this.retries}`)
+        this.logger.trace(`scheduleRetry. retries:${this.retries}`)
 
         this._timeout = setTimeout(() => {
             if (this.retries < this._maxRetries) {
@@ -115,7 +115,7 @@ export class Batch extends EventEmitter {
     }
 
     clear(): void {
-        this.logger.debug('cleared')
+        this.logger.trace('cleared')
         clearTimeout(this._timeout)
         this.streamMessages = []
         this._setState(Batch.states.INSERTED)
@@ -139,7 +139,7 @@ export class Batch extends EventEmitter {
 
     _setState(state: State): void {
         this.state = state
-        this.logger.debug(`emit state: ${this.state}`)
+        this.logger.trace(`emit state: ${this.state}`)
         this.emit(this.state, this.getBucketId(), this.getId(), this.state, this.size, this._getNumberOfMessages())
     }
 }

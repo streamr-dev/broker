@@ -124,8 +124,8 @@ export class WebsocketServer extends EventEmitter {
                 try {
                     WebsocketServer.validateProtocolVersions(controlLayerVersion, messageLayerVersion)
                 } catch (err) {
-                    logger.debug('Rejecting connection with status 400 due to: %s, query params: %s', err.message, req.getQuery())
-                    logger.debug(err)
+                    logger.trace('Rejecting connection with status 400 due to: %s, query params: %s', err.message, req.getQuery())
+                    logger.trace(err)
                     res.writeStatus('400')
                     res.write(err.message)
                     res.end()
@@ -148,7 +148,7 @@ export class WebsocketServer extends EventEmitter {
             open: (ws: Todo) => {
                 const connection = new Connection(ws, ws.controlLayerVersion, ws.messageLayerVersion)
                 this.connections.set(connection.id, connection)
-                logger.debug('onNewClientConnection: socket "%s" connected', connection.id)
+                logger.trace('onNewClientConnection: socket "%s" connected', connection.id)
                 // eslint-disable-next-line no-param-reassign
                 ws.connectionId = connection.id
 
@@ -194,7 +194,7 @@ export class WebsocketServer extends EventEmitter {
                         }
 
                         try {
-                            logger.debug('socket "%s" sent request "%s" with contents "%o"', connection.id, request.type, request)
+                            logger.trace('socket "%s" sent request "%s" with contents "%o"', connection.id, request.type, request)
                             await this.requestHandler.handleRequest(connection, request)
                         } catch (err) {
                             if (connection.isDead()) {
@@ -220,7 +220,7 @@ export class WebsocketServer extends EventEmitter {
                 const connection = this.connections.get(ws.connectionId)
 
                 if (connection) {
-                    logger.debug('closing socket "%s" on streams "%o"', connection.id, connection.streamsAsString())
+                    logger.trace('closing socket "%s" on streams "%o"', connection.id, connection.streamsAsString())
                     this._removeConnection(connection)
                 }
             },
@@ -228,7 +228,7 @@ export class WebsocketServer extends EventEmitter {
                 const connection = this.connections.get(ws.connectionId)
 
                 if (connection) {
-                    logger.debug(`received from ${connection.id} "pong" frame`)
+                    logger.trace(`received from ${connection.id} "pong" frame`)
                     // @ts-expect-error
                     connection.respondedPong = true
                 }
@@ -316,7 +316,7 @@ export class WebsocketServer extends EventEmitter {
                 // eslint-disable-next-line no-param-reassign
                 connection.respondedPong = false
                 connection.ping()
-                logger.debug(`pinging ${connection.id}`)
+                logger.trace(`pinging ${connection.id}`)
             } catch (e) {
                 logger.error(`Failed to ping connection: ${connection.id}, error ${e}`)
                 connection.emit('forceClose')
@@ -340,7 +340,7 @@ export class WebsocketServer extends EventEmitter {
             this.metrics.record('outBytes', streamMessage.getSerializedContent().length * stream.getConnections().length)
             this.metrics.record('outMessages', stream.getConnections().length)
         } else {
-            logger.debug('broadcastMessage: stream "%s:%d" not found', streamId, streamPartition)
+            logger.trace('broadcastMessage: stream "%s:%d" not found', streamId, streamPartition)
         }
     }
 }
