@@ -280,19 +280,10 @@
               ]
             },
             "storageNode":{
-              "type":["object", "null"],
-              "required": [
-                "url",
-                "address"
-              ],
-              "properties":{
-                "url": {
-                  "type": ["string", "null"]
-                },
-                "address": {
-                  "type": ["string", "null"]
-                }
-              }
+              "type": [
+                "string",
+                "null"
+              ]
             }
           }
         }

@@ -1,15 +1,15 @@
 
 import StreamrClient, { Stream, StreamOperation } from 'streamr-client'
-import { startTracker } from 'streamr-network'
+import {startTracker, Tracker} from 'streamr-network'
 import { Todo } from '../types'
 import { startBroker, createClient, STREAMR_DOCKER_DEV_HOST } from '../utils'
 import { Wallet } from 'ethers'
-import { TrackerNode } from 'streamr-network/dist/protocol/TrackerNode'
 
-const httpPort1 = 47741
-const wsPort1 = 47751
-const networkPort1 = 47365
-const trackerPort = 47970
+const httpPort = 47741
+const wsPort = 47742
+const networkPort1 = 47743
+const networkPort2 = 47744
+const trackerPort = 47745
 
 const fillMetrics = async (client:StreamrClient, count:number, nodeAddress:string, source:string) => {
     const sourceStream = nodeAddress + '/streamr/node/metrics/' + source
@@ -52,19 +52,23 @@ const fillMetrics = async (client:StreamrClient, count:number, nodeAddress:strin
 }
 
 describe('metricsStream', () => {
-    let tracker:Todo
+    let tracker: Tracker
     let broker1: Todo
+    let storageNode: Todo
     let client1: StreamrClient
     let legacyStream: Stream
     let nodeAddress: string
     let client2: StreamrClient
     beforeEach(async () => {
-        client1 = createClient(wsPort1, Wallet.createRandom().privateKey)
-
         const tmpAccount = Wallet.createRandom()
-
+        const storageNodeAccount = Wallet.createRandom()
+        const storageNodeRegistry = [{
+            address: storageNodeAccount.address,
+            url: `http://127.0.0.1:${httpPort}`
+        }]
         nodeAddress = tmpAccount.address
 
+        client1 = createClient(wsPort, Wallet.createRandom().privateKey)
         legacyStream = await client1.getOrCreateStream({
             name: 'per-node-stream-metrics.test.js-legacyStream'
         })
@@ -78,13 +82,22 @@ describe('metricsStream', () => {
             id: 'tracker'
         })
 
+        storageNode = await startBroker({
+            name: 'storageNode',
+            privateKey: storageNodeAccount.privateKey,
+            networkPort: networkPort2,
+            trackerPort,
+            httpPort,
+            enableCassandra: true,
+            storageNodeRegistry
+        })
+
         broker1 = await startBroker({
             name: 'broker1',
             privateKey: tmpAccount.privateKey,
             networkPort: networkPort1,
             trackerPort,
-            httpPort: httpPort1,
-            wsPort: wsPort1,
+            wsPort,
             reporting: {
                 sentry: null,
                 streamr: {
@@ -93,7 +106,7 @@ describe('metricsStream', () => {
                 intervalInSeconds: 1,
                 perNodeMetrics: {
                     enabled: true,
-                    wsUrl: 'ws://127.0.0.1:' + wsPort1 + '/api/v1/ws',
+                    wsUrl: `ws://127.0.0.1:${wsPort}/api/v1/ws`,
                     httpUrl: `http://${STREAMR_DOCKER_DEV_HOST}/api/v1`,
                     intervals: {
                         sec: 1000,
@@ -101,21 +114,20 @@ describe('metricsStream', () => {
                         hour: 1000,
                         day: 1000
                     },
-                    storageNode: {
-                        address: '0xde1112f631486CfC759A50196853011528bC5FA0',
-                        url: 'http://10.200.10.1:8891'
-                    }
+                    storageNode: storageNodeAccount.address
                 }
-            }
+            },
+            storageNodeRegistry
         })
 
-        client2 = createClient(wsPort1,tmpAccount.privateKey)
+        client2 = createClient(wsPort, tmpAccount.privateKey)
     }, 30 * 1000)
 
     afterEach(async () => {
         await Promise.allSettled([
             tracker.stop(),
             broker1.close(),
+            storageNode.close(),
             client1.ensureDisconnected(),
             client2.ensureDisconnected()
         ])

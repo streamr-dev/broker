@@ -88,10 +88,7 @@ export function formConfig({
                 enabled: false,
                 wsUrl: null,
                 httpUrl: null,
-                storageNode:{
-                    address: '0xde1112f631486CfC759A50196853011528bC5FA0',
-                    url: 'http://10.200.10.1:8891'
-                },
+                storageNode: null,
                 intervals:{
                     sec: 0,
                     min: 0,

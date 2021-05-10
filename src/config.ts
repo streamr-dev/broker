@@ -54,10 +54,7 @@ export interface Config {
             hour:number,
             day: number
         } | null,
-        storageNode: {
-            address: string,
-            url:string
-        }
+        storageNode: string
     } | null,
 
     },

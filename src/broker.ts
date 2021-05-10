@@ -217,7 +217,7 @@ export const startBroker = async (config: Config) => {
 
     if (config.reporting && config.reporting.perNodeMetrics && config.reporting.perNodeMetrics.intervals) {
         reportingIntervals = config.reporting.perNodeMetrics.intervals
-        storageNodeAddress = config.reporting.perNodeMetrics.storageNode.address
+        storageNodeAddress = config.reporting.perNodeMetrics.storageNode
     }
 
     // Start logging facilities
