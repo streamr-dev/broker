@@ -1,7 +1,7 @@
-import { getLogger } from './helpers/logger'
+import { Logger } from 'streamr-network'
 import { Todo } from './types'
 
-const logger = getLogger('streamr:Stream')
+const logger = new Logger(module)
 
 export class Stream {
 

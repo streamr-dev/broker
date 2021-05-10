@@ -12,10 +12,10 @@ import { Connection } from './Connection'
 import { Metrics } from 'streamr-network/dist/helpers/MetricsContext'
 import { Publisher } from '../Publisher'
 import { SubscriptionManager } from '../SubscriptionManager'
-import { getLogger } from '../helpers/logger'
+import { Logger } from 'streamr-network'
 import { StreamStateManager } from '../StreamStateManager'
 
-const logger = getLogger('streamr:WebsocketServer')
+const logger = new Logger(module)
 
 export class WebsocketServer extends EventEmitter {
 

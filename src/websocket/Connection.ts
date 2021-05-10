@@ -1,8 +1,8 @@
 import { Todo } from '../types'
 import { EventEmitter } from 'events'
-import { getLogger } from '../helpers/logger'
+import { Logger } from 'streamr-network'
 
-const logger = getLogger('streamr:WebsocketServer:Connection')
+const logger = new Logger(module)
 
 let nextId = 1
 

@@ -1,5 +1,4 @@
-import { Logger } from 'pino'
-import { getLogger } from '../helpers/logger'
+import { Logger } from 'streamr-network'
 
 export type BucketId = string
 
@@ -72,7 +71,7 @@ export class Bucket {
         this.records = records
         this.dateCreate = dateCreate
 
-        this.logger = getLogger(`streamr:storage:bucket:${this.id}`)
+        this.logger = new Logger(module, `${this.id}`)
         this.logger.debug(`init bucket: ${this.getId()}, dateCreate: ${this.dateCreate}`)
 
         this._maxSize = maxSize

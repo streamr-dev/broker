@@ -4,7 +4,7 @@ import { NetworkNode, Protocol } from 'streamr-network'
 const { ControlLayer, Utils } = Protocol
 import { HttpError } from '../errors/HttpError'
 import { FailedToPublishError } from '../errors/FailedToPublishError'
-import { getLogger } from '../helpers/logger'
+import { Logger } from 'streamr-network'
 import { StreamStateManager } from '../StreamStateManager' 
 import { Metrics } from 'streamr-network/dist/helpers/MetricsContext'
 import { Publisher } from '../Publisher'
@@ -12,8 +12,9 @@ import { SubscriptionManager } from '../SubscriptionManager'
 import { Connection } from './Connection'
 import { MAX_SEQUENCE_NUMBER_VALUE, MIN_SEQUENCE_NUMBER_VALUE } from '../http/DataQueryEndpoints'
 import { StreamFetcher } from '../StreamFetcher'
+import { getMessageTypeName } from 'streamr-network'
 
-const logger = getLogger('streamr:RequestHandler')
+const logger = new Logger(module)
 
 type SubscribeRequest = Protocol.ControlLayer.SubscribeRequest
 type UnsubscribeRequest = Protocol.ControlLayer.UnsubscribeRequest
@@ -49,6 +50,7 @@ export class RequestHandler {
     }
 
     handleRequest(connection: Connection, request: Todo): Promise<any> {
+        logger.info(`WebSocket ${getMessageTypeName(request)}: ${request.requestId}`)
         switch (request.type) {
             case ControlLayer.ControlMessage.TYPES.SubscribeRequest:
                 return this.subscribe(connection, request)
@@ -187,7 +189,7 @@ export class RequestHandler {
         }
     
         const doneHandler = () => {
-            logger.info('Finished resend %s for stream %s with a total of %d sent messages', request.requestId, request.streamId, sentMessages)
+            logger.info('Finished resend %s: %d messages', request.requestId, sentMessages)
             if (sentMessages === 0) {
                 connection.send(new ControlLayer.ResendResponseNoResend({
                     version: request.version,

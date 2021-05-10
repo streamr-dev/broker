@@ -2,11 +2,11 @@ import { Client } from 'cassandra-driver'
 import { Todo } from '../types'
 import Heap from 'heap'
 import { types as cassandraTypes } from 'cassandra-driver'
-import { getLogger } from '../helpers/logger'
+import { Logger } from 'streamr-network'
 import { Bucket, BucketId } from './Bucket'
 const { TimeUuid } = cassandraTypes
 
-const logger = getLogger('streamr:storage:BucketManager')
+const logger = new Logger(module)
 
 type StreamPartKey = string
 

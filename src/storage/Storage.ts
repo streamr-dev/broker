@@ -8,12 +8,12 @@ import { v1 as uuidv1 } from 'uuid'
 import merge2 from 'merge2'
 import { Protocol } from 'streamr-network'
 import { BucketManager } from './BucketManager'
-import { getLogger } from '../helpers/logger'
+import { Logger } from 'streamr-network'
 import { Todo } from '../types'
 import { Bucket, BucketId } from './Bucket'
 import { StorageConfig } from './StorageConfig'
 
-const logger = getLogger('streamr:storage')
+const logger = new Logger(module)
 
 const MAX_RESEND_LAST = 10000
 
@@ -63,6 +63,7 @@ export class Storage extends EventEmitter {
     }
 
     async store(streamMessage: Protocol.StreamMessage): Promise<boolean> {
+        logger.debug('Store message')
         if (this.messageFilter(streamMessage) === false) {
             return false
         }

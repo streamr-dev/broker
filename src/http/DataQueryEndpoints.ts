@@ -4,13 +4,13 @@
 import express, { Request, Response } from 'express'
 import { MetricsContext, Protocol } from 'streamr-network'
 import { Metrics } from 'streamr-network/dist/helpers/MetricsContext'
-import { getLogger } from '../helpers/logger'
+import { Logger } from 'streamr-network'
 import { Todo } from '../types'
 import { Storage } from '../storage/Storage'
 import { authenticator } from './RequestAuthenticatorMiddleware'
 import { Format, getFormat } from './DataQueryFormat'
 
-const logger = getLogger('streamr:http:DataQueryEndpoints')
+const logger = new Logger(module)
 
 // TODO: move this to protocol-js
 export const MIN_SEQUENCE_NUMBER_VALUE = 0

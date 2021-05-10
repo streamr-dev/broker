@@ -1,8 +1,6 @@
 import { EventEmitter } from 'events'
-import { Logger } from 'pino'
-import { Protocol } from 'streamr-network'
+import { Logger, Protocol } from 'streamr-network'
 import { v4 as uuidv4 } from 'uuid'
-import { getLogger } from '../helpers/logger'
 import { BucketId } from './Bucket'
 
 export type BatchId = string
@@ -67,7 +65,7 @@ export class Batch extends EventEmitter {
         this.state = Batch.states.OPENED
         this.doneCbs = []
 
-        this.logger = getLogger(`streamr:storage:batch:${this.getId()}`)
+        this.logger = new Logger(module, `${this.getId()}`)
 
         this._maxSize = maxSize
         this._maxRecords = maxRecords

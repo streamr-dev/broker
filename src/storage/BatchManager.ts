@@ -1,7 +1,7 @@
 import { Client } from 'cassandra-driver'
 import { EventEmitter } from 'events'
 import { Protocol } from 'streamr-network'
-import { getLogger } from '../helpers/logger'
+import { Logger } from 'streamr-network'
 import { Batch, BatchId, DoneCallback } from './Batch'
 import { BucketId } from './Bucket'
 
@@ -37,7 +37,7 @@ export class BatchManager extends EventEmitter {
         super()
         ID += 1
         const id = `${this.constructor.name}${ID}`
-        this.logger = getLogger(`streamr:storage:${id}`)
+        this.logger = new Logger(module, `${ID}`)
 
         const defaultOptions = {
             useTtl: false,
