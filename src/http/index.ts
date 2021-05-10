@@ -10,27 +10,34 @@ import { router as dataProduceEndpoints } from './DataProduceEndpoints'
 import { router as volumeEndpoint } from './VolumeEndpoint'
 import { router as dataMetadataEndpoint } from './DataMetadataEndpoints'
 import { router as storageConfigEndpoints } from './StorageConfigEndpoints'
-import { AdapterConfig } from '../Adapter'
+import { AdapterConfig, AdapterStartFn } from '../Adapter'
 import { BrokerUtils } from '../types'
 
 const logger = getLogger('streamr:httpAdapter')
 
-export const start = (
-    { port, privateKeyFileName, certFileName }: AdapterConfig, 
-    { networkNode, publisher, streamFetcher, metricsContext, cassandraStorage, storageConfig}: BrokerUtils
-) => {
+export interface HttpAdapterConfig extends AdapterConfig {
+    privateKeyFileName: string|null, 
+    certFileName: string|null
+}
+
+export const start: AdapterStartFn<HttpAdapterConfig> = (
+    { port, privateKeyFileName, certFileName }: HttpAdapterConfig, 
+    { config, publisher, streamFetcher, metricsContext, cassandraStorage, storageConfig}: BrokerUtils
+ ): () => Promise<any> => {
     const app = express()
 
     // Add CORS headers
     app.use(cors())
 
     // Rest endpoints
-    app.use('/api/v1', dataQueryEndpoints(networkNode, streamFetcher, metricsContext))
     app.use('/api/v1', dataProduceEndpoints(streamFetcher, publisher))
     app.use('/api/v1', volumeEndpoint(metricsContext))
 
-    app.use('/api/v1', dataMetadataEndpoint(cassandraStorage))
-    app.use('/api/v1', storageConfigEndpoints(storageConfig))
+    if (config.network.isStorageNode) {
+        app.use('/api/v1', dataQueryEndpoints(cassandraStorage!, streamFetcher, metricsContext))
+        app.use('/api/v1', dataMetadataEndpoint(cassandraStorage!))
+        app.use('/api/v1', storageConfigEndpoints(storageConfig))    
+    }
 
     let httpServer: HttpServer|HttpsServer
     if (privateKeyFileName && certFileName) {

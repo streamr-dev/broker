@@ -7,12 +7,14 @@ const { ControlLayer, MessageLayer, Errors } = Protocol
 // @ts-expect-error no type definitions
 import ab2str from 'arraybuffer-to-string'
 import uWS, { TemplatedApp } from 'uWebSockets.js'
-import { RequestHandlers } from './RequestHandlers'
+import { RequestHandler } from './RequestHandler'
 import { Connection } from './Connection'
 import { Metrics } from 'streamr-network/dist/helpers/MetricsContext'
 import { Publisher } from '../Publisher'
 import { SubscriptionManager } from '../SubscriptionManager'
 import { getLogger } from '../helpers/logger'
+import { StreamStateManager } from '../StreamStateManager'
+import { StorageNodeRegistry } from '../StorageNodeRegistry'
 
 const logger = getLogger('streamr:WebsocketServer')
 
@@ -20,7 +22,7 @@ export class WebsocketServer extends EventEmitter {
 
     wss: TemplatedApp
     _listenSocket: Todo
-    requestHandlers: RequestHandlers
+    requestHandler: RequestHandler
     connections: Map<string,Connection>
     pingInterval: number
     metrics: Metrics
@@ -34,6 +36,8 @@ export class WebsocketServer extends EventEmitter {
         publisher: Publisher,
         metricsContext: MetricsContext,
         subscriptionManager: SubscriptionManager,
+        storageNodeRegistry: StorageNodeRegistry,
+        streamrUrl: string,
         pingInterval = 60 * 1000,
     ) {
         super()
@@ -81,7 +85,9 @@ export class WebsocketServer extends EventEmitter {
                 }
             })
 
-        this.requestHandlers = new RequestHandlers(networkNode, streamFetcher, publisher, subscriptionManager, this.metrics)
+        const streams = new StreamStateManager()
+        this.requestHandler = new RequestHandler(streamFetcher, publisher, streams, subscriptionManager, this.metrics, storageNodeRegistry, streamrUrl)
+        networkNode.addMessageListener((msg: Protocol.MessageLayer.StreamMessage) => this._broadcastMessage(msg, streams))
 
         this._pingInterval = setInterval(() => {
             this._pingConnections()
@@ -172,7 +178,7 @@ export class WebsocketServer extends EventEmitter {
 
                     const msg = copy(message)
 
-                    setImmediate(() => {
+                    setImmediate(async () => {
                         if (connection.isDead()) {
                             return
                         }
@@ -191,20 +197,12 @@ export class WebsocketServer extends EventEmitter {
                         }
 
                         try {
-                            const handler = this.requestHandlers.getInstance(request.type)
-                            if (handler) {
-                                logger.debug('socket "%s" sent request "%s" with contents "%o"', connection.id, request.type, request)
-                                handler.call(this.requestHandlers, connection, request)
-                            } else {
-                                connection.send(new ControlLayer.ErrorResponse({
-                                    version: request.version,
-                                    requestId: request.requestId,
-                                    errorMessage: `Unknown request type: ${request.type}`,
-                                    // @ts-expect-error
-                                    errorCode: 'INVALID_REQUEST',
-                                }))
-                            }
+                            logger.debug('socket "%s" sent request "%s" with contents "%o"', connection.id, request.type, request)
+                            await this.requestHandler.handleRequest(connection, request)
                         } catch (err) {
+                            if (connection.isDead()) {
+                                return
+                            }
                             connection.send(new ControlLayer.ErrorResponse({
                                 version: request.version,
                                 requestId: request.requestId,
@@ -223,7 +221,6 @@ export class WebsocketServer extends EventEmitter {
             },
             close: (ws: Todo, code: Todo, message: Todo) => {
                 const connection = this.connections.get(ws.connectionId)
-
                 if (connection) {
                     logger.debug('closing socket "%s" on streams "%o"', connection.id, connection.streamsAsString())
                     this._removeConnection(connection)
@@ -266,7 +263,7 @@ export class WebsocketServer extends EventEmitter {
         // Unsubscribe from all streams
         connection.forEachStream((stream: Todo) => {
             // for cleanup, spoof an UnsubscribeRequest to ourselves on the removed connection
-            this.requestHandlers.handleUnsubscribeRequest(
+            this.requestHandler.unsubscribe(
                 connection,
                 new ControlLayer.UnsubscribeRequest({
                     requestId: uuidv4(),
@@ -278,9 +275,7 @@ export class WebsocketServer extends EventEmitter {
         })
 
         // Cancel all resends
-        connection.getOngoingResends().forEach((resend: Todo) => {
-            resend.destroy()
-        })
+        this.requestHandler.onConnectionClose(connection.id)
 
         connection.markAsDead()
     }
@@ -288,7 +283,7 @@ export class WebsocketServer extends EventEmitter {
     close() {
         clearInterval(this._pingInterval)
 
-        this.requestHandlers.close()
+        this.requestHandler.close()
 
         return new Promise((resolve, reject) => {
             try {
@@ -327,5 +322,25 @@ export class WebsocketServer extends EventEmitter {
                 connection.emit('forceClose')
             }
         })
+    }
+
+    private _broadcastMessage(streamMessage: Protocol.StreamMessage, streams: StreamStateManager) {
+        const streamId = streamMessage.getStreamId()
+        const streamPartition = streamMessage.getStreamPartition()
+        const stream = streams.get(streamId, streamPartition)
+
+        if (stream) {
+            stream.forEachConnection((connection: Connection) => {
+                connection.send(new ControlLayer.BroadcastMessage({
+                    requestId: '', // TODO: can we have here the requestId of the original SubscribeRequest?
+                    streamMessage,
+                }))
+            })
+
+            this.metrics.record('outBytes', streamMessage.getSerializedContent().length * stream.getConnections().length)
+            this.metrics.record('outMessages', stream.getConnections().length)
+        } else {
+            logger.debug('broadcastMessage: stream "%s:%d" not found', streamId, streamPartition)
+        }
     }
 }
