@@ -1,6 +1,6 @@
 import { Todo } from '../types'
 import { v4 as uuidv4 } from 'uuid'
-import { NetworkNode, Protocol } from 'streamr-network'
+import { NetworkNode, Protocol, ControlMessageType } from 'streamr-network'
 const { ControlLayer, Utils } = Protocol
 import { HttpError } from '../errors/HttpError'
 import { FailedToPublishError } from '../errors/FailedToPublishError'
@@ -12,7 +12,6 @@ import { SubscriptionManager } from '../SubscriptionManager'
 import { Connection } from './Connection'
 import { MAX_SEQUENCE_NUMBER_VALUE, MIN_SEQUENCE_NUMBER_VALUE } from '../http/DataQueryEndpoints'
 import { StreamFetcher } from '../StreamFetcher'
-import { getMessageTypeName } from 'streamr-network'
 
 const logger = new Logger(module)
 
@@ -50,7 +49,7 @@ export class RequestHandler {
     }
 
     handleRequest(connection: Connection, request: Todo): Promise<any> {
-        logger.info(`WebSocket ${getMessageTypeName(request)}: ${request.requestId}`)
+        logger.info(`WebSocket ${ControlMessageType[request.type]}: ${request.requestId}`)
         switch (request.type) {
             case ControlLayer.ControlMessage.TYPES.SubscribeRequest:
                 return this.subscribe(connection, request)
