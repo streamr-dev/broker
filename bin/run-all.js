@@ -88,7 +88,8 @@ const forkProcess = (processName, filePath, args, color) => {
         silent: true,
         env: {
             STREAMR_APPLICATION_ID: processName,
-            LOG_LEVEL: getProcessLogLevel(processName) 
+            LOG_LEVEL: getProcessLogLevel(processName),
+            LOG_COLORS: 'false'
         }
     })
     processes.set(processName, p)
