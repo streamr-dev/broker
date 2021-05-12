@@ -293,11 +293,12 @@ export class StreamMetrics {
                 }
             )
                 .then((subscription) => {
-                    const eventEmitter = Subscription as unknown as EventEmitter
-                    eventEmitter.once('resent', () => {
+                    // @ts-ignore subscription type does not property inherit EventEmitter in client codebase
+                    subscription.once('resent', () => {
                         resolve(messages)
                     })
-                    eventEmitter.once('no_resend', () => {
+                    // @ts-ignore subscription type does not property inherit EventEmitter in client codebase
+                    subscription.once('no_resend', () => {
                         resolve(messages)
                     })
                 })
