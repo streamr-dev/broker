@@ -127,8 +127,7 @@ export const startBroker = async (config: Config) => {
     // Set up reporting to Streamr stream
     let client: StreamrClient | undefined
     let legacyStreamId: string | undefined
-    if (
-        config.reporting.streamr || (config.reporting.perNodeMetrics && config.reporting.perNodeMetrics.enabled)) {
+    if (config.reporting.streamr || (config.reporting.perNodeMetrics && config.reporting.perNodeMetrics.enabled)) {
         client = new StreamrClient({
             auth: {
                 privateKey: config.ethereumPrivateKey,
@@ -210,9 +209,7 @@ export const startBroker = async (config: Config) => {
     logger.info(`Ethereum address ${brokerAddress}`)
     logger.info(`Configured with trackers: ${trackers.join(', ')}`)
     logger.info(`Configured with Streamr: ${config.streamrUrl}`)
-
     logger.info(`Adapters: ${JSON.stringify(config.adapters.map((a: Todo) => a.name))}`)
-
     if (config.cassandra) {
         logger.info(`Configured with Cassandra: hosts=${config.cassandra.hosts} and keyspace=${config.cassandra.keyspace}`)
     }
