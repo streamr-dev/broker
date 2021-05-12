@@ -1,7 +1,6 @@
-import fetch from 'node-fetch';
-import { NetworkNode } from 'streamr-network';
-import { Logger } from 'streamr-network'
-import { StreamPart } from '../types';
+import fetch from 'node-fetch'
+import { NetworkNode, Logger } from 'streamr-network'
+import { StreamPart } from '../types'
 
 const logger = new Logger(module)
 

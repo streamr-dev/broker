@@ -1,7 +1,4 @@
-import { Logger } from 'streamr-network'
 import { Todo } from './types'
-
-const logger = new Logger(module)
 
 export class Stream {
 

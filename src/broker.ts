@@ -14,7 +14,7 @@ import { startAdapter } from './adapterRegistry'
 import { validateConfig } from './helpers/validateConfig'
 import { StorageConfig } from './storage/StorageConfig'
 import { version as CURRENT_VERSION } from '../package.json'
-import { Todo } from './types';
+import { Todo } from './types'
 import { Config, TrackerRegistry } from './config'
 const { Utils } = Protocol
 
@@ -142,6 +142,7 @@ export const startBroker = async (config: Config) => {
             restUrl: config.reporting.perNodeMetrics ? (config.reporting.perNodeMetrics.httpUrl || undefined) : undefined
         })
 
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const createMetricsStream = async (path: string) => {
             // @ts-expect-error
             const metricsStream = await client.getOrCreateStream({

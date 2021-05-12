@@ -1,9 +1,9 @@
 import { MetricsContext } from 'streamr-network'
-import io from '@pm2/io';
-import Gauge from '@pm2/io/build/main/utils/metrics/gauge';
+import io from '@pm2/io'
+import Gauge from '@pm2/io/build/main/utils/metrics/gauge'
 import { StreamrClient } from "streamr-client"
 import { Logger } from 'streamr-network'
-import { Todo } from './types';
+import { Todo } from './types'
 
 const logger = new Logger(module)
 
@@ -162,12 +162,15 @@ export class VolumeLogger {
         const networkKbOutPerSecond = report.metrics.WebRtcEndpoint.outSpeed.rate / 1000
         const { messageQueueSize } = report.metrics.WebRtcEndpoint
 
-        const ongoingResends = report.metrics.resends.numOfOngoingResends
-        const resendMeanAge = report.metrics.resends.meanAge
-
-        // @ts-expect-error
-        const totalBuffer = report.metrics.WebRtcEndpoint.totalWebSocketBuffer
-            + (report.metrics['broker/ws'] ? report.metrics['broker/ws'].totalWebSocketBuffer : 0)
+        let ongoingResends = 0
+        let resendMeanAge = 0
+        let totalBuffer = report.metrics.WebRtcEndpoint.totalWebSocketBuffer as number
+        const websocketMetrics = report.metrics['broker/ws']
+        if (websocketMetrics !== undefined) {
+            ongoingResends = websocketMetrics.numOfOngoingResends as number
+            resendMeanAge = websocketMetrics.meanAgeOfOngoingResends as number
+            totalBuffer += websocketMetrics.totalWebSocketBuffer as number
+        }
 
         logger.info(
             'Report\n'

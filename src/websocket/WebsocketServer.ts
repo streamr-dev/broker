@@ -14,6 +14,7 @@ import { Publisher } from '../Publisher'
 import { SubscriptionManager } from '../SubscriptionManager'
 import { Logger } from 'streamr-network'
 import { StreamStateManager } from '../StreamStateManager'
+import { StorageNodeRegistry } from '../StorageNodeRegistry'
 
 const logger = new Logger(module)
 
@@ -35,6 +36,8 @@ export class WebsocketServer extends EventEmitter {
         publisher: Publisher,
         metricsContext: MetricsContext,
         subscriptionManager: SubscriptionManager,
+        storageNodeRegistry: StorageNodeRegistry,
+        streamrUrl: string,
         pingInterval = 60 * 1000,
     ) {
         super()
@@ -48,7 +51,7 @@ export class WebsocketServer extends EventEmitter {
             .addQueriedMetric('connections', () => this.connections.size)
             .addQueriedMetric('totalWebSocketBuffer', () => {
                 let totalBufferSize = 0
-                this.connections.forEach((connection: Todo, id: Todo) => {
+                this.connections.forEach((connection: Todo) => {
                     if (connection.socket) {
                         totalBufferSize += connection.socket.getBufferedAmount()
                     }
@@ -59,7 +62,7 @@ export class WebsocketServer extends EventEmitter {
                 const control: Todo = {}
                 const message: Todo = {}
                 const pairs: Todo = {}
-                this.connections.forEach((connection: Todo, id: Todo) => {
+                this.connections.forEach((connection: Todo) => {
                     const { controlLayerVersion, messageLayerVersion } = connection
                     const pairKey = controlLayerVersion + '->' + messageLayerVersion
                     if (control[controlLayerVersion] == null) {
@@ -83,7 +86,7 @@ export class WebsocketServer extends EventEmitter {
             })
 
         const streams = new StreamStateManager()
-        this.requestHandler = new RequestHandler(networkNode, streamFetcher, publisher, streams, subscriptionManager, this.metrics)
+        this.requestHandler = new RequestHandler(streamFetcher, publisher, streams, subscriptionManager, this.metrics, storageNodeRegistry, streamrUrl)
         networkNode.addMessageListener((msg: Protocol.MessageLayer.StreamMessage) => this._broadcastMessage(msg, streams))
 
         this._pingInterval = setInterval(() => {
@@ -163,7 +166,7 @@ export class WebsocketServer extends EventEmitter {
                     }
                 })
             },
-            message: (ws: Todo, message: Todo, isBinary: Todo) => {
+            message: (ws: Todo, message: Todo, _isBinary: Todo) => {
                 const connection = this.connections.get(ws.connectionId)
 
                 if (connection) {
@@ -216,9 +219,8 @@ export class WebsocketServer extends EventEmitter {
                     connection.evaluateBackPressure()
                 }
             },
-            close: (ws: Todo, code: Todo, message: Todo) => {
+            close: (ws: Todo, _code: Todo, _message: Todo) => {
                 const connection = this.connections.get(ws.connectionId)
-
                 if (connection) {
                     logger.trace('closing socket "%s" on streams "%o"', connection.id, connection.streamsAsString())
                     this._removeConnection(connection)
@@ -273,9 +275,7 @@ export class WebsocketServer extends EventEmitter {
         })
 
         // Cancel all resends
-        connection.getOngoingResends().forEach((resend: Todo) => {
-            resend.destroy()
-        })
+        this.requestHandler.onConnectionClose(connection.id)
 
         connection.markAsDead()
     }
@@ -285,7 +285,7 @@ export class WebsocketServer extends EventEmitter {
 
         this.requestHandler.close()
 
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
             try {
                 this.connections.forEach((connection: Todo) => connection.socket.close())
             } catch (e) {

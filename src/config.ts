@@ -1,4 +1,4 @@
-import { AdapterConfig } from './Adapter';
+import { AdapterConfig } from './Adapter'
 
 export interface TrackerRegistry {
     registryAddress: string
@@ -18,6 +18,11 @@ export interface NetworkConfig {
         country: string,
         city: string
     } | null
+}
+
+export interface StorageNodeRegistryItem {
+    address: string
+    url: string
 }
 
 export interface Config {
@@ -47,7 +52,15 @@ export interface Config {
     },
     streamrUrl: string,
     streamrAddress: string,
+    storageNodeRegistry: StorageNodeRegistryItem[] | null
     adapters: AdapterConfig[]
+}
+
+export interface BrokerConfig extends Config {
+    network: NetworkConfig & {
+        isStorageNode: false
+    },
+    storageNodeRegistry: NonNullable<Config['storageNodeRegistry']>
 }
 
 export interface StorageNodeConfig extends Config {

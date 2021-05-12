@@ -7,11 +7,11 @@ const { Logger } = require('streamr-network')
 const processes = new Map()
 
 const killProcesses = () => {
-    processes.forEach(p => {
+    processes.forEach((p) => {
         if (!p.killed) {
             p.kill()
         }
-    });
+    })
 }
 
 const createCollectLineTransform = () => {

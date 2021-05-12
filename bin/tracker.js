@@ -1,9 +1,7 @@
 #!/usr/bin/env node
 const program = require('commander')
-const StreamrClient = require('streamr-client')
 const { startTracker, Logger } = require('streamr-network')
 const Sentry = require('@sentry/node')
-const pino = require('pino')
 const ethers = require('ethers')
 
 const CURRENT_VERSION = require('../package.json').version
@@ -54,7 +52,7 @@ if (program.opts().sentryDns) {
 
 async function main() {
     try {
-        const tracker = await startTracker({
+        await startTracker({
             host: program.opts().ip,
             port: Number.parseInt(program.opts().port),
             id,

@@ -36,7 +36,6 @@ export class BatchManager extends EventEmitter {
     constructor(cassandraClient: Client, opts: Partial<BatchManagerOptions> = {}) {
         super()
         ID += 1
-        const id = `${this.constructor.name}${ID}`
         this.logger = new Logger(module, `${ID}`)
 
         const defaultOptions = {
@@ -164,7 +163,7 @@ export class BatchManager extends EventEmitter {
         batchesWithFiveOrMoreRetries: number,
         batchesWithTenOrMoreRetries: number,
         batchesWithHundredOrMoreRetries: number,
-    } {
+        } {
         const now = Date.now()
         const { batches, pendingBatches } = this
         const totalBatches = Object.values(batches).length + Object.values(pendingBatches).length
