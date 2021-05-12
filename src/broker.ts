@@ -15,7 +15,7 @@ import { startAdapter } from './adapterRegistry'
 import { validateConfig } from './helpers/validateConfig'
 import { StorageConfig } from './storage/StorageConfig'
 import { version as CURRENT_VERSION } from '../package.json'
-import { Todo } from './types';
+import { Todo } from './types'
 import { Config, TrackerRegistry } from './config'
 const { Utils } = Protocol
 
@@ -127,6 +127,7 @@ export const startBroker = async (config: Config) => {
     // Set up reporting to Streamr stream
     let client: StreamrClient | undefined
     let legacyStreamId: string | undefined
+
     if (config.reporting.streamr || (config.reporting.perNodeMetrics && config.reporting.perNodeMetrics.enabled)) {
         client = new StreamrClient({
             auth: {

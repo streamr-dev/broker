@@ -1,5 +1,5 @@
 import { MetricsContext } from 'streamr-network'
-import io from '@pm2/io';
+import io from '@pm2/io'
 import Gauge from '@pm2/io/build/main/utils/metrics/gauge'
 import { StreamrClient } from "streamr-client"
 import { getLogger } from './helpers/logger'
@@ -44,7 +44,7 @@ export class VolumeLogger {
 
     constructor(
         reportingIntervalSeconds = 60,
-        metricsContext: MetricsContext, 
+        metricsContext: MetricsContext,
         client: StreamrClient | undefined = undefined,
         legacyStreamId?: string,
         brokerAddress?: string,
