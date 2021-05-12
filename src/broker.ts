@@ -186,8 +186,8 @@ export const startBroker = async (config: Config) => {
         }
     })
 
-    let reportingIntervals; let
-        storageNodeAddress
+    let reportingIntervals
+    let storageNodeAddress
 
     if (config.reporting && config.reporting.perNodeMetrics && config.reporting.perNodeMetrics.intervals) {
         reportingIntervals = config.reporting.perNodeMetrics.intervals

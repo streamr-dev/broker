@@ -42,21 +42,20 @@ export interface Config {
         intervalInSeconds: number,
         sentry: string | null,
         streamr: {
-        streamId: string
-    } | null,
-    perNodeMetrics: {
-        enabled: boolean
-        wsUrl: string | null
-        httpUrl: string | null
-        intervals:{
-            sec: number, 
-            min: number,
-            hour:number,
-            day: number
+            streamId: string
         } | null,
-        storageNode: string
-    } | null,
-
+        perNodeMetrics: {
+            enabled: boolean
+            wsUrl: string | null
+            httpUrl: string | null
+            intervals: {
+                sec: number,
+                min: number,
+                hour:number,
+                day: number
+            } | null,
+            storageNode: string
+        } | null,
     },
     streamrUrl: string,
     streamrAddress: string,

@@ -1,16 +1,19 @@
 import { MetricsContext } from 'streamr-network'
 import io from '@pm2/io';
-import Gauge from '@pm2/io/build/main/utils/metrics/gauge';
+import Gauge from '@pm2/io/build/main/utils/metrics/gauge'
 import { StreamrClient } from "streamr-client"
 import { getLogger } from './helpers/logger'
 
-import {startMetrics, StreamMetrics} from './StreamMetrics'
+import { startMetrics, StreamMetrics } from './StreamMetrics'
+import { Config } from './config'
 
 const logger = getLogger('streamr:VolumeLogger')
 
 function formatNumber(n: number) {
     return n < 10 ? n.toFixed(1) : Math.round(n)
 }
+
+type PerStreamReportingIntervals = NonNullable<Config['reporting']['perNodeMetrics']>['intervals']
 
 export class VolumeLogger {
     metricsContext: MetricsContext
@@ -32,14 +35,11 @@ export class VolumeLogger {
     meanBatchAge: Gauge
     messageQueueSizeMetric: Gauge
     timeout?: NodeJS.Timeout
-
     brokerAddress?: string
-    perStreamReportingIntervals?:any
-    storageNodeAddress?:string
-
-    reportingIntervalSeconds:number
-
-    perStreamMetrics?:{[interval:string]: StreamMetrics}
+    perStreamReportingIntervals?: PerStreamReportingIntervals
+    storageNodeAddress?: string
+    reportingIntervalSeconds: number
+    perStreamMetrics?: { [interval: string]: StreamMetrics }
 
 
     constructor(
@@ -48,7 +48,7 @@ export class VolumeLogger {
         client: StreamrClient | undefined = undefined,
         legacyStreamId?: string,
         brokerAddress?: string,
-        perStreamReportingIntervals?: any,
+        perStreamReportingIntervals?: PerStreamReportingIntervals,
         storageNodeAddress?: string
     ) {
         this.reportingIntervalSeconds = reportingIntervalSeconds
@@ -127,13 +127,10 @@ export class VolumeLogger {
     }
 
     async initializePerMetricsStream() {
-        if (!this.client || !this.brokerAddress || !this.storageNodeAddress){
+        if (!this.client || !this.brokerAddress || !this.storageNodeAddress) {
             throw new Error('Cannot initialize perStream metrics without valid client, brokerAddress, storageNodeAddress')
         }
         this.perStreamMetrics = {
-
-            
-
             sec: await startMetrics({
                 client: this.client,
                 metricsContext: this.metricsContext,
