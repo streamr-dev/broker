@@ -1,8 +1,7 @@
-import { StreamOperation, StreamrClient, Subscription } from "streamr-client"
+import { StreamOperation, StreamrClient } from "streamr-client"
 import { MetricsContext } from 'streamr-network'
 
 import { getLogger } from './helpers/logger'
-import { EventEmitter } from "events"
 
 const logger = getLogger('streamr:StreamMetrics')
 
@@ -32,13 +31,13 @@ export class StreamMetrics {
     private readonly client: StreamrClient
     private readonly metricsContext: MetricsContext
     private readonly brokerAddress: string
-    private readonly interval:'sec' | 'min' | 'hour' | 'day'
+    private readonly interval: 'sec' | 'min' | 'hour' | 'day'
     private readonly reportMiliseconds: number
     private readonly storageNodeAddress: string
 
     sourcePath?: string
     private readonly sourceInterval?: number
-    sourceStreamId?:string
+    sourceStreamId?: string
     targetStreamId?: string
     readonly path: string
     private readonly report: any
@@ -177,7 +176,6 @@ export class StreamMetrics {
                             this.report.network.bytesToPeersPerSec += messages[i].network.bytesToPeersPerSec
                             this.report.network.bytesFromPeersPerSec += messages[i].network.bytesFromPeersPerSec
                             this.report.network.connections += messages[i].network.connections
-
 
                             if (metricsReport.metrics['broker/cassandra']) {
                                 this.report.storage.bytesWrittenPerSec += messages[i].storage.bytesWrittenPerSec

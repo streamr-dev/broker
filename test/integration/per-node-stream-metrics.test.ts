@@ -1,4 +1,3 @@
-
 import StreamrClient, { Stream, StreamOperation } from 'streamr-client'
 import {startTracker, Tracker} from 'streamr-network'
 import { Todo } from '../types'
@@ -11,7 +10,7 @@ const networkPort1 = 47743
 const networkPort2 = 47744
 const trackerPort = 47745
 
-const fillMetrics = async (client:StreamrClient, count:number, nodeAddress:string, source:string) => {
+const fillMetrics = async (client: StreamrClient, count: number, nodeAddress: string, source: string) => {
     const sourceStream = nodeAddress + '/streamr/node/metrics/' + source
     const mockDate = new Date('2020-01-01').getTime()
 

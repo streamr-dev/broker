@@ -51,7 +51,7 @@ export interface Config {
             intervals: {
                 sec: number,
                 min: number,
-                hour:number,
+                hour: number,
                 day: number
             } | null,
             storageNode: string

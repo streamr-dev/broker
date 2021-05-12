@@ -41,7 +41,6 @@ export class VolumeLogger {
     reportingIntervalSeconds: number
     perStreamMetrics?: { [interval: string]: StreamMetrics }
 
-
     constructor(
         reportingIntervalSeconds = 60,
         metricsContext: MetricsContext,

@@ -148,7 +148,6 @@ export const startBroker = async (config: Config) => {
         logger.info('StreamrClient and perNodeMetrics disabled')
     }
 
-
     // Validator only needs public information, so use unauthenticated client for that
     const unauthenticatedClient = new StreamrClient({
         restUrl: config.streamrUrl + '/api/v1',
