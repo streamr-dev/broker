@@ -125,47 +125,21 @@ export const startBroker = async (config: Config) => {
     }
 
     // Set up reporting to Streamr stream
-    let client: StreamrClient|undefined
-
-    const streamIds: Todo = {
-        metricsStreamId: null,
-        secStreamId: null,
-        minStreamId: null,
-        hourStreamId: null,
-        dayStreamId: null
-    }
+    let client: StreamrClient | undefined
+    let legacyStreamId: string | undefined
     if (
         config.reporting.streamr || (config.reporting.perNodeMetrics && config.reporting.perNodeMetrics.enabled)) {
         client = new StreamrClient({
             auth: {
                 privateKey: config.ethereumPrivateKey,
             },
-            //storageNode: config.reporting.perNodeMetrics.storageNode,
-            //autoconnect: true,
             url: config.reporting.perNodeMetrics ? (config.reporting.perNodeMetrics.wsUrl || undefined) : undefined,
             restUrl: config.reporting.perNodeMetrics ? (config.reporting.perNodeMetrics.httpUrl || undefined) : undefined
         })
 
-
-        const createMetricsStream = async (path: string) => {
-            // @ts-expect-error
-            const metricsStream = await client.getOrCreateStream({
-                name: `Metrics ${path} for broker ${brokerAddress}`,
-                id: brokerAddress + path
-            })
-
-            // @ts-expect-error
-            await metricsStream.grantPermission('stream_get', null)
-            // @ts-expect-error
-            await metricsStream.grantPermission('stream_subscribe', null)
-            return metricsStream.id
-        }
-
         if (config.reporting.streamr && config.reporting.streamr.streamId) {
             const { streamId } = config.reporting.streamr
-
-            streamIds.metricsStreamId = streamId
-
+            legacyStreamId = streamId
             logger.info(`Starting StreamrClient reporting with streamId: ${streamId}`)
         } else {
             logger.info('StreamrClient reporting disabled')
@@ -225,7 +199,7 @@ export const startBroker = async (config: Config) => {
         config.reporting.intervalInSeconds,
         metricsContext,
         client,
-        streamIds,
+        legacyStreamId,
         brokerAddress,
         reportingIntervals,
         storageNodeAddress

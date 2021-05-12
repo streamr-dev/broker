@@ -3,7 +3,6 @@ import io from '@pm2/io';
 import Gauge from '@pm2/io/build/main/utils/metrics/gauge';
 import { StreamrClient } from "streamr-client"
 import { getLogger } from './helpers/logger'
-import { Todo } from './types';
 
 import {startMetrics, StreamMetrics} from './StreamMetrics'
 
@@ -14,10 +13,9 @@ function formatNumber(n: number) {
 }
 
 export class VolumeLogger {
-
     metricsContext: MetricsContext
     client?: StreamrClient
-    streamIds: Todo
+    legacyStreamId?: string
     brokerConnectionCountMetric: Gauge
     eventsInPerSecondMetric: Gauge
     eventsOutPerSecondMetric: Gauge
@@ -44,19 +42,19 @@ export class VolumeLogger {
     perStreamMetrics?:{[interval:string]: StreamMetrics}
 
 
-    constructor(reportingIntervalSeconds = 60, 
+    constructor(
+        reportingIntervalSeconds = 60,
         metricsContext: MetricsContext, 
-        client: StreamrClient|undefined = undefined, 
-        streamIds:any,
-        brokerAddress?:string,
-        perStreamReportingIntervals?:any,
-        storageNodeAddress?:string
-        
-        ) {
-            this.reportingIntervalSeconds = reportingIntervalSeconds
+        client: StreamrClient | undefined = undefined,
+        legacyStreamId?: string,
+        brokerAddress?: string,
+        perStreamReportingIntervals?: any,
+        storageNodeAddress?: string
+    ) {
+        this.reportingIntervalSeconds = reportingIntervalSeconds
         this.metricsContext = metricsContext
         this.client = client
-        this.streamIds = streamIds
+        this.legacyStreamId = legacyStreamId
         this.brokerAddress = brokerAddress
         this.perStreamReportingIntervals = perStreamReportingIntervals
         this.storageNodeAddress = storageNodeAddress
@@ -175,9 +173,9 @@ export class VolumeLogger {
         const report = await this.metricsContext.report(true)
 
         // Report metrics to Streamr stream
-        if (this.client instanceof StreamrClient && this.streamIds !== undefined && this.streamIds.metricsStreamId !== undefined) {
-            this.client.publish(this.streamIds.metricsStreamId, report).catch((e) => {
-                logger.warn(`failed to publish metrics to ${this.streamIds.metricsStreamId} because ${e}`)
+        if (this.client instanceof StreamrClient && this.legacyStreamId !== undefined) {
+            this.client.publish(this.legacyStreamId, report).catch((e) => {
+                logger.warn(`failed to publish metrics to ${this.legacyStreamId} because ${e}`)
             })
         }
 
