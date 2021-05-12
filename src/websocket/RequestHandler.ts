@@ -1,6 +1,6 @@
 import { Todo } from '../types'
-import { Protocol, ControlMessageType } from 'streamr-network'
-const { ControlLayer, Utils } = Protocol
+import { Protocol } from 'streamr-network'
+const { ControlLayer, Utils, ControlMessageType } = Protocol
 import { ArrayMultimap } from '@teppeis/multimaps'
 import { HttpError } from '../errors/HttpError'
 import { FailedToPublishError } from '../errors/FailedToPublishError'
