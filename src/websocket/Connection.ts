@@ -1,8 +1,8 @@
 import { Todo } from '../types'
 import { EventEmitter } from 'events'
-import { getLogger } from '../helpers/logger'
+import { Logger } from 'streamr-network'
 
-const logger = getLogger('streamr:WebsocketServer:Connection')
+const logger = new Logger(module)
 
 let nextId = 1
 
@@ -20,7 +20,6 @@ export class Connection extends EventEmitter {
     id: string
     socket: Todo
     streams: Todo[] = []
-    ongoingResends: Set<Todo>
     dead: boolean
     controlLayerVersion: number
     messageLayerVersion: number
@@ -31,7 +30,6 @@ export class Connection extends EventEmitter {
         this.id = generateId()
         this.socket = socket
         this.streams = []
-        this.ongoingResends = new Set()
         this.dead = false
         this.controlLayerVersion = controlLayerVersion
         this.messageLayerVersion = messageLayerVersion
@@ -61,18 +59,6 @@ export class Connection extends EventEmitter {
         return this.streams.map((s: Todo) => s.toString())
     }
 
-    addOngoingResend(resend: Todo) {
-        this.ongoingResends.add(resend)
-    }
-
-    removeOngoingResend(resend: Todo) {
-        this.ongoingResends.delete(resend)
-    }
-
-    getOngoingResends() {
-        return new Set(this.ongoingResends)
-    }
-
     markAsDead() {
         this.dead = true
     }
@@ -99,7 +85,7 @@ export class Connection extends EventEmitter {
 
     send(msg: Todo) {
         const serialized = msg.serialize(this.controlLayerVersion, this.messageLayerVersion)
-        logger.debug('send: %s: %o', this.id, serialized)
+        logger.trace('send: %s: %o', this.id, serialized)
         try {
             this.socket.send(serialized)
             this.evaluateBackPressure()

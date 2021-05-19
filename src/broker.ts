@@ -1,9 +1,8 @@
 import { startNetworkNode, startStorageNode, Protocol, MetricsContext } from 'streamr-network'
-import pino from 'pino'
 import StreamrClient from 'streamr-client'
 import publicIp from 'public-ip'
 import { Wallet } from 'ethers'
-import { getLogger } from './helpers/logger'
+import { Logger } from 'streamr-network'
 import { StreamFetcher } from './StreamFetcher'
 import { startCassandraStorage } from './storage/Storage'
 import { Publisher } from './Publisher'
@@ -14,13 +13,19 @@ import { startAdapter } from './adapterRegistry'
 import { validateConfig } from './helpers/validateConfig'
 import { StorageConfig } from './storage/StorageConfig'
 import { version as CURRENT_VERSION } from '../package.json'
-import { Todo } from './types';
+import { Todo } from './types'
 import { Config, TrackerRegistry } from './config'
 const { Utils } = Protocol
 
-const logger = getLogger('streamr:broker')
+const logger = new Logger(module)
 
-export const startBroker = async (config: Config) => {
+export interface Broker {
+    getNeighbors: () => readonly string[]
+    getStreams: () => readonly string[]
+    close: () => Promise<unknown>
+}
+
+export const startBroker = async (config: Config): Promise<Broker> => {
     validateConfig(config)
 
     logger.info(`Starting broker version ${CURRENT_VERSION}`)
@@ -100,15 +105,9 @@ export const startBroker = async (config: Config) => {
     }
 
     // Set up reporting to Streamr stream
-    let client: StreamrClient|undefined
+    let client: StreamrClient | undefined
+    let legacyStreamId: string | undefined
 
-    const streamIds: Todo = {
-        metricsStreamId: null,
-        secStreamId: null,
-        minStreamId: null,
-        hourStreamId: null,
-        dayStreamId: null
-    }
     if (config.reporting.streamr || (config.reporting.perNodeMetrics && config.reporting.perNodeMetrics.enabled)) {
         client = new StreamrClient({
             auth: {
@@ -118,50 +117,16 @@ export const startBroker = async (config: Config) => {
             restUrl: config.reporting.perNodeMetrics ? (config.reporting.perNodeMetrics.httpUrl || undefined) : undefined
         })
 
-        const createMetricsStream = async (path: string) => {
-            // @ts-expect-error
-            const metricsStream = await client.getOrCreateStream({
-                name: `Metrics ${path} for broker ${brokerAddress}`,
-                id: brokerAddress + path
-            })
-
-            // @ts-expect-error
-            await metricsStream.grantPermission('stream_get', null)
-            // @ts-expect-error
-            await metricsStream.grantPermission('stream_subscribe', null)
-            return metricsStream.id
-        }
-
         if (config.reporting.streamr && config.reporting.streamr.streamId) {
             const { streamId } = config.reporting.streamr
-
-            // await createMetricsStream(streamId)
-            streamIds.metricsStreamId = streamId
-
+            legacyStreamId = streamId
             logger.info(`Starting StreamrClient reporting with streamId: ${streamId}`)
         } else {
             logger.info('StreamrClient reporting disabled')
         }
-
-        if (config.reporting.perNodeMetrics && config.reporting.perNodeMetrics.enabled) {
-            // streamIds.secStreamId = await createMetricsStream('/streamr/node/metrics/sec')
-            // streamIds.minStreamId = await createMetricsStream('/streamr/node/metrics/min')
-            // streamIds.hourStreamId = await createMetricsStream('/streamr/node/metrics/hour')
-            // streamIds.dayStreamId = await createMetricsStream('/streamr/node/metrics/day')
-            logger.info('Starting perNodeMetrics -- Not implemented yet')
-        } else {
-            logger.info('perNodeMetrics reporting disabled')
-        }
     } else {
         logger.info('StreamrClient and perNodeMetrics disabled')
     }
-
-    const volumeLogger = new VolumeLogger(
-        config.reporting.intervalInSeconds,
-        metricsContext,
-        client,
-        streamIds
-    )
 
     // Validator only needs public information, so use unauthenticated client for that
     const unauthenticatedClient = new StreamrClient({
@@ -200,6 +165,26 @@ export const startBroker = async (config: Config) => {
         }
     })
 
+    let reportingIntervals
+    let storageNodeAddress
+
+    if (config.reporting && config.reporting.perNodeMetrics && config.reporting.perNodeMetrics.intervals) {
+        reportingIntervals = config.reporting.perNodeMetrics.intervals
+        storageNodeAddress = config.reporting.perNodeMetrics.storageNode
+    }
+
+    // Start logging facilities
+    const volumeLogger = new VolumeLogger(
+        config.reporting.intervalInSeconds,
+        metricsContext,
+        client,
+        legacyStreamId,
+        brokerAddress,
+        reportingIntervals,
+        storageNodeAddress
+    )
+    await volumeLogger.start()
+
     logger.info(`Network node '${networkNodeName}' running on ${config.network.hostname}:${config.network.port}`)
     logger.info(`Ethereum address ${brokerAddress}`)
     logger.info(`Configured with trackers: ${trackers.join(', ')}`)
@@ -225,12 +210,12 @@ export const startBroker = async (config: Config) => {
     }
 }
 
-process.on('uncaughtException', pino.final(logger, (err, finalLogger) => {
-    finalLogger.error(err, 'uncaughtException')
+process.on('uncaughtException', (err) => {
+    logger.getFinalLogger().error(err, 'uncaughtException')
     process.exit(1)
-}))
+})
 
-process.on('unhandledRejection', pino.final(logger, (err, finalLogger) => {
-    finalLogger.error(err, 'unhandledRejection')
+process.on('unhandledRejection', (err) => {
+    logger.getFinalLogger().error(err, 'unhandledRejection')
     process.exit(1)
-}))
+})

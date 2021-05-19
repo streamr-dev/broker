@@ -1,21 +1,23 @@
 import { MetricsContext } from 'streamr-network'
-import io from '@pm2/io';
-import Gauge from '@pm2/io/build/main/utils/metrics/gauge';
+import io from '@pm2/io'
+import Gauge from '@pm2/io/build/main/utils/metrics/gauge'
 import { StreamrClient } from "streamr-client"
-import { getLogger } from './helpers/logger'
-import { Todo } from './types';
+import { Logger } from 'streamr-network'
+import { startMetrics, StreamMetrics } from './StreamMetrics'
+import { Config } from './config'
 
-const logger = getLogger('streamr:VolumeLogger')
+const logger = new Logger(module)
 
 function formatNumber(n: number) {
     return n < 10 ? n.toFixed(1) : Math.round(n)
 }
 
-export class VolumeLogger {
+type PerStreamReportingIntervals = NonNullable<Config['reporting']['perNodeMetrics']>['intervals']
 
+export class VolumeLogger {
     metricsContext: MetricsContext
     client?: StreamrClient
-    streamIds: Todo
+    legacyStreamId?: string
     brokerConnectionCountMetric: Gauge
     eventsInPerSecondMetric: Gauge
     eventsOutPerSecondMetric: Gauge
@@ -32,11 +34,28 @@ export class VolumeLogger {
     meanBatchAge: Gauge
     messageQueueSizeMetric: Gauge
     timeout?: NodeJS.Timeout
+    brokerAddress?: string
+    perStreamReportingIntervals?: PerStreamReportingIntervals
+    storageNodeAddress?: string
+    reportingIntervalSeconds: number
+    perStreamMetrics?: { [interval: string]: StreamMetrics }
 
-    constructor(reportingIntervalSeconds = 60, metricsContext: MetricsContext, client: StreamrClient|undefined = undefined, streamIds = undefined) {
+    constructor(
+        reportingIntervalSeconds = 60,
+        metricsContext: MetricsContext,
+        client: StreamrClient | undefined = undefined,
+        legacyStreamId?: string,
+        brokerAddress?: string,
+        perStreamReportingIntervals?: PerStreamReportingIntervals,
+        storageNodeAddress?: string
+    ) {
+        this.reportingIntervalSeconds = reportingIntervalSeconds
         this.metricsContext = metricsContext
         this.client = client
-        this.streamIds = streamIds
+        this.legacyStreamId = legacyStreamId
+        this.brokerAddress = brokerAddress
+        this.perStreamReportingIntervals = perStreamReportingIntervals
+        this.storageNodeAddress = storageNodeAddress
 
         this.brokerConnectionCountMetric = io.metric({
             name: 'brokerConnectionCountMetric'
@@ -83,10 +102,16 @@ export class VolumeLogger {
         this.messageQueueSizeMetric = io.metric({
             name: 'messageQueueSize'
         })
+    }
 
-        if (reportingIntervalSeconds > 0) {
+    async start() {
+        if (this.client instanceof StreamrClient) {
+            await this.initializePerMetricsStream()
+        }
+
+        if (this.reportingIntervalSeconds > 0) {
             logger.info('starting legacy metrics reporting interval')
-            const reportingIntervalInMs = reportingIntervalSeconds * 1000
+            const reportingIntervalInMs = this.reportingIntervalSeconds * 1000
             const reportFn = async () => {
                 try {
                     await this.reportAndReset()
@@ -99,13 +124,53 @@ export class VolumeLogger {
         }
     }
 
+    async initializePerMetricsStream() {
+        if (!this.client || !this.brokerAddress || !this.storageNodeAddress) {
+            throw new Error('Cannot initialize perStream metrics without valid client, brokerAddress, storageNodeAddress')
+        }
+        this.perStreamMetrics = {
+            sec: await startMetrics({
+                client: this.client,
+                metricsContext: this.metricsContext,
+                brokerAddress: this.brokerAddress,
+                interval: 'sec',
+                reportMiliseconds: ((this.perStreamReportingIntervals) ? this.perStreamReportingIntervals.sec :0),
+                storageNodeAddress: this.storageNodeAddress
+            }),
+            min: await startMetrics({
+                client: this.client,
+                metricsContext: this.metricsContext,
+                brokerAddress: this.brokerAddress,
+                interval: 'min',
+                reportMiliseconds: (this.perStreamReportingIntervals) ? this.perStreamReportingIntervals.min : 0,
+                storageNodeAddress: this.storageNodeAddress,
+            }),
+            hour: await startMetrics({
+                client: this.client,
+                metricsContext: this.metricsContext,
+                brokerAddress: this.brokerAddress,
+                interval: 'hour',
+                reportMiliseconds: (this.perStreamReportingIntervals) ? this.perStreamReportingIntervals.hour : 0,
+                storageNodeAddress: this.storageNodeAddress,
+            }),
+            day: await startMetrics({
+                client: this.client,
+                metricsContext: this.metricsContext,
+                brokerAddress: this.brokerAddress,
+                interval: 'day',
+                reportMiliseconds: (this.perStreamReportingIntervals) ? this.perStreamReportingIntervals.day : 0,
+                storageNodeAddress: this.storageNodeAddress,
+            })
+        }
+    }
+
     async reportAndReset() {
         const report = await this.metricsContext.report(true)
 
         // Report metrics to Streamr stream
-        if (this.client instanceof StreamrClient && this.streamIds !== undefined && this.streamIds.metricsStreamId !== undefined) {
-            this.client.publish(this.streamIds.metricsStreamId, report).catch((e) => {
-                logger.warn(`failed to publish metrics to ${this.streamIds.metricsStreamId} because ${e}`)
+        if (this.client instanceof StreamrClient && this.legacyStreamId !== undefined) {
+            this.client.publish(this.legacyStreamId, report).catch((e) => {
+                logger.warn(`failed to publish metrics to ${this.legacyStreamId} because ${e}`)
             })
         }
 
@@ -162,12 +227,15 @@ export class VolumeLogger {
         const networkKbOutPerSecond = report.metrics.WebRtcEndpoint.outSpeed.rate / 1000
         const { messageQueueSize } = report.metrics.WebRtcEndpoint
 
-        const ongoingResends = report.metrics.resends.numOfOngoingResends
-        const resendMeanAge = report.metrics.resends.meanAge
-
-        // @ts-expect-error
-        const totalBuffer = report.metrics.WebRtcEndpoint.totalWebSocketBuffer
-            + (report.metrics['broker/ws'] ? report.metrics['broker/ws'].totalWebSocketBuffer : 0)
+        let ongoingResends = 0
+        let resendMeanAge = 0
+        let totalBuffer = report.metrics.WebRtcEndpoint.totalWebSocketBuffer as number
+        const websocketMetrics = report.metrics['broker/ws']
+        if (websocketMetrics !== undefined) {
+            ongoingResends = websocketMetrics.numOfOngoingResends as number
+            resendMeanAge = websocketMetrics.meanAgeOfOngoingResends as number
+            totalBuffer += websocketMetrics.totalWebSocketBuffer as number
+        }
 
         logger.info(
             'Report\n'
@@ -223,6 +291,13 @@ export class VolumeLogger {
     }
 
     close() {
+        if (this.perStreamMetrics) {
+            this.perStreamMetrics.sec.stop()
+            this.perStreamMetrics.min.stop()
+            this.perStreamMetrics.hour.stop()
+            this.perStreamMetrics.day.stop()
+        }
+
         io.destroy()
         clearTimeout(this.timeout!)
         if (this.client) {

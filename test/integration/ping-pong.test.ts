@@ -46,7 +46,9 @@ describe('ping-pong test between broker and clients', () => {
             new StreamFetcher('http://127.0.0.1'),
             new Publisher(networkNode, {}, metricsContext),
             metricsContext,
-            new SubscriptionManager(networkNode)
+            new SubscriptionManager(networkNode),
+            undefined as any,
+            undefined as any
         )
     })
 
@@ -161,6 +163,8 @@ describe('ping-pong test between broker and clients', () => {
 
             // eslint-disable-next-line no-underscore-dangle
             websocketServer._pingConnections()
+        }).catch((err) => {
+            done(err)
         })
     })
 })

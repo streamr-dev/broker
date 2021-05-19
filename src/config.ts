@@ -1,4 +1,4 @@
-import { AdapterConfig } from './Adapter';
+import { AdapterConfig } from './Adapter'
 
 export interface TrackerRegistry {
     registryAddress: string
@@ -20,6 +20,11 @@ export interface NetworkConfig {
     } | null
 }
 
+export interface StorageNodeRegistryItem {
+    address: string
+    url: string
+}
+
 export interface Config {
     ethereumPrivateKey: string
     network: NetworkConfig,
@@ -36,17 +41,32 @@ export interface Config {
     reporting: {
         intervalInSeconds: number,
         streamr: {
-        streamId: string
-    } | null,
-    perNodeMetrics: {
-        enabled: boolean
-        wsUrl: string | null
-        httpUrl: string | null
-        } | null
+            streamId: string
+        } | null,
+        perNodeMetrics: {
+            enabled: boolean
+            wsUrl: string | null
+            httpUrl: string | null
+            intervals: {
+                sec: number,
+                min: number,
+                hour: number,
+                day: number
+            } | null,
+            storageNode: string
+        } | null,
     },
     streamrUrl: string,
     streamrAddress: string,
+    storageNodeRegistry: StorageNodeRegistryItem[] | null
     adapters: AdapterConfig[]
+}
+
+export interface BrokerConfig extends Config {
+    network: NetworkConfig & {
+        isStorageNode: false
+    },
+    storageNodeRegistry: NonNullable<Config['storageNodeRegistry']>
 }
 
 export interface StorageNodeConfig extends Config {

@@ -12,10 +12,11 @@ import { Connection } from './Connection'
 import { Metrics } from 'streamr-network/dist/helpers/MetricsContext'
 import { Publisher } from '../Publisher'
 import { SubscriptionManager } from '../SubscriptionManager'
-import { getLogger } from '../helpers/logger'
+import { Logger } from 'streamr-network'
 import { StreamStateManager } from '../StreamStateManager'
+import { StorageNodeRegistry } from '../StorageNodeRegistry'
 
-const logger = getLogger('streamr:WebsocketServer')
+const logger = new Logger(module)
 
 export class WebsocketServer extends EventEmitter {
 
@@ -35,6 +36,8 @@ export class WebsocketServer extends EventEmitter {
         publisher: Publisher,
         metricsContext: MetricsContext,
         subscriptionManager: SubscriptionManager,
+        storageNodeRegistry: StorageNodeRegistry,
+        streamrUrl: string,
         pingInterval = 60 * 1000,
     ) {
         super()
@@ -48,7 +51,7 @@ export class WebsocketServer extends EventEmitter {
             .addQueriedMetric('connections', () => this.connections.size)
             .addQueriedMetric('totalWebSocketBuffer', () => {
                 let totalBufferSize = 0
-                this.connections.forEach((connection: Todo, id: Todo) => {
+                this.connections.forEach((connection: Todo) => {
                     if (connection.socket) {
                         totalBufferSize += connection.socket.getBufferedAmount()
                     }
@@ -59,7 +62,7 @@ export class WebsocketServer extends EventEmitter {
                 const control: Todo = {}
                 const message: Todo = {}
                 const pairs: Todo = {}
-                this.connections.forEach((connection: Todo, id: Todo) => {
+                this.connections.forEach((connection: Todo) => {
                     const { controlLayerVersion, messageLayerVersion } = connection
                     const pairKey = controlLayerVersion + '->' + messageLayerVersion
                     if (control[controlLayerVersion] == null) {
@@ -83,7 +86,7 @@ export class WebsocketServer extends EventEmitter {
             })
 
         const streams = new StreamStateManager()
-        this.requestHandler = new RequestHandler(networkNode, streamFetcher, publisher, streams, subscriptionManager, this.metrics)
+        this.requestHandler = new RequestHandler(streamFetcher, publisher, streams, subscriptionManager, this.metrics, storageNodeRegistry, streamrUrl)
         networkNode.addMessageListener((msg: Protocol.MessageLayer.StreamMessage) => this._broadcastMessage(msg, streams))
 
         this._pingInterval = setInterval(() => {
@@ -124,8 +127,8 @@ export class WebsocketServer extends EventEmitter {
                 try {
                     WebsocketServer.validateProtocolVersions(controlLayerVersion, messageLayerVersion)
                 } catch (err) {
-                    logger.debug('Rejecting connection with status 400 due to: %s, query params: %s', err.message, req.getQuery())
-                    logger.debug(err)
+                    logger.trace('Rejecting connection with status 400 due to: %s, query params: %s', err.message, req.getQuery())
+                    logger.trace(err)
                     res.writeStatus('400')
                     res.write(err.message)
                     res.end()
@@ -148,7 +151,7 @@ export class WebsocketServer extends EventEmitter {
             open: (ws: Todo) => {
                 const connection = new Connection(ws, ws.controlLayerVersion, ws.messageLayerVersion)
                 this.connections.set(connection.id, connection)
-                logger.debug('onNewClientConnection: socket "%s" connected', connection.id)
+                logger.trace('onNewClientConnection: socket "%s" connected', connection.id)
                 // eslint-disable-next-line no-param-reassign
                 ws.connectionId = connection.id
 
@@ -163,7 +166,7 @@ export class WebsocketServer extends EventEmitter {
                     }
                 })
             },
-            message: (ws: Todo, message: Todo, isBinary: Todo) => {
+            message: (ws: Todo, message: Todo, _isBinary: Todo) => {
                 const connection = this.connections.get(ws.connectionId)
 
                 if (connection) {
@@ -194,7 +197,7 @@ export class WebsocketServer extends EventEmitter {
                         }
 
                         try {
-                            logger.debug('socket "%s" sent request "%s" with contents "%o"', connection.id, request.type, request)
+                            logger.trace('socket "%s" sent request "%s" with contents "%o"', connection.id, request.type, request)
                             await this.requestHandler.handleRequest(connection, request)
                         } catch (err) {
                             if (connection.isDead()) {
@@ -216,11 +219,10 @@ export class WebsocketServer extends EventEmitter {
                     connection.evaluateBackPressure()
                 }
             },
-            close: (ws: Todo, code: Todo, message: Todo) => {
+            close: (ws: Todo, _code: Todo, _message: Todo) => {
                 const connection = this.connections.get(ws.connectionId)
-
                 if (connection) {
-                    logger.debug('closing socket "%s" on streams "%o"', connection.id, connection.streamsAsString())
+                    logger.trace('closing socket "%s" on streams "%o"', connection.id, connection.streamsAsString())
                     this._removeConnection(connection)
                 }
             },
@@ -228,7 +230,7 @@ export class WebsocketServer extends EventEmitter {
                 const connection = this.connections.get(ws.connectionId)
 
                 if (connection) {
-                    logger.debug(`received from ${connection.id} "pong" frame`)
+                    logger.trace(`received from ${connection.id} "pong" frame`)
                     // @ts-expect-error
                     connection.respondedPong = true
                 }
@@ -273,9 +275,7 @@ export class WebsocketServer extends EventEmitter {
         })
 
         // Cancel all resends
-        connection.getOngoingResends().forEach((resend: Todo) => {
-            resend.destroy()
-        })
+        this.requestHandler.onConnectionClose(connection.id)
 
         connection.markAsDead()
     }
@@ -285,7 +285,7 @@ export class WebsocketServer extends EventEmitter {
 
         this.requestHandler.close()
 
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
             try {
                 this.connections.forEach((connection: Todo) => connection.socket.close())
             } catch (e) {
@@ -316,7 +316,7 @@ export class WebsocketServer extends EventEmitter {
                 // eslint-disable-next-line no-param-reassign
                 connection.respondedPong = false
                 connection.ping()
-                logger.debug(`pinging ${connection.id}`)
+                logger.trace(`pinging ${connection.id}`)
             } catch (e) {
                 logger.error(`Failed to ping connection: ${connection.id}, error ${e}`)
                 connection.emit('forceClose')
@@ -340,7 +340,7 @@ export class WebsocketServer extends EventEmitter {
             this.metrics.record('outBytes', streamMessage.getSerializedContent().length * stream.getConnections().length)
             this.metrics.record('outMessages', stream.getConnections().length)
         } else {
-            logger.debug('broadcastMessage: stream "%s:%d" not found', streamId, streamPartition)
+            logger.trace('broadcastMessage: stream "%s:%d" not found', streamId, streamPartition)
         }
     }
 }
