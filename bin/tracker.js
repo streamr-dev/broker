@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 const program = require('commander')
 const { startTracker, Logger } = require('streamr-network')
-const Sentry = require('@sentry/node')
 const ethers = require('ethers')
 
 const CURRENT_VERSION = require('../package.json').version
