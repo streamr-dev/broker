@@ -535,7 +535,7 @@ export class Storage extends EventEmitter {
 
         return count
     }
-
+    /*
     async getTotalBytesInStream(streamId: string, partition: number) {
         const query = 'SELECT size FROM bucket WHERE stream_id=? AND partition=?'
         const queryParams = [
@@ -551,6 +551,25 @@ export class Storage extends EventEmitter {
         for (let i = 0; i < res.rows.length; i++){
             count += res.rows[i].size
         }
+
+        return count
+    }*/
+    async getTotalBytesInStream(streamId: string, partition: number) {
+
+        const query = 'SELECT SUM(size / 1024) as count FROM bucket WHERE stream_id=? AND partition=?'
+        const queryParams = [
+            streamId,
+            partition
+        ]
+        const res = await this.cassandraClient.execute(query, queryParams, {
+            prepare: true
+        })
+        
+        if (res.rows.length !== 1) {
+            return 0
+        }
+
+        const { count } = res.rows[0]
 
         return count
     }
