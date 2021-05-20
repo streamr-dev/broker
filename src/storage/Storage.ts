@@ -535,7 +535,7 @@ export class Storage extends EventEmitter {
 
         return count
     }
-    /*
+
     async getTotalBytesInStream(streamId: string, partition: number) {
         const query = 'SELECT size FROM bucket WHERE stream_id=? AND partition=?'
         const queryParams = [
@@ -553,7 +553,9 @@ export class Storage extends EventEmitter {
         }
 
         return count
-    }*/
+    }
+
+    /*
     async getTotalBytesInStream(streamId: string, partition: number) {
 
         const query = 'SELECT SUM(size / 1024) as count FROM bucket WHERE stream_id=? AND partition=?'
@@ -572,7 +574,7 @@ export class Storage extends EventEmitter {
         const { count } = res.rows[0]
 
         return count
-    }
+    }*/
 
 }
 
