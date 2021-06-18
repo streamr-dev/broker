@@ -1,3 +1,5 @@
+# NOTICE! This repository has been moved under [network monorepo](https://github.com/streamr-dev/network-monorepo)
+
 # streamr-broker
 
 Main executable for running a broker node in Streamr Network.
